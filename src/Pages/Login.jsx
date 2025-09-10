@@ -1,7 +1,5 @@
-// src/Pages/Login.jsx
-
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
 
 // Іконка Google
@@ -27,12 +25,13 @@ const GoogleIcon = () => (
 );
 
 const Login = () => {
-  const [currentTab, setCurrentTab] = useState('STAFF');
+  const [currentTab, setCurrentTab] = useState('SIGN_IN');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -53,6 +52,22 @@ const Login = () => {
       },
     });
     if (error) setError(error.message);
+  };
+  
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: password,
+    });
+
+    if (error) {
+      setError(error.message);
+    } else {
+      navigate('/userpanel');
+    }
   };
 
   const handleTabChange = (tabName) => {
@@ -86,7 +101,7 @@ const Login = () => {
                   </p>
                 </div>
                 {error && <p className="text-red-500 text-xs mb-4">{error}</p>}
-                <form className="text-left space-y-6">
+                <form onSubmit={handleLogin} className="text-left space-y-6">
                   <div>
                     <label
                       htmlFor="email"
@@ -99,6 +114,7 @@ const Login = () => {
                       id="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      required
                       className="w-full bg-transparent border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm"
                     />
                   </div>
@@ -114,6 +130,7 @@ const Login = () => {
                       id="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
+                      required
                       className="w-full bg-transparent border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm"
                     />
                   </div>

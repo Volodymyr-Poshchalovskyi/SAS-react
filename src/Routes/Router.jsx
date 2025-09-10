@@ -1,40 +1,35 @@
-import { Routes, Route } from 'react-router-dom';
-import ProtectedRoute from './ProtectedRoute'; 
+// src/Routes/Router.jsx
 
-// Import Layouts
+import { Routes, Route } from 'react-router-dom';
+import ProtectedRoute from './ProtectedRoute';
+import UserProtectedRoute from './UserProtectedRoute';
+
+// Layouts
 import Layout from '../Components/Layout/Layout';
 import AdminLayout from '../AdminComponents/AdminLayout';
 
-// Import all your page components
+// Pages
+import Main from '../Pages/Main';
+import Login from '../Pages/Login';
+import AdminPanel from '../Pages/AdminPanel';
+import UserPanel from '../Pages/UserPanel';
+// ... (імпорти решти ваших сторінок)
 import Assignment from '../Pages/Assignment';
 import Directors from '../Pages/Directors';
 import DirectorPage from '../Components/DirectorPage';
 import Feature from '../Pages/Feature';
-import Main from '../Pages/Main';
 import Management from '../Pages/Management';
 import Originals from '../Pages/Originals';
 import Production from '../Pages/Production';
 import Studio from '../Pages/Studio';
 import Team from '../Pages/Team';
-import Login from '../Pages/Login';
-import AdminPanel from '../Pages/AdminPanel';
 
-
-
-
-
-
-/**
- * Defines the application's routing structure.
- * It uses nested routes to apply different layouts to different sections of the app.
- * - Public-facing pages are wrapped in the main `Layout`.
- * - Admin pages are wrapped in the `AdminLayout`.
- */
 export default function AppRouter() {
   return (
     <Routes>
-      {/* Public routes that use the main Layout */}
+      {/* Public and User routes with the main Layout */}
       <Route element={<Layout />}>
+        {/* --- Public Routes --- */}
         <Route path="/" element={<Main />} />
         <Route path="/assignment" element={<Assignment />} />
         <Route path="/directors" element={<Directors />} />
@@ -46,17 +41,23 @@ export default function AppRouter() {
         <Route path="/studio" element={<Studio />} />
         <Route path="/team" element={<Team />} />
         <Route path="/login" element={<Login />} />
+
         
       </Route>
 
-      {/* Admin routes that use the AdminLayout */}
+      <Route element={<UserProtectedRoute />}>
+        <Route element={<AdminLayout />}>
+          <Route path="/userpanel" element={<UserPanel />} />
+        </Route>
+      </Route>
+
+
+      {/* Admin routes with the AdminLayout */}
       <Route element={<ProtectedRoute />}>
         <Route element={<AdminLayout />}>
           <Route path="/adminpanel" element={<AdminPanel />} />
-          {/* Сюди можна додавати інші сторінки адмінки, напр. /adminpanel/users */}
         </Route>
-      </Route>  
+      </Route>
     </Routes>
   );
 }
-

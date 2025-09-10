@@ -9,10 +9,9 @@ export function AuthProvider({ children }) {
   const [session, setSession] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [isLoggingOut, setIsLoggingOut] = useState(false); // <-- Новий стан
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
-    // ... (решта useEffect залишається без змін) ...
     const checkAdminStatus = async (user) => {
       if (!user) {
         setIsAdmin(false);
@@ -23,7 +22,7 @@ export function AuthProvider({ children }) {
         .select('id')
         .eq('id', user.id)
         .single();
-      setIsAdmin(!error && data);
+      setIsAdmin(!error && !!data);
     };
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
@@ -35,9 +34,11 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         setSession(session);
-        // Не встановлюємо isLoggingOut тут, щоб уникнути зациклення
         if (_event !== 'SIGNED_OUT') {
             await checkAdminStatus(session?.user);
+        } else {
+            // Ensure admin status is cleared on logout
+            setIsAdmin(false);
         }
       }
     );
@@ -46,23 +47,23 @@ export function AuthProvider({ children }) {
       subscription.unsubscribe();
     };
   }, []);
-  
-  // <-- Нова функція виходу
+
   const logout = async () => {
-    setIsLoggingOut(true); // Повідомляємо, що почався вихід
+    setIsLoggingOut(true);
     const { error } = await supabase.auth.signOut();
-    // Після виходу onAuthStateChange автоматично оновить isAdmin і session
-    setIsLoggingOut(false); // Завершуємо процес
+    setIsLoggingOut(false);
     return { error };
   };
 
+  const isAuthenticated = !!session;
 
   const value = {
     session,
     isAdmin,
     loading,
-    isLoggingOut, // <-- Передаємо новий стан
-    logout,        // <-- Передаємо функцію виходу
+    isLoggingOut,
+    logout,
+    isAuthenticated,
   };
 
   return (
