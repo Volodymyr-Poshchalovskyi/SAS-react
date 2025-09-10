@@ -18,7 +18,7 @@ const UserProtectedRoute = () => {
     return <Outlet />;
   }
 
-  return <Navigate to="/login" state={{ message: 'Please log in to view this page.' }} />;
+  return <Navigate to="/" state={{ message: 'Please log in to view this page.' }} />;
 };
 
 export default UserProtectedRoute;

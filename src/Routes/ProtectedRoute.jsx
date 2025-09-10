@@ -18,7 +18,7 @@ const ProtectedRoute = () => {
     return <Outlet />;
   }
 
-  return <Navigate to="/login" state={{ message: 'Access denied: You are not an admin.' }} />;
+  return <Navigate to="/" state={{ message: 'Access denied: You are not an admin.' }} />;
 };
 
 export default ProtectedRoute;
