@@ -1,0 +1,105 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400&display=swap');
+
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+
+
+/* 1. Імпортуємо всі потрібні шрифти */
+/* 'helvetica' - потрібно додати цей файл в assets/fonts/ */
+@font-face {
+  font-family: 'helvetica';
+  src: url('./assets/fonts/HelveticaNeueRoman.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 'abchanel-pb-l' - 400 і 600 */
+@font-face {
+  font-family: 'abchanel-pb-l';
+  font-display: swap;
+  src:
+    url('https://fonts.chanel.com/k/8b5cf00aaad4b43b75a6f2a153d24a49a4f6db2f-l.woff2')
+      format('woff2'),
+    url('https://fonts.chanel.com/k/8b5cf00aaad4b43b75a6f2a153d24a4f6db2f-d.woff')
+      format('woff'),
+    url('https://fonts.chanel.com/k/8b5cf00aaad4b43b75a6f2a153d24a49a4f6db2f-a.otf')
+      format('opentype');
+  font-style: normal;
+  font-weight: 400;
+}
+
+@font-face {
+  font-family: 'abchanel-pb-l';
+  font-display: swap;
+  src:
+    url('https://fonts.chanel.com/k/6506891d64c78b1ab49f21a4ead183c0017c4785-l.woff2')
+      format('woff2'),
+    url('https://fonts.chanel.com/k/6506891d64c78b1ab49f21a4ead183c0017c4785-d.woff')
+      format('woff'),
+    url('https://fonts.chanel.com/k/6506891d64c78b1ab49f21a4ead183c0017c4785-a.otf')
+      format('opentype');
+  font-style: normal;
+  font-weight: 600;
+}
+
+/* 'abchanel-pb-s' */
+@font-face {
+  font-family: 'abchanel-pb-s';
+  font-display: swap;
+  src:
+    url('https://fonts.chanel.com/k/593e92c7b65c0de458d1a858532d5ee87dfe8c44-l.woff2')
+      format('woff2'),
+    url('https://fonts.chanel.com/k/593e92c7b65c0de458d1a858532d5ee87dfe8c44-d.woff')
+      format('woff'),
+    url('https://fonts.chanel.com/k/593e92c7b65c0de458d1a858532d5ee87dfe8c44-a.otf')
+      format('opentype');
+  font-style: normal;
+  font-weight: 400;
+}
+
+/* ABChanel Corpo Semi Bold - файл, який ви надали */
+@font-face {
+  font-family: 'ABChanel Corpo'; 
+  src: url('./assets/fonts/ABChanel-Corpo-Semi-Bold.ttf') format('truetype');
+  font-weight: 600; 
+  font-style: normal;
+}
+
+/* 2. Задаємо базовий шрифт для всього body */
+body {
+  font-family: 'abchanel-pb-l', sans-serif;
+  color: #fff;
+  background-color: #000;
+}
+
+/* 3. Додаємо стилі, які не можна легко перенести у класи Tailwind */
+.intro-preloader__sub {
+  font-family: 'helvetica', Arial, sans-serif;
+}
+
+.footer-column a,
+.form-group input {
+  font-family: 'helvetica', Arial, sans-serif;
+}
+
+/* Якщо ви хочете використовувати клас, як в оригіналі,
+   тоді `body` буде з класом, а не просто селектором тегу */
+.scroll-snap-enabled {
+    @apply snap-y snap-proximity;
+}
+
+.expanded-text {
+  transform: scaleX(1.15);
+  transform-origin: center center;
+}
+
+.expanded-subtitle {
+  transform: scaleX(1.1);
+  transform-origin: center center;
+}
+
