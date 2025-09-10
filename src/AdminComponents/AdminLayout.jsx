@@ -1,26 +1,74 @@
-import { Outlet } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Outlet, useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/supabaseClient'; 
 
-/**
- * A layout component specifically for the admin section of the application.
- * It includes a sidebar for navigation and a main content area where
- * nested admin pages will be rendered via the <Outlet /> component.
- */
 function AdminLayout() {
+    const navigate = useNavigate();
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        setLoading(true);
+        console.log("--- AdminLayout: useEffect запущено ---");
+
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            
+            // --- ЛОГ 1: Яка подія сталася і чи є сесія ---
+            console.log(`%cAuth Event: ${event}`, 'color: yellow;', { session });
+
+            if (!session) {
+                console.log("--- AdminLayout: Сесії немає, перенаправлення на /login ---");
+                navigate('/login');
+                setLoading(false);
+                return;
+            }
+
+            // --- ЛОГ 2: Який ID користувача ми перевіряємо ---
+            const userId = session.user.id;
+            console.log(`--- AdminLayout: Сесія є. Перевіряємо адмін-статус для User ID: ${userId} ---`);
+
+            const { data: adminRecord, error: adminError } = await supabase
+                .from('admins')
+                .select('id')
+                .eq('id', userId)
+                .single();
+            
+            // --- ЛОГ 3: Який результат запиту до бази даних (НАЙВАЖЛИВІШИЙ) ---
+            console.log('%cAdmin Check Result:', 'color: cyan;', { adminRecord, adminError });
+
+            if (adminError || !adminRecord) {
+                console.error("--- AdminLayout: Перевірка адміна провалена. Причина: запис не знайдено або сталася помилка. Починаємо вихід... ---", adminError);
+                await supabase.auth.signOut();
+                navigate('/login', { 
+                    state: { message: 'Доступ заборонено: Ви не є адміністратором.' } 
+                });
+                return;
+            }
+            
+            console.log("%c--- AdminLayout: Перевірка успішна! Користувач - адмін. ---", 'color: green;');
+            setLoading(false);
+        });
+
+        return () => {
+            console.log("--- AdminLayout: Відписка від onAuthStateChange ---");
+            subscription.unsubscribe();
+        };
+    }, [navigate]);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-gray-100"> 
+                <p>Перевірка доступу...</p>
+            </div>
+        );
+    }
+
     return (
         <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900 text-black dark:text-white">
-            {/* Sidebar for admin navigation */}
             <aside className="w-64 flex-shrink-0 bg-gray-800 p-6">
                 <h1 className="text-2xl font-bold text-white">Admin Panel</h1>
-                <nav className="mt-8">
-                    {/* You can add navigation links here later */}
-                    {/* Example: <Link to="/admin">Dashboard</Link> */}
-                    {/* Example: <Link to="/admin/advanced">Advanced</Link> */}
-                </nav>
+                <nav className="mt-8"></nav>
             </aside>
-
-            {/* Main content area for admin pages */}
             <main className="flex-1 p-8 overflow-auto">
-                {/* Child routes (AdminPanel, AdvancedAdminPanel) will be rendered here */}
                 <Outlet />
             </main>
         </div>

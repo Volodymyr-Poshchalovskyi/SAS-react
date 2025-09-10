@@ -17,7 +17,9 @@ import Studio from '../Pages/Studio';
 import Team from '../Pages/Team';
 import Login from '../Pages/Login';
 import AdminPanel from '../Pages/AdminPanel';
-import UserPanel from '../Pages/UserPanel';
+
+
+
 
 /**
  * Defines the application's routing structure.
@@ -41,12 +43,12 @@ export default function AppRouter() {
         <Route path="/studio" element={<Studio />} />
         <Route path="/team" element={<Team />} />
         <Route path="/login" element={<Login />} />
+        
       </Route>
 
       {/* Admin routes that use the AdminLayout */}
       <Route element={<AdminLayout />}>
         <Route path="/adminpanel" element={<AdminPanel />} />
-        <Route path="/userpanel" element={<UserPanel />} />
       </Route>
     </Routes>
   );
