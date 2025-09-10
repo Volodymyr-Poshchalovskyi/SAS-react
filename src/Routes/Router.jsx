@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
+import ProtectedRoute from './ProtectedRoute'; 
 
 // Import Layouts
 import Layout from '../Components/Layout/Layout';
@@ -17,6 +18,8 @@ import Studio from '../Pages/Studio';
 import Team from '../Pages/Team';
 import Login from '../Pages/Login';
 import AdminPanel from '../Pages/AdminPanel';
+
+
 
 
 
@@ -47,9 +50,12 @@ export default function AppRouter() {
       </Route>
 
       {/* Admin routes that use the AdminLayout */}
-      <Route element={<AdminLayout />}>
-        <Route path="/adminpanel" element={<AdminPanel />} />
-      </Route>
+      <Route element={<ProtectedRoute />}>
+        <Route element={<AdminLayout />}>
+          <Route path="/adminpanel" element={<AdminPanel />} />
+          {/* Сюди можна додавати інші сторінки адмінки, напр. /adminpanel/users */}
+        </Route>
+      </Route>  
     </Routes>
   );
 }
