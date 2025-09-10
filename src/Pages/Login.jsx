@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabaseClient';
+import ApplicationForm from '../Components/ApplicationForm'; // Імпорт компонента форми
 
 // Іконка Google
 const GoogleIcon = () => (
@@ -29,6 +30,7 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [showApplicationForm, setShowApplicationForm] = useState(false);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -75,6 +77,7 @@ const Login = () => {
     setEmail('');
     setPassword('');
     setError('');
+    setShowApplicationForm(false); // Скидаємо стан форми при зміні вкладки
   };
 
   const getTabClass = (tabName) => {
@@ -153,7 +156,9 @@ const Login = () => {
             );
 
           case 'REGISTER':
-            return (
+            return showApplicationForm ? (
+              <ApplicationForm />
+            ) : (
               <>
                 <div className="mb-10">
                   <h2 className="text-xl font-semibold text-black mb-2 tracking-wider uppercase">
@@ -165,6 +170,7 @@ const Login = () => {
                 </div>
                 <button
                   type="button"
+                  onClick={() => setShowApplicationForm(true)}
                   className="w-full py-4 bg-black text-white font-semibold text-xs uppercase tracking-widest hover:bg-gray-800 transition-colors"
                 >
                   Contact Us
