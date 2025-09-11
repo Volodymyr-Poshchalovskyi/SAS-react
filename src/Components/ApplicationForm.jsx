@@ -16,14 +16,12 @@ const ApplicationForm = () => {
     setError('');
     setSuccess(false);
 
-    // Валідація
     if (!email || !text) {
       setError('Please fill in all fields.');
       setLoading(false);
       return;
     }
 
-    // Відправляємо дані в Supabase
     const { error: insertError } = await supabase
       .from('applications')
       .insert([{ email: email, text: text }]);
@@ -75,7 +73,8 @@ const ApplicationForm = () => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full bg-transparent border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm"
+            placeholder="Enter your email"
+            className="w-full bg-transparent border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm text-black placeholder:text-black"
           />
         </div>
         <div>
@@ -91,7 +90,8 @@ const ApplicationForm = () => {
             onChange={(e) => setText(e.target.value)}
             required
             rows="3"
-            className="w-full bg-transparent border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm resize-none"
+            placeholder="Write your message..."
+            className="w-full bg-transparent border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm resize-none text-black placeholder:text-black"
           />
         </div>
         <button

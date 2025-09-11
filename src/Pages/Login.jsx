@@ -118,7 +118,8 @@ const Login = () => {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       required
-                      className="w-full bg-transparent border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm"
+                      placeholder="Enter your email"
+                      className="w-full bg-transparent border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm text-black placeholder:text-black"
                     />
                   </div>
                   <div>
@@ -134,7 +135,8 @@ const Login = () => {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       required
-                      className="w-full bg-transparent border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm"
+                      placeholder="Enter your password"
+                      className="w-full bg-transparent border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm text-black placeholder:text-black"
                     />
                   </div>
                   <div className="pt-2">
