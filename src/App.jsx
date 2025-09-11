@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { BrowserRouter as Router, useLocation } from 'react-router-dom';
 import AppRouter from './Routes/Router';
 import { AnimationProvider } from './context/AnimationContext';
-import { AuthProvider } from './context/AuthContext'; // <-- ІМПОРТУЄМО НАШ ПРОВАЙДЕР
+
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -17,13 +17,13 @@ const ScrollToTop = () => {
 export default function App() {
   return (
     // Обгортаємо все в AuthProvider
-    <AuthProvider>
+   
       <Router>
         <ScrollToTop />
         <AnimationProvider>
           <AppRouter />
         </AnimationProvider>
       </Router>
-    </AuthProvider>
+  
   );
 }

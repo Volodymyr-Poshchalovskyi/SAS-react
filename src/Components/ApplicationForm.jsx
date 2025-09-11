@@ -1,42 +1,42 @@
-// src/components/ApplicationForm.jsx
-
 import React, { useState } from 'react';
-import { supabase } from '../lib/supabaseClient'; // Переконайтесь, що шлях правильний
 
 const ApplicationForm = () => {
+  // Component state remains unchanged as it manages the UI
   const [email, setEmail] = useState('');
   const [text, setText] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e) => {
+  // Form submission handler, adapted for the frontend
+  const handleSubmit = (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     setSuccess(false);
 
+    // Client-side validation remains
     if (!email || !text) {
       setError('Please fill in all fields.');
       setLoading(false);
       return;
     }
 
-    const { error: insertError } = await supabase
-      .from('applications')
-      .insert([{ email: email, text: text }]);
+    // Simulate an API request
+    console.log('Simulating data submission:', { email, text });
 
-    setLoading(false);
-
-    if (insertError) {
-      setError(`Error: ${insertError.message}`);
-    } else {
-      setSuccess(true);
+    // Simulate a network delay (e.g., 1.5 seconds)
+    setTimeout(() => {
+      setLoading(false);
+      setSuccess(true); // Show success message
+      
+      // Clear the form fields
       setEmail('');
       setText('');
-    }
+    }, 1500);
   };
 
+  // Successful submission (UI remains the same)
   if (success) {
     return (
       <div className="text-center animate-fadeIn">
@@ -48,6 +48,7 @@ const ApplicationForm = () => {
     );
   }
 
+  // Form rendering (UI remains the same)
   return (
     <div className="max-w-sm mx-auto text-center animate-fadeIn">
       <div className="mb-10">
@@ -99,7 +100,7 @@ const ApplicationForm = () => {
           disabled={loading}
           className="w-full py-4 mt-4 bg-black text-white font-semibold text-xs uppercase tracking-widest hover:bg-gray-800 transition-colors disabled:bg-gray-400"
         >
-          {loading ? 'SENDING...' : 'Send an Application'}
+          {loading ? 'SENDING...' : 'Send Application'}
         </button>
       </form>
     </div>
