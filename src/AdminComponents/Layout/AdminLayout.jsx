@@ -1,43 +1,96 @@
-// src/AdminComponents/AdminLayout.jsx
+// src/AdminComponents/Layout/AdminLayout.jsx
 
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, useNavigate, useLocation, NavLink } from 'react-router-dom';
+// Іконки все ще рекомендуються для відтворення стилю shadcn/ui
+// Якщо ви не хочете їх використовувати, просто видаліть їх з JSX
+import {
+  LayoutDashboard,
+  Clapperboard,
+  Library,
+  BarChart,
+  FileText,
+  Users,
+  LogOut,
+} from 'lucide-react';
 
 function AdminLayout() {
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // Спрощена функція виходу, що відповідає лише за навігацію
   const handleLogout = () => {
-    // У реальному додатку тут також може бути логіка
-    // для очищення стану на клієнті (напр., токену з localStorage).
     console.log('Виконується вихід...');
     navigate('/');
   };
 
+  const isAdminPanel = location.pathname.startsWith('/adminpanel');
+  const basePath = isAdminPanel ? '/adminpanel' : '/userpanel';
+  
+  // Функція для генерації класів Tailwind, що імітують Button variant="ghost" та "secondary"
+  const getNavLinkClasses = ({ isActive }) => {
+    const baseClasses =
+      'w-full flex items-center justify-start px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150';
+    
+    if (isActive) {
+      // Стиль, схожий на variant="secondary"
+      return `${baseClasses} bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-50`;
+    } else {
+      // Стиль, схожий на variant="ghost"
+      return `${baseClasses} text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-50`;
+    }
+  };
+
+  const navItems = [
+    { to: `${basePath}/dashboard`, label: 'Dashboard', icon: LayoutDashboard },
+    { to: `${basePath}/create-reel`, label: 'Create reel', icon: Clapperboard },
+    { to: `${basePath}/library`, label: 'Library', icon: Library },
+    { to: `${basePath}/my-analytic`, label: 'My Analytics', icon: BarChart },
+  ];
+
+  const adminNavItems = [
+    { to: '/adminpanel/applications', label: 'Applications', icon: FileText },
+    { to: '/adminpanel/user-management', label: 'User Management', icon: Users },
+  ];
+
   return (
-    <div className="flex min-h-screen bg-gray-100 dark:bg-gray-900 text-black dark:text-white">
+    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
       {/* Бічна панель (Sidebar) */}
-      <aside className="w-64 flex-shrink-0 bg-gray-800 p-6 flex flex-col justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Admin Panel</h1>
-          <nav className="mt-8">
-            {/* Тут можна додати посилання для навігації в адмін-панелі, 
-              наприклад, використовуючи компонент Link або NavLink з react-router-dom.
-              <Link to="/admin/dashboard">Dashboard</Link>
-              <Link to="/admin/users">Users</Link>
-            */}
+      <aside className="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-800">
+          <h1 className="text-xl font-bold text-center">
+            {isAdminPanel ? 'Admin Panel' : 'User Panel'}
+          </h1>
+        </div>
+        <div className="flex-1 p-4">
+          <nav className="flex flex-col space-y-1">
+            {navItems.map((item) => (
+              <NavLink key={item.to} to={item.to} end className={getNavLinkClasses}>
+                <item.icon className="mr-3 h-4 w-4" />
+                <span>{item.label}</span>
+              </NavLink>
+            ))}
+            {isAdminPanel && adminNavItems.map((item) => (
+              <NavLink key={item.to} to={item.to} end className={getNavLinkClasses}>
+                <item.icon className="mr-3 h-4 w-4" />
+                <span>{item.label}</span>
+              </NavLink>
+            ))}
           </nav>
         </div>
-        <button
-          onClick={handleLogout}
-          className="w-full bg-indigo-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-300"
-        >
-          Logout
-        </button>
+        <div className="mt-auto p-4 border-t border-slate-200 dark:border-slate-800">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center px-4 py-2 rounded-md text-sm font-semibold transition-colors
+                       bg-slate-900 text-slate-50 hover:bg-slate-900/90
+                       dark:bg-slate-50 dark:text-slate-900 dark:hover:bg-slate-50/90"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Logout
+          </button>
+        </div>
       </aside>
 
       {/* Основний контент */}
-      <main className="flex-1 p-8 overflow-auto">
-        {/* Вміст дочірніх маршрутів буде рендеритися тут */}
+      <main className="flex-1 p-6 lg:p-8 overflow-auto">
         <Outlet />
       </main>
     </div>

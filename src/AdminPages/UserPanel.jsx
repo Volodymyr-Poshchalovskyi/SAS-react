@@ -1,9 +1,12 @@
-// src/Pages/UserPanel.jsx
+import { Outlet } from 'react-router-dom';
 
 function UserPanel() {
-    return ( <div>
-        User Panel
-    </div> );
+    return (
+        <div>
+            {/* Вміст дочірніх маршрутів (Dashboard, Library і т.д.) буде відображатися тут */}
+            <Outlet />
+        </div>
+    );
 }
 
 export default UserPanel;

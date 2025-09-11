@@ -1,11 +1,10 @@
-// src/Pages/AdminPanel.jsx
-import ApplicationForm from '../AdminComponents/ApplicationsForAdmin';
+import { Outlet } from 'react-router-dom';
 
 function AdminPanel() {
   return (
     <div>
-      Admin Panel
-      <ApplicationForm />
+      {/* Вміст дочірніх маршрутів (Dashboard, Library і т.д.) буде відображатися тут */}
+      <Outlet />
     </div>
   );
 }

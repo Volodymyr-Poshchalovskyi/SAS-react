@@ -1,158 +1,172 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 
-// Static data for demonstration, instead of a database query
+// === Розширений набір статичних даних (США + Lorem Ipsum) ===
 const mockApplications = [
-  {
-    id: 1,
-    email: 'test.user1@example.com',
-    text: 'I would like to join your team. I have experience in React and Node.js.',
-    status: 'in progress',
-    created_at: '2023-10-27T10:00:00Z',
-  },
-  {
-    id: 2,
-    email: 'developer2@example.com',
-    text: 'I am interested in the frontend developer position. My portfolio can be viewed at the link.',
-    status: 'approved',
-    created_at: '2023-10-26T15:30:00Z',
-  },
-  {
-    id: 3,
-    email: 'another.dev@example.com',
-    text: 'Application for an internship. I am a 3rd-year student.',
-    status: 'denied',
-    created_at: '2023-10-25T12:00:00Z',
-  },
-    {
-    id: 4,
-    email: 'new.applicant@example.com',
-    text: 'Please consider my candidacy for the UI/UX designer position.',
-    status: 'in progress',
-    created_at: '2023-10-28T09:00:00Z',
-  },
+  { id: 1, email: 'john.doe@example.com', text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam ac rhoncus quam.', status: 'in progress', created_at: '2025-09-11T14:00:00Z' },
+  { id: 2, email: 'emily.white@example.com', text: 'Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.', status: 'approved', created_at: '2025-09-10T15:30:00Z' },
+  { id: 3, email: 'michael.b@example.com', text: 'Nulla facilisi. Donec et magna quis elit feugiat consequat. Proin sit amet tincidunt sapien.', status: 'denied', created_at: '2025-09-09T12:00:00Z' },
+  { id: 4, email: 'sarah.jones@example.com', text: 'Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae.', status: 'in progress', created_at: '2025-09-11T09:00:00Z' },
+  { id: 5, email: 'david.miller@work.com', text: 'Praesent ac diam nec libero blandit venenatis. Sed ut perspiciatis unde omnis iste natus error sit voluptatem.', status: 'in progress', created_at: '2025-09-11T13:45:00Z' },
+  { id: 6, email: 'linda.green@tech.co', text: 'Integer euismod, nunc eget consectetur tempor, nisl nisi aliquam nunc, eget tincidunt nisl nunc sit amet nunc.', status: 'in progress', created_at: '2025-09-11T11:20:00Z' },
+  { id: 7, email: 'james.smith@agency.net', text: 'Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.', status: 'approved', created_at: '2025-09-08T18:00:00Z' },
+  { id: 8, email: 'contact@robertbrown.dev', text: 'Vivamus elementum semper nisi. Aenean vulputate eleifend tellus.', status: 'in progress', created_at: '2025-09-11T10:15:00Z' },
+  { id: 9, email: 'jennifer.w@university.edu', text: 'Curabitur ullamcorper ultricies nisi. Nam eget dui. Etiam rhoncus.', status: 'in progress', created_at: '2025-09-11T08:30:00Z' },
+  { id: 10, email: 'hr.applicant@corporate.com', text: 'Maecenas tempus, tellus eget condimentum rhoncus, sem quam semper libero.', status: 'denied', created_at: '2025-09-07T14:00:00Z' },
+  { id: 11, email: 'design.lead@creative.studio', text: 'Sed consequat, leo eget bibendum sodales, augue velit cursus nunc.', status: 'in progress', created_at: '2025-09-10T19:00:00Z' },
+  { id: 12, email: 'data.analyst.pro@data.io', text: 'Nam quam nunc, blandit vel, luctus pulvinar, hendrerit id, lorem.', status: 'in progress', created_at: '2025-09-11T12:55:00Z' },
+  { id: 13, email: 'mobile.dev@appfactory.com', text: 'Donec vitae sapien ut libero venenatis faucibus. Nullam quis ante.', status: 'approved', created_at: '2025-09-06T11:00:00Z' },
+  { id: 14, email: 'support.specialist@help.desk', text: 'Etiam sit amet orci eget eros faucibus tincidunt. Duis leo.', status: 'in progress', created_at: '2025-09-10T21:00:00Z' },
 ];
+
+// === Допоміжні компоненти ===
+const StatusBadge = ({ status }) => {
+  const baseClasses = 'inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full text-xs font-medium capitalize';
+  const statusStyles = {
+    approved: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
+    denied: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
+    'in progress': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300',
+  };
+  const statusDotStyles = { approved: 'bg-green-500', denied: 'bg-red-500', 'in progress': 'bg-yellow-500' };
+  return (
+    <span className={`${baseClasses} ${statusStyles[status] || ''}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${statusDotStyles[status] || ''}`}></span>
+      {status}
+    </span>
+  );
+};
+
+const Highlight = ({ text, highlight }) => {
+  if (!highlight.trim()) {
+    return <span>{text}</span>;
+  }
+  const regex = new RegExp(`(${highlight})`, 'gi');
+  const parts = text.split(regex);
+  return (
+    <span>
+      {parts.map((part, i) =>
+        part.toLowerCase() === highlight.toLowerCase() ? (
+          <mark key={i} className="bg-yellow-200 dark:bg-yellow-600/40 text-black dark:text-white rounded px-0.5">
+            {part}
+          </mark>
+        ) : (
+          part
+        )
+      )}
+    </span>
+  );
+};
 
 const ApplicationsForAdmin = () => {
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [visibleCount, setVisibleCount] = useState(8);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Simulate data fetching on component mount
   useEffect(() => {
-    console.log('Simulating data fetch...');
-    setLoading(true);
-    // Simulate a network delay
     setTimeout(() => {
-      // Sort data as a backend would
-      const sortedData = [...mockApplications].sort(
-        (a, b) => new Date(b.created_at) - new Date(a.created_at)
-      );
+      const sortedData = [...mockApplications].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       setApplications(sortedData);
       setLoading(false);
-      console.log('Data "fetched" successfully.');
-    }, 1000); // 1-second delay
+    }, 1000);
   }, []);
 
-  // Update application status locally in the component's state
-  const handleUpdateStatus = (id, newStatus) => {
-    console.log(`Updating status for ID ${id} to "${newStatus}"`);
-    setApplications(currentApps =>
-      currentApps.map(app =>
-        app.id === id ? { ...app, status: newStatus } : app
-      )
-    );
-  };
-
-  // Function for styling statuses remains unchanged
-  const getStatusClasses = (status) => {
-    const baseClasses = 'py-1 px-3 rounded-full text-xs font-semibold inline-block';
-    switch (status) {
-      case 'approved':
-        return `${baseClasses} bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200`;
-      case 'denied':
-        return `${baseClasses} bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200`;
-      case 'in progress':
-        return `${baseClasses} bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200`;
-      default:
-        return `${baseClasses} bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-300`;
+  const filteredApplications = useMemo(() => {
+    if (!searchTerm) {
+      return applications;
     }
+    return applications.filter(app =>
+      app.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.text.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [applications, searchTerm]);
+
+  const handleUpdateStatus = (id, newStatus) => {
+    setApplications(apps => apps.map(app => (app.id === id ? { ...app, status: newStatus } : app)));
   };
 
-  if (loading) {
-    return <div className="p-4 text-center">Loading applications... ⏳</div>;
-  }
-
-  if (error) {
-    return <div className="p-4 text-red-500 text-center">Error: {error} ❌</div>;
-  }
+  const handleShowMore = () => {
+    setVisibleCount(prevCount => prevCount + 5);
+  };
   
-  if (applications.length === 0 && !loading) {
-    return (
-       <div>
-         <h1 className="text-3xl font-bold mb-6 text-gray-800 dark:text-white">
-           Applications
-         </h1>
-         <div className="text-center p-8 bg-white dark:bg-gray-800 shadow-md rounded-lg">
-           <p className="text-gray-500 dark:text-gray-400">There are no new applications.</p>
-         </div>
-       </div>
-    );
-  }
+  const baseButtonClasses = "py-1 px-3 rounded-md text-xs font-semibold border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900";
+  const approveButtonClasses = "border-green-600/50 text-green-700 hover:bg-green-50 dark:border-green-500/50 dark:text-green-400 dark:hover:bg-green-500/10 focus-visible:ring-green-400";
+  const denyButtonClasses = "border-red-600/50 text-red-700 hover:bg-red-50 dark:border-red-500/50 dark:text-red-400 dark:hover:bg-red-500/10 focus-visible:ring-red-400";
+  const inputClasses = "flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500 dark:focus-visible:ring-offset-slate-900";
 
-  // The component's UI remains unchanged
+
+  if (loading) return <div className="p-4 text-center text-slate-500 dark:text-slate-400">Loading applications... ⏳</div>;
+
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-6 text-gray-800 dark:text-white">
-        Applications
-      </h1>
-      
-      <div className="bg-white dark:bg-gray-800 shadow-md rounded-lg overflow-x-auto">
-        <table className="w-full min-w-max">
-          <thead>
-            <tr className="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 uppercase text-sm leading-normal">
-              <th className="py-3 px-6 text-left">Email</th>
-              <th className="py-3 px-6 text-left">Application Text</th>
-              <th className="py-3 px-6 text-center">Status</th>
-              <th className="py-3 px-6 text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="text-gray-800 dark:text-gray-200 text-sm font-light">
-            {applications.map((app) => (
-              <tr key={app.id} className="border-b border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-                <td className="py-3 px-6 text-left whitespace-nowrap">
-                  {app.email}
-                </td>
-                <td className="py-3 px-6 text-left">
-                  {app.text}
-                </td>
-                <td className="py-3 px-6 text-center">
-                  <span className={getStatusClasses(app.status)}>
-                    {app.status}
-                  </span>
-                </td>
-                <td className="py-3 px-6 text-center">
-                  {app.status === 'in progress' && (
-                    <div className="flex item-center justify-center">
-                      <button
-                        onClick={() => handleUpdateStatus(app.id, 'approved')}
-                        className="bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition-colors duration-300 mr-2"
-                      >
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => handleUpdateStatus(app.id, 'denied')}
-                        className="bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors duration-300"
-                      >
-                        Deny
-                      </button>
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div className="max-w-7xl mx-auto">
+      <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">
+          Applications
+        </h1>
+        <div className="w-full sm:w-64">
+          <input
+            type="text"
+            placeholder="Search by email or text..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className={inputClasses}
+          />
+        </div>
       </div>
+      
+      {filteredApplications.length === 0 ? (
+        <div className="text-center p-8 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl bg-white dark:bg-slate-900/70">
+           <p className="text-slate-500 dark:text-slate-400">
+             {searchTerm ? `No applications found for "${searchTerm}"` : 'There are no new applications.'}
+           </p>
+        </div>
+      ) : (
+        <div className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm table-auto">
+              <thead className="text-slate-500 dark:text-slate-400">
+                <tr className="border-b border-slate-200 dark:border-slate-800">
+                  <th className="p-4 font-medium text-left">Email</th>
+                  <th className="p-4 font-medium text-left">Application Text</th>
+                  <th className="p-4 font-medium text-center">Status</th>
+                  <th className="p-4 font-medium text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="text-slate-800 dark:text-slate-200">
+                {filteredApplications.slice(0, visibleCount).map((app) => (
+                  <tr key={app.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                    <td className="p-4 text-left align-top">
+                      <span className="font-medium text-slate-900 dark:text-slate-50 break-all">
+                        <Highlight text={app.email} highlight={searchTerm} />
+                      </span>
+                    </td>
+                    <td className="p-4 text-left align-top max-w-md">
+                      <p className="text-slate-600 dark:text-slate-400 break-words">
+                         <Highlight text={app.text} highlight={searchTerm} />
+                      </p>
+                    </td>
+                    <td className="p-4 text-center align-top"><StatusBadge status={app.status} /></td>
+                    <td className="p-4 text-center align-top">
+                      {app.status === 'in progress' && (
+                        <div className="flex flex-wrap items-center justify-center gap-2">
+                          <button onClick={() => handleUpdateStatus(app.id, 'approved')} className={`${baseButtonClasses} ${approveButtonClasses}`}>Approve</button>
+                          <button onClick={() => handleUpdateStatus(app.id, 'denied')} className={`${baseButtonClasses} ${denyButtonClasses}`}>Deny</button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {visibleCount < filteredApplications.length && (
+            <div className="p-4 text-center border-t border-slate-100 dark:border-slate-800">
+              <button onClick={handleShowMore} className="py-2 px-4 text-sm font-medium rounded-md border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                Show More ({Math.min(5, filteredApplications.length - visibleCount)} more)
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
