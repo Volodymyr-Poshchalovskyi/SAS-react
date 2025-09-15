@@ -88,9 +88,7 @@ const AuthProvider = ({ children }) => {
       }
     });
     if (error) throw error;
-    
     await supabase.auth.signOut();
-    
     return data;
   };
 
@@ -114,12 +112,38 @@ const AuthProvider = ({ children }) => {
       return data;
     }
   };
+
+  const getUsers = async () => {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .neq('role', 'staff') // ++ ДОДАНО: не вибирати користувачів з роллю 'staff'
+      .order('created_at', { ascending: false });
+      
+    if (error) throw error;
+    return data;
+  };
+
+  const updateUserStatus = async (userId, newStatus) => {
+    const shouldDeactivate = newStatus === 'deactivated';
+    const { error: funcError } = await supabase.functions.invoke('deactivate-auth-user', {
+      body: { userId, shouldDeactivate },
+    });
+    if (funcError) throw funcError;
+    const { data, error: updateError } = await supabase
+      .from('user_profiles')
+      .update({ status: newStatus })
+      .eq('id', userId);
+    if (updateError) throw updateError;
+    return data;
+  };
   
   const value = {
     session, user, loading, error, clearError,
     signInWithGoogle, signInWithPassword, signOut,
     submitApplication, invitationToken, completeRegistration,
     getApplications, updateApplicationStatus,
+    getUsers, updateUserStatus,
   };
 
   return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
