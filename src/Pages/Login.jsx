@@ -1,64 +1,83 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-
-// Import newly created components
 import StaffLogin from '../Components/StaffLogin';
 import UserLogin from '../Components/UserLogin';
 import Registration from '../Components/Registration';
+import { useAuth } from '../hooks/useAuth';
 
 const Login = () => {
-  const [currentTab, setCurrentTab] = useState('STAFF'); // Changed initial tab to STAFF for logical consistency
+  // Отримуємо глобальну помилку і функцію очищення з контексту
+  const { 
+    signInWithGoogle, 
+    signInWithPassword, 
+    user,
+    error: authError, // Перейменовуємо, щоб не було конфлікту
+    clearError 
+  } = useAuth();
+  
+  const [currentTab, setCurrentTab] = useState('STAFF');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [localError, setLocalError] = useState(''); // Локальна помилка для форм
   const [loading, setLoading] = useState(false);
-
-  const location = useLocation();
+  
   const navigate = useNavigate();
+
+  // Об'єднуємо глобальну і локальну помилку для відображення
+  const error = authError || localError;
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     if (location.state?.message) {
-      setError(location.state.message);
+      setLocalError(location.state.message);
     }
     return () => {
       document.body.style.overflow = 'auto';
     };
   }, [location]);
 
-  // Simulate Google login
-  const handleGoogleLogin = () => {
-    setError('');
+  useEffect(() => {
+    if (user) {
+      if (user.email.endsWith('@sinnersandsaints.la')) {
+        navigate('/adminpanel');
+      } else {
+        navigate('/userpanel');
+      }
+    }
+  }, [user, navigate]);
+
+  const handleGoogleLogin = async () => {
+    clearError(); // Очищуємо попередні помилки
+    setLocalError('');
     setLoading(true);
-    setTimeout(() => {
-      console.log('Successful login, redirecting to /adminpanel');
+    try {
+      await signInWithGoogle();
+    } catch (err) {
+      setLocalError(err.message);
       setLoading(false);
-      navigate('/adminpanel');
-    }, 1500);
+    }
   };
   
-  // Simulate login with email and password
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    setError('');
+    clearError();
+    setLocalError('');
     setLoading(true);
-    setTimeout(() => {
-      if (email === 'user@example.com' && password === 'password123') {
-        console.log('Successful login, redirecting to /userpanel');
-        navigate('/userpanel');
-      } else {
-        setError('Incorrect email or password.');
-      }
+    try {
+      await signInWithPassword(email, password);
+    } catch (err) {
+      setLocalError(err.message || 'Incorrect email or password.');
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
 
   const handleTabChange = (tabName) => {
+    clearError(); // Очищуємо помилку при зміні вкладки
+    setLocalError('');
     setCurrentTab(tabName);
-    // Reset form-specific states on tab change
     setEmail('');
     setPassword('');
-    setError('');
     setLoading(false);
   };
 
@@ -69,7 +88,6 @@ const Login = () => {
       : `${baseClasses} text-gray-400 border-transparent hover:text-black`;
   };
 
-  // The render function is now much simpler
   const renderFormContent = () => {
     switch (currentTab) {
       case 'STAFF':
@@ -87,7 +105,6 @@ const Login = () => {
           />
         );
       case 'REGISTER':
-        // This component is self-contained and doesn't require props
         return <Registration />;
       default:
         return null;
@@ -111,8 +128,6 @@ const Login = () => {
             REGISTER
           </div>
         </div>
-        {/* Using key to make React remount the component on tab change,
-            which ensures that the internal state (if any) is reset and triggers the fadeIn animation */}
         <div className="px-4 py-8" key={currentTab}>
             {renderFormContent()}
         </div>

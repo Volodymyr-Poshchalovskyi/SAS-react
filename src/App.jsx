@@ -1,11 +1,9 @@
-// src/App.jsx (оновлена версія)
-
 import { useEffect } from 'react';
-import { BrowserRouter as Router, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import AppRouter from './Routes/Router';
 import { AnimationProvider } from './context/AnimationContext';
 
-
+// Цей компонент залишається без змін
 const ScrollToTop = () => {
   const { pathname } = useLocation();
   useEffect(() => {
@@ -16,14 +14,12 @@ const ScrollToTop = () => {
 
 export default function App() {
   return (
-    // Обгортаємо все в AuthProvider
-   
-      <Router>
-        <ScrollToTop />
-        <AnimationProvider>
-          <AppRouter />
-        </AnimationProvider>
-      </Router>
-  
+    // -- Прибираємо AuthProvider та Router звідси
+    <>
+      <ScrollToTop />
+      <AnimationProvider>
+        <AppRouter />
+      </AnimationProvider>
+    </>
   );
 }

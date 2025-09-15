@@ -1,13 +1,17 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import './index.css';
+import { BrowserRouter } from 'react-router-dom'; // ++ Додаємо
+import AuthProvider from './context/AuthContext'; // ++ Додаємо
 import App from './App.jsx';
-
+import './index.css';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    
-      <App />
-    
+    {/* Тепер роутер і провайдер тут */}
+    <BrowserRouter>
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    </BrowserRouter>
   </StrictMode>
 );
