@@ -22,15 +22,23 @@ import Library from '../AdminComponents/Layout/Library.jsx';
 import MyAnalytic from '../AdminComponents/Layout/MyAnalytic.jsx';
 import ApplicationsForAdmin from '../AdminComponents/ApplicationsForAdmin.jsx';
 import UserManagement from '../AdminComponents/UserManagement.jsx';
+import AuthCallback from '../Pages/AuthCallback.jsx';
 
 // Імпорти захищених маршрутів
 import ProtectedRoute from './ProtectedRoute.jsx';
-import AdminRoute from './AdminRoute.jsx';
+import AdminRoute from './AdminRoute.jsx'; // Перевірте шлях, можливо './AdminRoute.jsx'
 
 export default function AppRouter() {
   return (
     <Routes>
-      {/* 1. Публічні маршрути */}
+      {/* ================================================================== */}
+      {/* ==                      1. ПУБЛІЧНІ МАРШРУТИ                    == */}
+      {/* ================================================================== */}
+
+      {/* Маршрут для сторінки-посередника. Він не має батьківського Layout. */}
+      <Route path="/auth/callback" element={<AuthCallback />} />
+
+      {/* Основні публічні маршрути, які мають спільний Layout */}
       <Route element={<Layout />}>
         <Route path="/" element={<Main />} />
         <Route path="/assignment" element={<Assignment />} />
@@ -45,7 +53,11 @@ export default function AppRouter() {
         <Route path="/login" element={<Login />} />
       </Route>
 
-      {/* 2. Захищені маршрути (для ВСІХ залогінених користувачів) */}
+
+      {/* ================================================================== */}
+      {/* ==                      2. ЗАХИЩЕНІ МАРШРУТИ                     == */}
+      {/* ================================================================== */}
+
       <Route element={<ProtectedRoute />}>
         <Route element={<AdminLayout />}>
           {/* Маршрути для звичайного користувача */}
