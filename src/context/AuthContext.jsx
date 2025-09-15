@@ -98,20 +98,34 @@ const AuthProvider = ({ children }) => {
     return data;
   };
 
-  const updateApplicationStatus = async (applicationId, newStatus, email) => {
-    if (newStatus === 'approved') {
-      const { error: inviteError } = await supabase.functions.invoke('invite-user', { body: { email } });
-      if (inviteError) throw new Error(inviteError.message);
-      const { data, error } = await supabase.from('applications').update({ status: 'approved' }).eq('id', applicationId);
-      if (error) throw error;
-      return data;
-    } else if (newStatus === 'denied') {
-      const { data, error } = await supabase.from('applications').update({ status: 'denied' }).eq('id', applicationId);
-      if (error) throw error;
-      console.log(`Application for ${email} denied. Email sending is currently disabled.`);
-      return data;
+  // useAuth.js
+
+const updateApplicationStatus = async (applicationId, newStatus, email) => {
+  if (newStatus === 'approved') {
+    // 1. Спочатку викликаємо Edge Function для запрошення користувача
+    const { data: inviteData, error: inviteError } = await supabase.functions.invoke('invite-user', { body: { email } });
+    
+    // Якщо Edge Function повернула помилку, кидаємо її
+    if (inviteError) {
+      throw new Error(`Failed to invite user: ${inviteError.message}`);
     }
-  };
+
+    // 2. Якщо Edge Function успішно відпрацювала, оновлюємо статус у базі даних
+    const { data, error } = await supabase.from('applications').update({ status: 'approved' }).eq('id', applicationId);
+    if (error) {
+      throw new Error(`Failed to update application status: ${error.message}`);
+    }
+    
+    return data;
+
+  } else if (newStatus === 'denied') {
+    // Логіка для відхилення залишається без змін
+    const { data, error } = await supabase.from('applications').update({ status: 'denied' }).eq('id', applicationId);
+    if (error) throw error;
+    console.log(`Application for ${email} denied. Email sending is currently disabled.`);
+    return data;
+  }
+};
 
   const getUsers = async () => {
     const { data, error } = await supabase
