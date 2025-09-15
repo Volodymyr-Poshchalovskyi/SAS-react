@@ -23,7 +23,7 @@ import MyAnalytic from '../AdminComponents/Layout/MyAnalytic.jsx';
 import ApplicationsForAdmin from '../AdminComponents/ApplicationsForAdmin.jsx';
 import UserManagement from '../AdminComponents/UserManagement.jsx';
 import AuthCallback from '../Pages/AuthCallback.jsx';
-
+import Logout from '../Pages/Logout.jsx';
 // Імпорти захищених маршрутів
 import ProtectedRoute from './ProtectedRoute.jsx';
 import AdminRoute from './AdminRoute.jsx'; // Перевірте шлях, можливо './AdminRoute.jsx'
@@ -37,6 +37,7 @@ export default function AppRouter() {
 
       {/* Маршрут для сторінки-посередника. Він не має батьківського Layout. */}
       <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/logout" element={<Logout />} />
 
       {/* Основні публічні маршрути, які мають спільний Layout */}
       <Route element={<Layout />}>

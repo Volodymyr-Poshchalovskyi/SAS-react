@@ -3,59 +3,79 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import StaffLogin from '../Components/StaffLogin';
 import UserLogin from '../Components/UserLogin';
 import Registration from '../Components/Registration';
+import RegistrationForm from '../Components/RegistrationForm';
 import { useAuth } from '../hooks/useAuth';
 
 const Login = () => {
-  // Отримуємо глобальну помилку і функцію очищення з контексту
   const { 
     signInWithGoogle, 
     signInWithPassword, 
     user,
-    error: authError, // Перейменовуємо, щоб не було конфлікту
-    clearError 
+    error: authError,
+    clearError,
+    invitationToken
   } = useAuth();
   
   const [currentTab, setCurrentTab] = useState('STAFF');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [localError, setLocalError] = useState(''); // Локальна помилка для форм
+  const [localError, setLocalError] = useState('');
   const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
-
-  // Об'єднуємо глобальну і локальну помилку для відображення
+  const location = useLocation();
   const error = authError || localError;
 
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
     if (location.state?.message) {
       setLocalError(location.state.message);
     }
-    return () => {
-      document.body.style.overflow = 'auto';
-    };
   }, [location]);
 
   useEffect(() => {
-    if (user) {
-      if (user.email.endsWith('@sinnersandsaints.la')) {
-        navigate('/adminpanel');
-      } else {
-        navigate('/userpanel');
-      }
+    if (invitationToken) {
+      setCurrentTab('REGISTER');
     }
-  }, [user, navigate]);
+  }, [invitationToken]);
 
-  const handleGoogleLogin = async () => {
-    clearError(); // Очищуємо попередні помилки
+  useEffect(() => {
+    // 1. Якщо ми в процесі реєстрації за запрошенням, НІЧОГО не робимо.
+    if (invitationToken) {
+      return;
+    }
+
+    // 2. Якщо користувача немає, теж нічого не робимо.
+    if (!user) {
+      return;
+    }
+
+    // 3. Якщо це не процес запрошення і користувач є, робимо перенаправлення.
+    const isRegistrationComplete = !!user.user_metadata?.full_name;
+
+    if (user.email.endsWith('@sinnersandsaints.la')) {
+      navigate('/adminpanel');
+      return;
+    }
+
+    if (isRegistrationComplete) {
+      navigate('/userpanel');
+      return;
+    }
+    
+    // Якщо користувач є, але реєстрація не завершена, тримаємо його на вкладці REGISTER
+    if (!isRegistrationComplete) {
+      setCurrentTab('REGISTER');
+    }
+  }, [user, navigate, invitationToken]);
+
+  const handleGoogleLogin = () => {
+    clearError();
     setLocalError('');
     setLoading(true);
-    try {
-      await signInWithGoogle();
-    } catch (err) {
+    signInWithGoogle().catch(err => {
       setLocalError(err.message);
       setLoading(false);
-    }
+    });
   };
   
   const handleLogin = async (e) => {
@@ -73,7 +93,7 @@ const Login = () => {
   };
 
   const handleTabChange = (tabName) => {
-    clearError(); // Очищуємо помилку при зміні вкладки
+    clearError();
     setLocalError('');
     setCurrentTab(tabName);
     setEmail('');
@@ -89,6 +109,13 @@ const Login = () => {
   };
 
   const renderFormContent = () => {
+    // Визначаємо, чи потрібно показувати фінальну форму реєстрації
+    const showFinalRegistration = invitationToken || (user && !user.user_metadata?.full_name);
+
+    if (currentTab === 'REGISTER') {
+      return showFinalRegistration ? <RegistrationForm /> : <Registration />;
+    }
+
     switch (currentTab) {
       case 'STAFF':
         return <StaffLogin handleGoogleLogin={handleGoogleLogin} loading={loading} error={error} />;
@@ -104,8 +131,6 @@ const Login = () => {
             error={error}
           />
         );
-      case 'REGISTER':
-        return <Registration />;
       default:
         return null;
     }
@@ -114,23 +139,13 @@ const Login = () => {
   return (
     <div className="min-h-screen flex justify-center bg-gray-100 font-sans p-14 mt-28">
       <div className="w-full max-w-xl text-center">
-        <h1 className="text-4xl font-semibold text-black mb-8 tracking-wider">
-          ACCOUNT
-        </h1>
+        <h1 className="text-4xl font-semibold text-black mb-8 tracking-wider">ACCOUNT</h1>
         <div className="flex justify-center mb-12 border-b border-gray-300">
-          <div className={getTabClass('STAFF')} onClick={() => handleTabChange('STAFF')}>
-            STAFF
-          </div>
-          <div className={getTabClass('SIGN_IN')} onClick={() => handleTabChange('SIGN_IN')}>
-            SIGN IN
-          </div>
-          <div className={getTabClass('REGISTER')} onClick={() => handleTabChange('REGISTER')}>
-            REGISTER
-          </div>
+          <div className={getTabClass('STAFF')} onClick={() => handleTabChange('STAFF')}>STAFF</div>
+          <div className={getTabClass('SIGN_IN')} onClick={() => handleTabChange('SIGN_IN')}>SIGN IN</div>
+          <div className={getTabClass('REGISTER')} onClick={() => handleTabChange('REGISTER')}>REGISTER</div>
         </div>
-        <div className="px-4 py-8" key={currentTab}>
-            {renderFormContent()}
-        </div>
+        <div className="px-4 py-8" key={currentTab}>{renderFormContent()}</div>
       </div>
     </div>
   );

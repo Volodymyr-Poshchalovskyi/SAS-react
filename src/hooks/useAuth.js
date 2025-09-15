@@ -1,7 +1,6 @@
 import { useContext } from 'react';
-import { AuthContext } from '../context/AuthContext'; // Імпортуємо сам контекст
+import { AuthContext } from '../context/AuthContext';
 
-// Хук залишається таким самим, але тепер живе в окремому файлі
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

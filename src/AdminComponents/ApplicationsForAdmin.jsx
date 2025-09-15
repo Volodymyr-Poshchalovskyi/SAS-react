@@ -17,28 +17,22 @@ const StatusBadge = ({ status }) => {
     </span>
   );
 };
-
 const Highlight = ({ text, highlight }) => {
   if (!text) return null;
-  if (!highlight.trim()) {
-    return <span>{text}</span>;
-  }
+  if (!highlight.trim()) return <span>{text}</span>;
   const regex = new RegExp(`(${highlight})`, 'gi');
   const parts = text.split(regex);
   return (
     <span>
       {parts.map((part, i) =>
         part.toLowerCase() === highlight.toLowerCase() ? (
-          <mark key={i} className="bg-yellow-200 dark:bg-yellow-600/40 text-black dark:text-white rounded px-0.5">
-            {part}
-          </mark>
-        ) : (
-          part
-        )
+          <mark key={i} className="bg-yellow-200 dark:bg-yellow-600/40 text-black dark:text-white rounded px-0.5">{part}</mark>
+        ) : ( part )
       )}
     </span>
   );
 };
+
 
 const ApplicationsForAdmin = () => {
   const [applications, setApplications] = useState([]);
@@ -108,13 +102,7 @@ const ApplicationsForAdmin = () => {
       <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">Applications</h1>
         <div className="w-full sm:w-64">
-          <input
-            type="text"
-            placeholder="Search by email or text..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className={inputClasses}
-          />
+          <input type="text" placeholder="Search by email or text..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={inputClasses} />
         </div>
       </div>
       
@@ -137,12 +125,8 @@ const ApplicationsForAdmin = () => {
               <tbody className="text-slate-800 dark:text-slate-200">
                 {filteredApplications.slice(0, visibleCount).map((app) => (
                   <tr key={app.id} className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                    <td className="p-4 text-left align-top">
-                      <span className="font-medium text-slate-900 dark:text-slate-50 break-all"><Highlight text={app.email} highlight={searchTerm} /></span>
-                    </td>
-                    <td className="p-4 text-left align-top max-w-md">
-                      <p className="text-slate-600 dark:text-slate-400 break-words"><Highlight text={app.text} highlight={searchTerm} /></p>
-                    </td>
+                    <td className="p-4 text-left align-top"><span className="font-medium text-slate-900 dark:text-slate-50 break-all"><Highlight text={app.email} highlight={searchTerm} /></span></td>
+                    <td className="p-4 text-left align-top max-w-md"><p className="text-slate-600 dark:text-slate-400 break-words"><Highlight text={app.text} highlight={searchTerm} /></p></td>
                     <td className="p-4 text-center align-top"><StatusBadge status={app.status} /></td>
                     <td className="p-4 text-center align-top">
                       {app.status === 'in progress' && (

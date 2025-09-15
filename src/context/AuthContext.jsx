@@ -29,23 +29,17 @@ const AuthProvider = ({ children }) => {
           if (!userEmail.endsWith('@sinnersandsaints.la')) {
             await supabase.auth.signOut();
             setError('Access denied: This login method is for staff only.');
-            setUser(null);
-            setSession(null);
+            setUser(null); setSession(null);
           } else {
-            setSession(session);
-            setUser(session.user);
+            setSession(session); setUser(session.user);
           }
         } else {
-          setSession(session);
-          setUser(session?.user ?? null);
+          setSession(session); setUser(session?.user ?? null);
         }
         setLoading(false);
       }
     );
-
-    return () => {
-      listener?.subscription.unsubscribe();
-    };
+    return () => { listener?.subscription.unsubscribe(); };
   }, []);
   
   useEffect(() => {
@@ -53,9 +47,7 @@ const AuthProvider = ({ children }) => {
     if (hash.includes('type=invite') && hash.includes('token_hash')) {
       const params = new URLSearchParams(hash.substring(1));
       const token = params.get('token_hash');
-      if (token) {
-        setInvitationToken(token);
-      }
+      if (token) setInvitationToken(token);
     }
   }, []);
 
@@ -77,9 +69,7 @@ const AuthProvider = ({ children }) => {
   };
 
   const submitApplication = async ({ email, message }) => {
-    const { data, error } = await supabase
-      .from('applications')
-      .insert({ email: email, message: message });
+    const { data, error } = await supabase.from('applications').insert({ email, message });
     if (error) {
       if (error.code === '23505') throw new Error('An application with this email already exists.');
       throw error;
@@ -91,72 +81,45 @@ const AuthProvider = ({ children }) => {
     const { data, error } = await supabase.auth.updateUser({
       password: password,
       data: { 
-        full_name: `${firstName} ${lastName}`.trim(),
-        location: location,
-        state: state,
-        phone: phone
+        full_name: `${firstName} ${lastName}`.trim(), 
+        location, 
+        state, 
+        phone 
       }
     });
     if (error) throw error;
+    
+    await supabase.auth.signOut();
+    
     return data;
   };
 
   const getApplications = async () => {
-    const { data, error } = await supabase
-      .from('applications')
-      .select('*')
-      .order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('applications').select('*').order('created_at', { ascending: false });
     if (error) throw error;
     return data;
   };
 
   const updateApplicationStatus = async (applicationId, newStatus, email) => {
     if (newStatus === 'approved') {
-      // 1. Викликаємо нашу безпечну Edge Function
-      const { data: inviteData, error: inviteError } = await supabase.functions.invoke('invite-user', {
-        body: { email: email },
-      });
-      
-      // Edge Function поверне помилку, якщо щось піде не так (напр. юзер вже існує)
-      if (inviteError) throw inviteError;
-      if (inviteData?.error) throw new Error(inviteData.error);
-      
-      // 2. Якщо запрошення успішне, оновлюємо статус заявки в нашій таблиці
-      const { data, error } = await supabase
-        .from('applications')
-        .update({ status: 'approved' })
-        .eq('id', applicationId);
+      const { error: inviteError } = await supabase.functions.invoke('invite-user', { body: { email } });
+      if (inviteError) throw new Error(inviteError.message);
+      const { data, error } = await supabase.from('applications').update({ status: 'approved' }).eq('id', applicationId);
       if (error) throw error;
       return data;
-
     } else if (newStatus === 'denied') {
-      const { data, error: updateError } = await supabase
-        .from('applications')
-        .update({ status: 'denied' })
-        .eq('id', applicationId);
-      if (updateError) throw updateError;
-      
-      // Викликаємо функцію для відправки листа про відмову
-      await supabase.functions.invoke('rejection-email', { body: { email: email } });
-      
+      const { data, error } = await supabase.from('applications').update({ status: 'denied' }).eq('id', applicationId);
+      if (error) throw error;
+      console.log(`Application for ${email} denied. Email sending is currently disabled.`);
       return data;
     }
   };
   
   const value = {
-    session,
-    user,
-    loading,
-    error,
-    clearError,
-    signInWithGoogle,
-    signInWithPassword,
-    signOut,
-    submitApplication,
-    invitationToken,
-    completeRegistration,
-    getApplications,
-    updateApplicationStatus,
+    session, user, loading, error, clearError,
+    signInWithGoogle, signInWithPassword, signOut,
+    submitApplication, invitationToken, completeRegistration,
+    getApplications, updateApplicationStatus,
   };
 
   return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
