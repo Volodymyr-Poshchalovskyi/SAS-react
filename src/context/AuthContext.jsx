@@ -125,6 +125,20 @@ const AuthProvider = ({ children }) => {
     }
   };
 
+  const submitApplication = async ({ email, message }) => {
+    const { data, error } = await supabase
+      .from('applications')
+      .insert({ email: email, message: message });
+
+    if (error) {
+      if (error.code === '23505') {
+        throw new Error('An application with this email already exists.');
+      }
+      throw error;
+    }
+    return data;
+  };
+
   const value = {
     session,
     user,
@@ -134,6 +148,7 @@ const AuthProvider = ({ children }) => {
     signInWithGoogle,
     signInWithPassword,
     signOut,
+    submitApplication, 
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

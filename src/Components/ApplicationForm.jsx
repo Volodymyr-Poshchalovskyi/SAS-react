@@ -1,42 +1,43 @@
+// src/Components/ApplicationForm.jsx (або де він у вас лежить)
+
 import React, { useState } from 'react';
+import { useAuth } from '../hooks/useAuth'; // ++ Імпортуємо хук
 
 const ApplicationForm = () => {
-  // Component state remains unchanged as it manages the UI
+  const { submitApplication } = useAuth(); // ++ Отримуємо функцію
   const [email, setEmail] = useState('');
   const [text, setText] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Form submission handler, adapted for the frontend
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => { // ++ Робимо функцію асинхронною
     e.preventDefault();
     setLoading(true);
     setError('');
     setSuccess(false);
 
-    // Client-side validation remains
     if (!email || !text) {
       setError('Please fill in all fields.');
       setLoading(false);
       return;
     }
 
-    // Simulate an API request
-    console.log('Simulating data submission:', { email, text });
-
-    // Simulate a network delay (e.g., 1.5 seconds)
-    setTimeout(() => {
-      setLoading(false);
-      setSuccess(true); // Show success message
-      
-      // Clear the form fields
+    // --- ВИДАЛЯЄМО СИМУЛЯЦІЮ ---
+    
+    // ++ ДОДАЄМО РЕАЛЬНУ ЛОГІКУ
+    try {
+      await submitApplication({ email: email, message: text });
+      setSuccess(true);
       setEmail('');
       setText('');
-    }, 1500);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Successful submission (UI remains the same)
   if (success) {
     return (
       <div className="text-center animate-fadeIn">
@@ -48,7 +49,6 @@ const ApplicationForm = () => {
     );
   }
 
-  // Form rendering (UI remains the same)
   return (
     <div className="max-w-sm mx-auto text-center animate-fadeIn">
       <div className="mb-10">
