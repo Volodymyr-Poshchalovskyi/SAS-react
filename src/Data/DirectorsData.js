@@ -1,5 +1,7 @@
+//src/Data/DirectorsData.js
+
 const placeholderVideo = '/video/SHOWREEL SINNERS AND SAINTS 2024_1.mp4';
-const placeholderPhoto = '/images/director_placeholder.jpg'; 
+const placeholderPhoto = '/images/director_placeholder.jpg';
 
 export const directorsData = [
   {
@@ -11,7 +13,7 @@ export const directorsData = [
     videos: [
       { title: 'Project A', src: placeholderVideo },
       { title: 'Project B', src: placeholderVideo },
-    ]
+    ],
   },
   {
     id: 2,
@@ -22,7 +24,7 @@ export const directorsData = [
     videos: [
       { title: 'Campaign X', src: placeholderVideo },
       { title: 'Music Video Y', src: placeholderVideo },
-    ]
+    ],
   },
   {
     id: 3,
@@ -30,9 +32,7 @@ export const directorsData = [
     slug: 'antony-hoffman',
     photoSrc: placeholderPhoto,
     bio: 'Antony Hoffman is known for his large-scale, cinematic commercials, often featuring Hollywood stars and stunning visual effects.',
-    videos: [
-      { title: 'Epic Commercial', src: placeholderVideo },
-    ]
+    videos: [{ title: 'Epic Commercial', src: placeholderVideo }],
   },
   {
     id: 4,
@@ -43,7 +43,7 @@ export const directorsData = [
     videos: [
       { title: 'Fashion Film', src: placeholderVideo },
       { title: 'Product Showcase', src: placeholderVideo },
-    ]
+    ],
   },
   {
     id: 5,
@@ -51,9 +51,7 @@ export const directorsData = [
     slug: 'eli-sverdlov',
     photoSrc: placeholderPhoto,
     bio: 'Eli Sverdlov is celebrated for his expertise in visual effects and action-packed sequences, delivering high-energy commercials.',
-    videos: [
-      { title: 'Action Sequence', src: placeholderVideo },
-    ]
+    videos: [{ title: 'Action Sequence', src: placeholderVideo }],
   },
   {
     id: 6,
@@ -64,7 +62,7 @@ export const directorsData = [
     videos: [
       { title: 'Comedy Sketch', src: placeholderVideo },
       { title: 'Viral Ad', src: placeholderVideo },
-    ]
+    ],
   },
   {
     id: 7,
@@ -72,9 +70,7 @@ export const directorsData = [
     slug: 'vivienne-and-tamas',
     photoSrc: placeholderPhoto,
     bio: 'This duo creates visually poetic and atmospheric films, often blending documentary realism with artistic expression.',
-    videos: [
-      { title: 'Artistic Short', src: placeholderVideo },
-    ]
+    videos: [{ title: 'Artistic Short', src: placeholderVideo }],
   },
   {
     id: 8,
@@ -85,7 +81,7 @@ export const directorsData = [
     videos: [
       { title: 'Heartfelt Story', src: placeholderVideo },
       { title: 'Lifestyle Ad', src: placeholderVideo },
-    ]
+    ],
   },
   {
     id: 9,
@@ -93,9 +89,7 @@ export const directorsData = [
     slug: 'we-are-the-zellers',
     photoSrc: placeholderPhoto,
     bio: 'The Zellers are a dynamic team creating vibrant, energetic, and youthful content with a strong focus on lifestyle and music.',
-    videos: [
-      { title: 'Youth Campaign', src: placeholderVideo },
-    ]
+    videos: [{ title: 'Youth Campaign', src: placeholderVideo }],
   },
   {
     id: 10,
@@ -106,7 +100,7 @@ export const directorsData = [
     videos: [
       { title: 'Documentary Clip', src: placeholderVideo },
       { title: 'Nature Film', src: placeholderVideo },
-    ]
+    ],
   },
   {
     id: 11,
@@ -114,8 +108,6 @@ export const directorsData = [
     slug: 'jean-claude-thibaut',
     photoSrc: placeholderPhoto,
     bio: 'Jean Claude Thibaut combines luxury aesthetics with powerful storytelling, creating sophisticated and visually polished films for high-end brands.',
-    videos: [
-      { title: 'Luxury Brand Film', src: placeholderVideo },
-    ]
-  }
+    videos: [{ title: 'Luxury Brand Film', src: placeholderVideo }],
+  },
 ];

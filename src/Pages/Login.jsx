@@ -1,3 +1,5 @@
+// src/pages/Login.jsx
+
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import StaffLogin from '../Components/StaffLogin';
@@ -7,21 +9,21 @@ import RegistrationForm from '../Components/RegistrationForm';
 import { useAuth } from '../hooks/useAuth';
 
 const Login = () => {
-  const { 
-    signInWithGoogle, 
-    signInWithPassword, 
+  const {
+    signInWithGoogle,
+    signInWithPassword,
     user,
     error: authError,
     clearError,
-    invitationToken
+    invitationToken,
   } = useAuth();
-  
+
   const [currentTab, setCurrentTab] = useState('STAFF');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState('');
   const [loading, setLoading] = useState(false);
-  
+
   const navigate = useNavigate();
   const location = useLocation();
   const error = authError || localError;
@@ -39,17 +41,14 @@ const Login = () => {
   }, [invitationToken]);
 
   useEffect(() => {
-    // 1. Якщо ми в процесі реєстрації за запрошенням, НІЧОГО не робимо.
     if (invitationToken) {
       return;
     }
 
-    // 2. Якщо користувача немає, теж нічого не робимо.
     if (!user) {
       return;
     }
 
-    // 3. Якщо це не процес запрошення і користувач є, робимо перенаправлення.
     const isRegistrationComplete = !!user.user_metadata?.full_name;
 
     if (user.email.endsWith('@sinnersandsaints.la')) {
@@ -61,8 +60,7 @@ const Login = () => {
       navigate('/userpanel');
       return;
     }
-    
-    // Якщо користувач є, але реєстрація не завершена, тримаємо його на вкладці REGISTER
+
     if (!isRegistrationComplete) {
       setCurrentTab('REGISTER');
     }
@@ -72,12 +70,12 @@ const Login = () => {
     clearError();
     setLocalError('');
     setLoading(true);
-    signInWithGoogle().catch(err => {
+    signInWithGoogle().catch((err) => {
       setLocalError(err.message);
       setLoading(false);
     });
   };
-  
+
   const handleLogin = async (e) => {
     e.preventDefault();
     clearError();
@@ -102,15 +100,16 @@ const Login = () => {
   };
 
   const getTabClass = (tabName) => {
-    const baseClasses = "py-4 px-8 text-xs font-semibold uppercase tracking-wider cursor-pointer transition-all duration-300 border-b-2";
+    const baseClasses =
+      'py-4 px-8 text-xs font-semibold uppercase tracking-wider cursor-pointer transition-all duration-300 border-b-2';
     return currentTab === tabName
       ? `${baseClasses} text-black border-black`
       : `${baseClasses} text-gray-400 border-transparent hover:text-black`;
   };
 
   const renderFormContent = () => {
-    // Визначаємо, чи потрібно показувати фінальну форму реєстрації
-    const showFinalRegistration = invitationToken || (user && !user.user_metadata?.full_name);
+    const showFinalRegistration =
+      invitationToken || (user && !user.user_metadata?.full_name);
 
     if (currentTab === 'REGISTER') {
       return showFinalRegistration ? <RegistrationForm /> : <Registration />;
@@ -118,7 +117,13 @@ const Login = () => {
 
     switch (currentTab) {
       case 'STAFF':
-        return <StaffLogin handleGoogleLogin={handleGoogleLogin} loading={loading} error={error} />;
+        return (
+          <StaffLogin
+            handleGoogleLogin={handleGoogleLogin}
+            loading={loading}
+            error={error}
+          />
+        );
       case 'SIGN_IN':
         return (
           <UserLogin
@@ -139,13 +144,32 @@ const Login = () => {
   return (
     <div className="min-h-screen flex justify-center bg-gray-100 font-sans p-14 mt-28">
       <div className="w-full max-w-xl text-center">
-        <h1 className="text-4xl font-semibold text-black mb-8 tracking-wider">ACCOUNT</h1>
+        <h1 className="text-4xl font-semibold text-black mb-8 tracking-wider">
+          ACCOUNT
+        </h1>
         <div className="flex justify-center mb-12 border-b border-gray-300">
-          <div className={getTabClass('STAFF')} onClick={() => handleTabChange('STAFF')}>STAFF</div>
-          <div className={getTabClass('SIGN_IN')} onClick={() => handleTabChange('SIGN_IN')}>SIGN IN</div>
-          <div className={getTabClass('REGISTER')} onClick={() => handleTabChange('REGISTER')}>REGISTER</div>
+          <div
+            className={getTabClass('STAFF')}
+            onClick={() => handleTabChange('STAFF')}
+          >
+            STAFF
+          </div>
+          <div
+            className={getTabClass('SIGN_IN')}
+            onClick={() => handleTabChange('SIGN_IN')}
+          >
+            SIGN IN
+          </div>
+          <div
+            className={getTabClass('REGISTER')}
+            onClick={() => handleTabChange('REGISTER')}
+          >
+            REGISTER
+          </div>
         </div>
-        <div className="px-4 py-8" key={currentTab}>{renderFormContent()}</div>
+        <div className="px-4 py-8" key={currentTab}>
+          {renderFormContent()}
+        </div>
       </div>
     </div>
   );

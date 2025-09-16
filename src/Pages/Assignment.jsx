@@ -11,21 +11,19 @@ const assignmentData = [
   {
     id: 1,
     title: 'BEHIND THE SCENES',
-    projectLink: '/assignment/behind-the-scenes'
+    projectLink: '/assignment/behind-the-scenes',
   },
   {
     id: 2,
     title: 'GLOBAL CAMPAIGN COVERAGE',
-    projectLink: '/assignment/global-campaign'
-  }
+    projectLink: '/assignment/global-campaign',
+  },
 ];
 
-// Компонент оверлею з новими стилями
 const VideoOverlay = ({ title, projectLink }) => {
   return (
     <div className="absolute inset-0 z-10 flex flex-col items-center justify-end text-center p-8 mb-8 text-white">
-      {/* --- ОСНОВНА ЗМІНА ТУТ --- */}
-      <p 
+      <p
         className="
           font-normal                                      
           text-[5rem]                                       
@@ -46,10 +44,9 @@ const VideoOverlay = ({ title, projectLink }) => {
   );
 };
 
-
 export default function Assignment() {
   const { isPreloaderActive, setIsPreloaderActive } = useAnimation();
-  const videoURL = "/video/SHOWREEL SINNERS AND SAINTS 2024_1.mp4";
+  const videoURL = '/video/SHOWREEL SINNERS AND SAINTS 2024_1.mp4';
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
@@ -69,8 +66,10 @@ export default function Assignment() {
     setIsPreloaderActive(false);
   };
 
-  const bannerTitle = "VISIONARY STORYTELLERS. COMMERCIAL REBELS. GLOBAL CREATORS.";
-  const bannerDescription = "From award-winning filmmakers to fashion-forward image makers, our directors and hybrid talent deliver world-class content across commercials, music videos, branded series, and global campaigns.";
+  const bannerTitle =
+    'VISIONARY STORYTELLERS. COMMERCIAL REBELS. GLOBAL CREATORS.';
+  const bannerDescription =
+    'From award-winning filmmakers to fashion-forward image makers, our directors and hybrid talent deliver world-class content across commercials, music videos, branded series, and global campaigns.';
 
   return (
     <div>
@@ -86,23 +85,17 @@ export default function Assignment() {
 
       <div className="flex flex-col">
         <div className="relative w-full h-screen overflow-hidden">
-          <VideoContainer
-            videoSrc={videoURL}
-            shouldPlay={!isPreloaderActive}
-          />
-          <VideoOverlay 
-            title={assignmentData[0].title} 
-            projectLink={assignmentData[0].projectLink} 
+          <VideoContainer videoSrc={videoURL} shouldPlay={!isPreloaderActive} />
+          <VideoOverlay
+            title={assignmentData[0].title}
+            projectLink={assignmentData[0].projectLink}
           />
         </div>
         <div className="relative w-full h-screen overflow-hidden">
-          <VideoContainer
-            videoSrc={videoURL}
-            shouldPlay={!isPreloaderActive}
-          />
-          <VideoOverlay 
-            title={assignmentData[1].title} 
-            projectLink={assignmentData[1].projectLink} 
+          <VideoContainer videoSrc={videoURL} shouldPlay={!isPreloaderActive} />
+          <VideoOverlay
+            title={assignmentData[1].title}
+            projectLink={assignmentData[1].projectLink}
           />
         </div>
       </div>

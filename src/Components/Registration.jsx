@@ -1,5 +1,7 @@
+// src/Components/Registration.jsx
+
 import React, { useState } from 'react';
-import ApplicationForm from './ApplicationForm'; // Path to your form
+import ApplicationForm from './ApplicationForm';
 
 const Registration = () => {
   const [showApplicationForm, setShowApplicationForm] = useState(false);
@@ -15,7 +17,8 @@ const Registration = () => {
               HELLO!
             </h2>
             <p className="text-xs text-gray-500 tracking-wider uppercase leading-relaxed">
-              UNFORTUNATELY, PUBLIC REGISTRATION IS CURRENTLY CLOSED. PLEASE GET IN TOUCH WITH US.
+              UNFORTUNATELY, PUBLIC REGISTRATION IS CURRENTLY CLOSED. PLEASE GET
+              IN TOUCH WITH US.
             </p>
           </div>
           <button

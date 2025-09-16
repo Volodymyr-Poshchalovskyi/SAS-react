@@ -1,15 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400&display=swap');
 
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-
-
-
-/* 1. Імпортуємо всі потрібні шрифти */
-/* 'helvetica' - потрібно додати цей файл в assets/fonts/ */
 @font-face {
   font-family: 'helvetica';
   src: url('./assets/fonts/HelveticaNeueRoman.otf') format('opentype');
@@ -18,7 +12,6 @@
   font-display: swap;
 }
 
-/* 'abchanel-pb-l' - 400 і 600 */
 @font-face {
   font-family: 'abchanel-pb-l';
   font-display: swap;
@@ -47,7 +40,6 @@
   font-weight: 600;
 }
 
-/* 'abchanel-pb-s' */
 @font-face {
   font-family: 'abchanel-pb-s';
   font-display: swap;
@@ -62,22 +54,19 @@
   font-weight: 400;
 }
 
-/* ABChanel Corpo Semi Bold - файл, який ви надали */
 @font-face {
-  font-family: 'ABChanel Corpo'; 
+  font-family: 'ABChanel Corpo';
   src: url('./assets/fonts/ABChanel-Corpo-Semi-Bold.ttf') format('truetype');
-  font-weight: 600; 
+  font-weight: 600;
   font-style: normal;
 }
 
-/* 2. Задаємо базовий шрифт для всього body */
 body {
   font-family: 'abchanel-pb-l', sans-serif;
   color: #fff;
   background-color: #000;
 }
 
-/* 3. Додаємо стилі, які не можна легко перенести у класи Tailwind */
 .intro-preloader__sub {
   font-family: 'helvetica', Arial, sans-serif;
 }
@@ -87,10 +76,8 @@ body {
   font-family: 'helvetica', Arial, sans-serif;
 }
 
-/* Якщо ви хочете використовувати клас, як в оригіналі,
-   тоді `body` буде з класом, а не просто селектором тегу */
 .scroll-snap-enabled {
-    @apply snap-y snap-proximity;
+  @apply snap-y snap-proximity;
 }
 
 .expanded-text {
@@ -102,4 +89,3 @@ body {
   transform: scaleX(1.1);
   transform-origin: center center;
 }
-

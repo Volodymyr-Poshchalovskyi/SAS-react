@@ -1,3 +1,5 @@
+// src/Components/Layout/Header.jsx
+
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,7 +20,7 @@ const navLinks = [
 
 const fadeAnimation = {
   duration: 0.8,
-  ease: "easeInOut"
+  ease: 'easeInOut',
 };
 
 const headerVariants = {
@@ -37,12 +39,18 @@ export default function Header() {
     location.pathname === '/login' ||
     location.pathname === '/studio';
 
-// Створюємо масив сторінок з прелоадером
-const preloaderPages = ['/directors', '/originals', '/production', '/management','/assignment','/feature'];
+  const preloaderPages = [
+    '/directors',
+    '/originals',
+    '/production',
+    '/management',
+    '/assignment',
+    '/feature',
+  ];
 
-const isVisible =
-    isHovered || 
-    isSpecialPage || 
+  const isVisible =
+    isHovered ||
+    isSpecialPage ||
     (preloaderPages.includes(location.pathname) && isPreloaderActive);
 
   const [indicatorStyle, setIndicatorStyle] = useState({
@@ -73,9 +81,7 @@ const isVisible =
       animate={isVisible ? 'visible' : 'hidden'}
       transition={fadeAnimation}
     >
-      {/* Обгортка для центрованого вмісту */}
       <div className="w-full relative px-8 flex justify-center items-center h-16">
-        {/* Логотип по центру */}
         <Link to="/" className="flex items-center h-full">
           <img
             src={isVisible ? sinnersLogoBlack : sinnersLogoWhite}
@@ -84,7 +90,6 @@ const isVisible =
           />
         </Link>
 
-        {/* Кнопка логіну */}
         <AnimatePresence>
           {isVisible && (
             <motion.div
@@ -119,10 +124,8 @@ const isVisible =
         </AnimatePresence>
       </div>
 
-      {/* 🔥 Невидима зона для продовження hover */}
       <div className="absolute left-0 right-0 top-16 h-12" />
 
-      {/* Навігація */}
       <AnimatePresence>
         {isVisible && (
           <motion.nav

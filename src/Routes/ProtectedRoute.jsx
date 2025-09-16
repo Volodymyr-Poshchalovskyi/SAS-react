@@ -1,29 +1,40 @@
+// src/Routes/ProtectedRoute.jsx
+
 import { useAuth } from '../hooks/useAuth';
 import { Navigate, Outlet } from 'react-router-dom';
 
+/**
+ * ProtectedRoute
+ * Protects routes that require authentication.
+ * - Redirects unauthenticated users to login.
+ * - Handles loading state while checking authentication.
+ * - Redirects non-admin users with incomplete registration to login.
+ */
 const ProtectedRoute = () => {
-  const { user, loading } = useAuth();
+  const { user, loading } = useAuth(); // Get current user and loading state from Auth context
 
+  // Show loading indicator while auth state is being determined
   if (loading) {
-    return <h1>Loading...</h1>; // Або компонент-спіннер
+    return <h1>Loading...</h1>;
   }
 
-  // 1. Якщо користувача немає, відправляємо на логін
+  // Redirect unauthenticated users to login
   if (!user) {
     return <Navigate to="/login" />;
   }
 
-  // 2. Визначаємо, чи завершена реєстрація
+  // Check if registration is complete (full_name exists in metadata)
   const isRegistrationComplete = !!user.user_metadata?.full_name;
+
+  // Check if user is an admin based on email domain
   const isAdmin = user.email.endsWith('@sinnersandsaints.la');
 
-  // 3. Якщо користувач - не адмін І його реєстрація НЕ завершена,
-  // відправляємо його назад на сторінку логіну для завершення.
+  // Non-admin users with incomplete registration are redirected to login
   if (!isAdmin && !isRegistrationComplete) {
     return <Navigate to="/login" />;
   }
-  
-  // 4. Якщо всі перевірки пройдено, показуємо захищений контент
+
+  // Render nested routes for authenticated users
   return <Outlet />;
 };
 

@@ -1,8 +1,12 @@
+// src/Routes/Router.jsx
+
 import { Routes, Route } from 'react-router-dom';
 
-// Імпорти ваших компонентів
+// Layouts
 import Layout from '../Components/Layout/Layout.jsx';
 import AdminLayout from '../AdminComponents/Layout/AdminLayout.jsx';
+
+// Public Pages
 import Main from '../Pages/Main.jsx';
 import Login from '../Pages/Login.jsx';
 import Assignment from '../Pages/Assignment.jsx';
@@ -14,6 +18,8 @@ import Originals from '../Pages/Originals.jsx';
 import Production from '../Pages/Production.jsx';
 import Studio from '../Pages/Studio.jsx';
 import Team from '../Pages/Team.jsx';
+
+// Admin Pages
 import AdminPanel from '../AdminPages/AdminPanel.jsx';
 import UserPanel from '../AdminPages/UserPanel.jsx';
 import Dashboard from '../AdminComponents/Layout/Dashboard.jsx';
@@ -22,24 +28,30 @@ import Library from '../AdminComponents/Layout/Library.jsx';
 import MyAnalytic from '../AdminComponents/Layout/MyAnalytic.jsx';
 import ApplicationsForAdmin from '../AdminComponents/ApplicationsForAdmin.jsx';
 import UserManagement from '../AdminComponents/UserManagement.jsx';
+
+// Auth & Utility Pages
 import AuthCallback from '../Pages/AuthCallback.jsx';
 import Logout from '../Pages/Logout.jsx';
-// Імпорти захищених маршрутів
-import ProtectedRoute from './ProtectedRoute.jsx';
-import AdminRoute from './AdminRoute.jsx'; // Перевірте шлях, можливо './AdminRoute.jsx'
 
+// Route Guards
+import ProtectedRoute from './ProtectedRoute.jsx';
+import AdminRoute from './AdminRoute.jsx';
+
+/**
+ * AppRouter
+ * Defines all application routes:
+ * - Public routes (accessible by anyone)
+ * - Protected routes (require authentication)
+ * - Admin routes (require admin privileges)
+ */
 export default function AppRouter() {
   return (
     <Routes>
-      {/* ================================================================== */}
-      {/* ==                      1. ПУБЛІЧНІ МАРШРУТИ                    == */}
-      {/* ================================================================== */}
-
-      {/* Маршрут для сторінки-посередника. Він не має батьківського Layout. */}
+      {/* Auth callback and logout routes */}
       <Route path="/auth/callback" element={<AuthCallback />} />
       <Route path="/logout" element={<Logout />} />
 
-      {/* Основні публічні маршрути, які мають спільний Layout */}
+      {/* Public Routes with main site layout */}
       <Route element={<Layout />}>
         <Route path="/" element={<Main />} />
         <Route path="/assignment" element={<Assignment />} />
@@ -54,14 +66,10 @@ export default function AppRouter() {
         <Route path="/login" element={<Login />} />
       </Route>
 
-
-      {/* ================================================================== */}
-      {/* ==                      2. ЗАХИЩЕНІ МАРШРУТИ                     == */}
-      {/* ================================================================== */}
-
+      {/* Protected Routes (require authentication) */}
       <Route element={<ProtectedRoute />}>
         <Route element={<AdminLayout />}>
-          {/* Маршрути для звичайного користувача */}
+          {/* User panel routes for authenticated users */}
           <Route path="/userpanel" element={<UserPanel />}>
             <Route index element={<Dashboard />} />
             <Route path="dashboard" element={<Dashboard />} />
@@ -70,7 +78,7 @@ export default function AppRouter() {
             <Route path="my-analytic" element={<MyAnalytic />} />
           </Route>
 
-          {/* Маршрути ТІЛЬКИ для адмінів */}
+          {/* Admin-only routes */}
           <Route element={<AdminRoute />}>
             <Route path="/adminpanel" element={<AdminPanel />}>
               <Route index element={<Dashboard />} />

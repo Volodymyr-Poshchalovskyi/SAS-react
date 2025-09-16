@@ -10,38 +10,39 @@ import {
   Users,
   LogOut,
 } from 'lucide-react';
-import { useAuth } from '../../hooks/useAuth'; // ++ Імпортуємо наш хук
+import { useAuth } from '../../hooks/useAuth';
 
 function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signOut } = useAuth(); // ++ Отримуємо функцію signOut з контексту
+  const { signOut } = useAuth();
 
-  // ++ Оновлюємо функцію виходу
+  // ! Handle logout action and redirect to home
   const handleLogout = async () => {
     try {
       await signOut();
-      // Після успішного виходу перенаправляємо на головну сторінку
       navigate('/');
     } catch (error) {
       console.error('Error logging out:', error);
     }
   };
 
+  // ? Check whether user is on admin panel or user panel
   const isAdminPanel = location.pathname.startsWith('/adminpanel');
   const basePath = isAdminPanel ? '/adminpanel' : '/userpanel';
-  
+
+  // * Utility: define classes for active/inactive nav links
   const getNavLinkClasses = ({ isActive }) => {
     const baseClasses =
       'w-full flex items-center justify-start px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150';
-    
+
     if (isActive) {
       return `${baseClasses} bg-slate-200 dark:bg-slate-800 text-slate-900 dark:text-slate-50`;
-    } else {
-      return `${baseClasses} text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-50`;
     }
+    return `${baseClasses} text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-50`;
   };
 
+  // * Navigation items available for both panels
   const navItems = [
     { to: `${basePath}/dashboard`, label: 'Dashboard', icon: LayoutDashboard },
     { to: `${basePath}/create-reel`, label: 'Create reel', icon: Clapperboard },
@@ -49,36 +50,60 @@ function AdminLayout() {
     { to: `${basePath}/my-analytic`, label: 'My Analytics', icon: BarChart },
   ];
 
+  // * Additional navigation items only for Admin panel
   const adminNavItems = [
     { to: '/adminpanel/applications', label: 'Applications', icon: FileText },
-    { to: '/adminpanel/user-management', label: 'User Management', icon: Users },
+    {
+      to: '/adminpanel/user-management',
+      label: 'User Management',
+      icon: Users,
+    },
   ];
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
-      {/* Бічна панель (Sidebar) */}
+      {/* === Sidebar === */}
       <aside className="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col">
+        {/* Sidebar header */}
         <div className="p-4 border-b border-slate-200 dark:border-slate-800">
           <h1 className="text-xl font-bold text-center">
             {isAdminPanel ? 'Admin Panel' : 'User Panel'}
           </h1>
         </div>
+
+        {/* Sidebar navigation */}
         <div className="flex-1 p-4">
           <nav className="flex flex-col space-y-1">
+            {/* Common navigation items */}
             {navItems.map((item) => (
-              <NavLink key={item.to} to={item.to} end className={getNavLinkClasses}>
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end
+                className={getNavLinkClasses}
+              >
                 <item.icon className="mr-3 h-4 w-4" />
                 <span>{item.label}</span>
               </NavLink>
             ))}
-            {isAdminPanel && adminNavItems.map((item) => (
-              <NavLink key={item.to} to={item.to} end className={getNavLinkClasses}>
-                <item.icon className="mr-3 h-4 w-4" />
-                <span>{item.label}</span>
-              </NavLink>
-            ))}
+
+            {/* Admin-only navigation items */}
+            {isAdminPanel &&
+              adminNavItems.map((item) => (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end
+                  className={getNavLinkClasses}
+                >
+                  <item.icon className="mr-3 h-4 w-4" />
+                  <span>{item.label}</span>
+                </NavLink>
+              ))}
           </nav>
         </div>
+
+        {/* Sidebar footer (Logout button) */}
         <div className="mt-auto p-4 border-t border-slate-200 dark:border-slate-800">
           <button
             onClick={handleLogout}
@@ -92,7 +117,7 @@ function AdminLayout() {
         </div>
       </aside>
 
-      {/* Основний контент */}
+      {/* === Main content === */}
       <main className="flex-1 p-6 lg:p-8 overflow-auto">
         <Outlet />
       </main>

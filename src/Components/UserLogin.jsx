@@ -1,6 +1,16 @@
+// src/Components/UserLogin.jsx
+
 import React from 'react';
 
-const UserLogin = ({ email, setEmail, password, setPassword, handleLogin, loading, error }) => {
+const UserLogin = ({
+  email,
+  setEmail,
+  password,
+  setPassword,
+  handleLogin,
+  loading,
+  error,
+}) => {
   return (
     <div className="max-w-sm mx-auto text-center animate-fadeIn">
       <div className="mb-10">

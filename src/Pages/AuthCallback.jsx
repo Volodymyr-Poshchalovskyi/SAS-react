@@ -1,4 +1,5 @@
 // src/Pages/AuthCallback.jsx
+
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
@@ -8,7 +9,6 @@ const AuthCallback = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // НЕ реагуємо, доки loading === true
     if (loading) return;
 
     if (error) {
@@ -25,7 +25,6 @@ const AuthCallback = () => {
       return;
     }
 
-    // Якщо немає user та немає error — на логін
     navigate('/login');
   }, [user, loading, error, navigate]);
 

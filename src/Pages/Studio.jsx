@@ -7,17 +7,19 @@ import PostHouse from './PostHouse';
 const studioData = {
   options: {
     'TABLE TOP STUDIO': 'TABLE TOP DIVISION',
-    'POST HOUSE': 'POST HOUSE'
-  }
+    'POST HOUSE': 'POST HOUSE',
+  },
 };
 
 const componentMap = {
   'TABLE TOP STUDIO': <TableTop />,
-  'POST HOUSE': <PostHouse />
+  'POST HOUSE': <PostHouse />,
 };
 
 export default function Studio() {
-  const [activeOption, setActiveOption] = useState(Object.keys(studioData.options)[0]);
+  const [activeOption, setActiveOption] = useState(
+    Object.keys(studioData.options)[0]
+  );
 
   const getTabClass = (option) => {
     const baseClasses = `bg-transparent border-b-2 py-4 px-12 text-xs font-semibold uppercase 
@@ -29,12 +31,9 @@ export default function Studio() {
   };
 
   return (
-    // ЗМІНА ТУТ: Додано pt-36 (padding-top) до головного контейнера
     <div className="bg-white text-black min-h-screen pt-36">
-      {/* Контейнер для табів */}
-      {/* ЗВІДСИ ВИДАЛЕНО mt-36 */}
       <div className="text-center border-b border-gray-200">
-        {Object.keys(studioData.options).map(option => (
+        {Object.keys(studioData.options).map((option) => (
           <button
             key={option}
             onClick={() => setActiveOption(option)}
@@ -44,11 +43,8 @@ export default function Studio() {
           </button>
         ))}
       </div>
-      
-      {/* Контейнер для динамічного контенту */}
-      <main>
-        {componentMap[activeOption]}
-      </main>
+
+      <main>{componentMap[activeOption]}</main>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 // src/Components/VideoContainer.js
+
 import React, { useRef, useEffect } from 'react';
 
 const VideoContainer = ({ videoSrc, shouldPlay }) => {
@@ -7,7 +8,9 @@ const VideoContainer = ({ videoSrc, shouldPlay }) => {
   useEffect(() => {
     if (videoRef.current) {
       if (shouldPlay) {
-        videoRef.current.play().catch(e => console.error("Video playback error:", e));
+        videoRef.current
+          .play()
+          .catch((e) => console.error('Video playback error:', e));
       } else {
         videoRef.current.pause();
       }

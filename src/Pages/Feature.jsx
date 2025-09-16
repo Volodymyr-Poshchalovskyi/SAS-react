@@ -1,25 +1,23 @@
+// src/pages/Feature.jsx
+
 import React, { useLayoutEffect, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PreloaderBanner from '../Components/PreloaderBanner';
 import { useAnimation } from '../context/AnimationContext';
 import VideoContainer from '../Components/VideoContainer';
 
-// Анімація для заголовка
 const nameAnimation = {
   hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: "easeOut" } },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: 'easeOut' } },
 };
 
-// Дані для сторінки
 const featureData = {
   title: 'FEATURE FILMS & DOCUMENTARIES',
-  // У прикладі HTML текст 'FEATURE FILM PACKAGING', але я залишив дані з вашого компонента.
-  // Ви можете змінити його тут, якщо потрібно.
 };
 
 export default function Feature() {
   const { isPreloaderActive, setIsPreloaderActive } = useAnimation();
-  const videoURL = "/video/SHOWREEL SINNERS AND SAINTS 2024_1.mp4";
+  const videoURL = '/video/SHOWREEL SINNERS AND SAINTS 2024_1.mp4';
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
@@ -36,8 +34,10 @@ export default function Feature() {
     setIsPreloaderActive(false);
   };
 
-  const bannerTitle = "VISIONARY STORYTELLERS. COMMERCIAL REBELS. GLOBAL CREATORS.";
-  const bannerDescription = "From award-winning filmmakers to fashion-forward image makers, our directors and hybrid talent deliver world-class content across commercials, music videos, branded series, and global campaigns.";
+  const bannerTitle =
+    'VISIONARY STORYTELLERS. COMMERCIAL REBELS. GLOBAL CREATORS.';
+  const bannerDescription =
+    'From award-winning filmmakers to fashion-forward image makers, our directors and hybrid talent deliver world-class content across commercials, music videos, branded series, and global campaigns.';
 
   return (
     <div className="bg-black">
@@ -53,12 +53,8 @@ export default function Feature() {
 
       {!isPreloaderActive && (
         <div className="relative w-full h-screen overflow-hidden">
-          <VideoContainer
-            videoSrc={videoURL}
-            shouldPlay={!isPreloaderActive}
-          />
+          <VideoContainer videoSrc={videoURL} shouldPlay={!isPreloaderActive} />
 
-          {/* === ОНОВЛЕНИЙ БЛОК ОВЕРЛЕЮ === */}
           <div className="absolute top-[80%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full text-center">
             <motion.h1
               className="text-white font-chanel font-normal uppercase

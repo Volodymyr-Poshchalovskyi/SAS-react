@@ -3,13 +3,16 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 
-// Спільна конфігурація анімації для синхронізації
 const fadeAnimation = {
   duration: 0.8,
-  ease: "easeInOut"
+  ease: 'easeInOut',
 };
 
-export default function PreloaderBanner({ title, description, onAnimationComplete }) {
+export default function PreloaderBanner({
+  title,
+  description,
+  onAnimationComplete,
+}) {
   const titleWords = title ? title.split(' ') : [];
   const descriptionWords = description ? description.split(' ') : [];
   const [startFadeOut, setStartFadeOut] = useState(false);
@@ -33,7 +36,7 @@ export default function PreloaderBanner({ title, description, onAnimationComplet
   const handleTextAnimationComplete = () => {
     setTimeout(() => {
       setStartFadeOut(true);
-    }, 2000); // Змінено на 2000 мс
+    }, 2000);
   };
 
   if (isUnmounted) {
@@ -62,25 +65,32 @@ export default function PreloaderBanner({ title, description, onAnimationComplet
         animate="visible"
       >
         {titleWords.map((word, index) => (
-          <motion.span key={index} variants={wordVariants} className="inline-block mr-3">
+          <motion.span
+            key={index}
+            variants={wordVariants}
+            className="inline-block mr-3"
+          >
             {word}
           </motion.span>
         ))}
       </motion.h1>
       <motion.p
-  className="font-montserrat text-gray-700 text-base max-w-5xl mt-4 normal-case"
-  variants={descriptionContainerVariants}
-  initial="hidden"
-  animate="visible"
-  onAnimationComplete={handleTextAnimationComplete}
->
-  {descriptionWords.map((word, index) => (
-    <motion.span key={index} variants={wordVariants} className="inline-block mr-2">
-      {word}
-    </motion.span>
-  ))}
-</motion.p>
-
+        className="font-montserrat text-gray-700 text-base max-w-5xl mt-4 normal-case"
+        variants={descriptionContainerVariants}
+        initial="hidden"
+        animate="visible"
+        onAnimationComplete={handleTextAnimationComplete}
+      >
+        {descriptionWords.map((word, index) => (
+          <motion.span
+            key={index}
+            variants={wordVariants}
+            className="inline-block mr-2"
+          >
+            {word}
+          </motion.span>
+        ))}
+      </motion.p>
     </motion.div>
   );
 }

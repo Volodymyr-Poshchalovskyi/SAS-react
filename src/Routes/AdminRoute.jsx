@@ -1,19 +1,25 @@
+// src/Routes/AdminRoute.jsx
+
 import { useAuth } from '../hooks/useAuth';
 import { Navigate, Outlet } from 'react-router-dom';
 
+/**
+ * AdminRoute
+ * Protects admin-only routes by checking if the user is a staff member.
+ * If the user is not an admin, redirects to the user panel.
+ */
 const AdminRoute = () => {
-  const { user } = useAuth(); // Тут нам не потрібен loading, бо його вже перевірив ProtectedRoute
+  const { user } = useAuth(); // Get current user from Auth context
 
-  // Перевіряємо, чи email користувача закінчується на потрібний домен
+  // Determine if the user is an admin based on email domain
   const isAdmin = user && user.email.endsWith('@sinnersandsaints.la');
-  
+
+  // Redirect non-admin users to the user panel
   if (!isAdmin) {
-    // Якщо користувач залогінений, але не є адміном,
-    // перенаправляємо його на панель користувача.
     return <Navigate to="/userpanel" />;
   }
-  
-  // Якщо це адмін, показуємо вкладений контент (AdminPanel)
+
+  // Render nested routes for admin users
   return <Outlet />;
 };
 

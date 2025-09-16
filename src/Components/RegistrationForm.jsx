@@ -1,11 +1,15 @@
+// src/Components/RegistrationForm.jsx
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
 const RegistrationForm = () => {
+  // ---------- Auth Hook ----------
   const { user, completeRegistration } = useAuth();
   const navigate = useNavigate();
 
+  // ---------- State ----------
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [location, setLocation] = useState('');
@@ -16,23 +20,27 @@ const RegistrationForm = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // ---------- Populate Email if User Exists ----------
   useEffect(() => {
     if (user?.email) {
       setEmail(user.email);
     }
   }, [user]);
 
+  // ---------- Submit Handler ----------
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
+    // ---------- Validation ----------
     if (password.length < 6) {
       setError('Password must be at least 6 characters long.');
       setLoading(false);
       return;
     }
 
+    // ---------- Complete Registration ----------
     try {
       await completeRegistration({
         password,
@@ -40,14 +48,14 @@ const RegistrationForm = () => {
         lastName,
         location,
         state,
-        phone
+        phone,
       });
-      
-      navigate('/login', { 
-        state: { message: 'Registration successful! Please sign in.' } 
+
+      // Navigate to login with success message
+      navigate('/login', {
+        state: { message: 'Registration successful! Please sign in.' },
       });
       window.location.hash = '';
-
     } catch (err) {
       setError(err.message);
     } finally {
@@ -55,43 +63,156 @@ const RegistrationForm = () => {
     }
   };
 
+  // ---------- Render Form ----------
   return (
     <div className="max-w-sm mx-auto text-center animate-fadeIn">
+      {/* ---- Header ---- */}
       <div className="mb-10">
-        <h2 className="text-xl font-semibold text-black mb-2 tracking-wider uppercase">REGISTRATION</h2>
-        <p className="text-xs text-gray-500 tracking-wider uppercase">CREATE YOUR ACCOUNT</p>
+        <h2 className="text-xl font-semibold text-black mb-2 tracking-wider uppercase">
+          REGISTRATION
+        </h2>
+        <p className="text-xs text-gray-500 tracking-wider uppercase">
+          CREATE YOUR ACCOUNT
+        </p>
       </div>
+
+      {/* ---- Error Message ---- */}
       {error && <p className="text-red-500 text-xs mb-4">{error}</p>}
+
+      {/* ---- Form Fields ---- */}
       <form onSubmit={handleSubmit} className="text-left space-y-6">
+        {/* First Name */}
         <div>
-          <label htmlFor="reg-firstname" className="block text-xs font-semibold text-black mb-2 uppercase tracking-wider">FIRST NAME</label>
-          <input type="text" id="reg-firstname" value={firstName} onChange={(e) => setFirstName(e.target.value)} required className="w-full bg-transparent text-black border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm" />
+          <label
+            htmlFor="reg-firstname"
+            className="block text-xs font-semibold text-black mb-2 uppercase tracking-wider"
+          >
+            FIRST NAME
+          </label>
+          <input
+            type="text"
+            id="reg-firstname"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            required
+            className="w-full bg-transparent text-black border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm"
+          />
         </div>
+
+        {/* Last Name */}
         <div>
-          <label htmlFor="reg-lastname" className="block text-xs font-semibold text-black mb-2 uppercase tracking-wider">LAST NAME</label>
-          <input type="text" id="reg-lastname" value={lastName} onChange={(e) => setLastName(e.target.value)} required className="w-full bg-transparent text-black border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm" />
+          <label
+            htmlFor="reg-lastname"
+            className="block text-xs font-semibold text-black mb-2 uppercase tracking-wider"
+          >
+            LAST NAME
+          </label>
+          <input
+            type="text"
+            id="reg-lastname"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            required
+            className="w-full bg-transparent text-black border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm"
+          />
         </div>
+
+        {/* Location */}
         <div>
-          <label htmlFor="reg-location" className="block text-xs font-semibold text-black mb-2 uppercase tracking-wider">LOCATION OF RESIDENCE</label>
-          <input type="text" id="reg-location" value={location} onChange={(e) => setLocation(e.target.value)} required className="w-full bg-transparent text-black border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm" />
+          <label
+            htmlFor="reg-location"
+            className="block text-xs font-semibold text-black mb-2 uppercase tracking-wider"
+          >
+            LOCATION OF RESIDENCE
+          </label>
+          <input
+            type="text"
+            id="reg-location"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            required
+            className="w-full bg-transparent text-black border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm"
+          />
         </div>
+
+        {/* State */}
         <div>
-          <label htmlFor="reg-state" className="block text-xs font-semibold text-black mb-2 uppercase tracking-wider">STATE</label>
-          <input type="text" id="reg-state" value={state} onChange={(e) => setState(e.target.value)} required className="w-full bg-transparent text-black border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm" />
+          <label
+            htmlFor="reg-state"
+            className="block text-xs font-semibold text-black mb-2 uppercase tracking-wider"
+          >
+            STATE
+          </label>
+          <input
+            type="text"
+            id="reg-state"
+            value={state}
+            onChange={(e) => setState(e.target.value)}
+            required
+            className="w-full bg-transparent text-black border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm"
+          />
         </div>
+
+        {/* Email (readonly) */}
         <div>
-          <label htmlFor="reg-email" className="block text-xs font-semibold text-black mb-2 uppercase tracking-wider">EMAIL</label>
-          <input type="email" id="reg-email" value={email} readOnly disabled className="w-full bg-transparent text-black border-b border-gray-300 focus:outline-none py-2 text-sm text-gray-500" />
+          <label
+            htmlFor="reg-email"
+            className="block text-xs font-semibold text-black mb-2 uppercase tracking-wider"
+          >
+            EMAIL
+          </label>
+          <input
+            type="email"
+            id="reg-email"
+            value={email}
+            readOnly
+            disabled
+            className="w-full bg-transparent text-black border-b border-gray-300 focus:outline-none py-2 text-sm text-gray-500"
+          />
         </div>
+
+        {/* Phone */}
         <div>
-          <label htmlFor="reg-phone" className="block text-xs font-semibold text-black mb-2 uppercase tracking-wider">PHONE</label>
-          <input type="tel" id="reg-phone" value={phone} onChange={(e) => setPhone(e.target.value)} required className="w-full bg-transparent text-black border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm" />
+          <label
+            htmlFor="reg-phone"
+            className="block text-xs font-semibold text-black mb-2 uppercase tracking-wider"
+          >
+            PHONE
+          </label>
+          <input
+            type="tel"
+            id="reg-phone"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            required
+            className="w-full bg-transparent text-black border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm"
+          />
         </div>
+
+        {/* Password */}
         <div>
-          <label htmlFor="reg-password" className="block text-xs font-semibold text-black mb-2 uppercase tracking-wider">PASSWORD</label>
-          <input type="password" id="reg-password" value={password} onChange={(e) => setPassword(e.target.value)} required className="w-full bg-transparent text-black border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm" />
+          <label
+            htmlFor="reg-password"
+            className="block text-xs font-semibold text-black mb-2 uppercase tracking-wider"
+          >
+            PASSWORD
+          </label>
+          <input
+            type="password"
+            id="reg-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className="w-full bg-transparent text-black border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm"
+          />
         </div>
-        <button type="submit" disabled={loading} className="w-full py-4 mt-4 bg-black text-white font-semibold text-xs uppercase tracking-widest hover:bg-gray-800 transition-colors disabled:bg-gray-400">
+
+        {/* Submit Button */}
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-4 mt-4 bg-black text-white font-semibold text-xs uppercase tracking-widest hover:bg-gray-800 transition-colors disabled:bg-gray-400"
+        >
           {loading ? 'CREATING ACCOUNT...' : 'Sign Up'}
         </button>
       </form>

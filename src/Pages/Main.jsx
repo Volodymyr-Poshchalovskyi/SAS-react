@@ -1,24 +1,25 @@
-import React, { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
-import VideoContainer from "../Components/VideoContainer";
+// src/pages/Main.jsx
+
+import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
+import VideoContainer from '../Components/VideoContainer';
 
 function Main() {
-  const videoPath = "/video/SHOWREEL SINNERS AND SAINTS 2024_1.mp4";
+  const videoPath = '/video/SHOWREEL SINNERS AND SAINTS 2024_1.mp4';
 
-  // Додано стан та референс
   const [shouldPlayVideo, setShouldPlayVideo] = useState(false);
   const videoSectionRef = useRef(null);
 
   const titleLines = [
-    ["WHERE", "CULTURE,", "COMMERCE"],
-    ["AND", "CINEMA", "COLLIDE."],
+    ['WHERE', 'CULTURE,', 'COMMERCE'],
+    ['AND', 'CINEMA', 'COLLIDE.'],
   ];
 
   const subtitleLines = [
-    ["A", "BOUTIQUE", "CREATIVE", "STUDIO"],
-    ["AND", "PRODUCTION", "COMPANY"],
-    ["CRAFTING", "BOLD", "CONTENT", "WITH", "THE"],
-    ["WORLD'S", "MOST", "EXCITING", "TALENT."],
+    ['A', 'BOUTIQUE', 'CREATIVE', 'STUDIO'],
+    ['AND', 'PRODUCTION', 'COMPANY'],
+    ['CRAFTING', 'BOLD', 'CONTENT', 'WITH', 'THE'],
+    ["WORLD'S", 'MOST', 'EXCITING', 'TALENT.'],
   ];
 
   const wordVariants = {
@@ -35,7 +36,6 @@ function Main() {
 
   const titleWordCount = titleLines.reduce((acc, line) => acc + line.length, 0);
 
-  // Додано useEffect для Intersection Observer
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -60,17 +60,15 @@ function Main() {
   }, []);
 
   return (
-    // Додано ref до батьківського div
     <div className="relative w-full h-screen text-white" ref={videoSectionRef}>
-      {/* Передаємо пропс shouldPlay */}
       <VideoContainer videoSrc={videoPath} shouldPlay={shouldPlayVideo} />
 
-      {/* Змінено класи для правильного вертикального центрування */}
       <div className="absolute top-[140px] bottom-0 left-0 right-0 z-10 flex flex-col items-center justify-center text-center px-4">
-        {/* === Заголовок === */}
         <h1 className="text-[2.8rem] leading-[1.2] mb-12 font-semibold expanded-text tracking-wider">
           {titleLines.map((line, lineIndex) => {
-            const baseIndex = titleLines.slice(0, lineIndex).reduce((acc, l) => acc + l.length, 0);
+            const baseIndex = titleLines
+              .slice(0, lineIndex)
+              .reduce((acc, l) => acc + l.length, 0);
             return (
               <div key={lineIndex} className="block">
                 {line.map((word, wordIndex) => (
@@ -90,10 +88,11 @@ function Main() {
           })}
         </h1>
 
-        {/* === Підзаголовок === */}
         <div className="text-[2rem] max-w-4xl leading-[1.2] font-medium expanded-subtitle tracking-wider">
           {subtitleLines.map((line, lineIndex) => {
-            const baseIndex = subtitleLines.slice(0, lineIndex).reduce((acc, l) => acc + l.length, 0);
+            const baseIndex = subtitleLines
+              .slice(0, lineIndex)
+              .reduce((acc, l) => acc + l.length, 0);
             return (
               <div key={lineIndex} className="block mb-1">
                 {line.map((word, wordIndex) => (
