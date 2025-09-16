@@ -4,6 +4,97 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth';
 
 // =======================
+// Modal Component
+// =======================
+const Modal = ({
+  isOpen,
+  onClose,
+  title,
+  children,
+  confirmText,
+  onConfirm,
+  showCancelButton = true,
+  confirmButtonClass,
+}) => {
+  useEffect(() => {
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [onClose]);
+
+  if (!isOpen) return null;
+
+  const baseButtonClasses =
+    'py-2 px-4 rounded-md text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900';
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      onMouseDown={onClose}
+    >
+      <div
+        className="relative w-full max-w-md p-6 m-4 bg-white rounded-xl shadow-xl dark:bg-slate-900"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between">
+          <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-50">
+            {title}
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+            aria-label="Close modal"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
+        </div>
+
+        <div className="mt-4 text-slate-600 dark:text-slate-300">
+          {children}
+        </div>
+
+        <div className="mt-6 flex justify-end gap-3">
+          {showCancelButton && (
+            <button
+              onClick={onClose}
+              className={`${baseButtonClasses} border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800`}
+            >
+              Cancel
+            </button>
+          )}
+          <button
+            onClick={onConfirm}
+            className={`${baseButtonClasses} text-white ${
+              confirmButtonClass ||
+              'bg-indigo-600 hover:bg-indigo-700 focus-visible:ring-indigo-500'
+            }`}
+          >
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// =======================
 // Status Badge Component
 // =======================
 const StatusBadge = ({ status }) => {
@@ -67,8 +158,21 @@ const UserManagement = () => {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [visibleCount, setVisibleCount] = useState(8);
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    confirmText: 'Confirm',
+    onConfirm: () => {},
+    confirmButtonClass: '',
+    showCancelButton: true,
+  });
 
   const { getUsers, updateUserStatus } = useAuth();
+
+  const closeModal = useCallback(() => {
+    setModalConfig((prev) => ({ ...prev, isOpen: false }));
+  }, []);
 
   // ---------- Fetch Users ----------
   const fetchUsers = useCallback(async () => {
@@ -111,23 +215,46 @@ const UserManagement = () => {
   }, [users, searchTerm]);
 
   // ---------- Handlers ----------
-  const handleUpdateStatus = async (id, newStatus) => {
+  const handleUpdateStatus = (id, newStatus) => {
     const action = newStatus === 'active' ? 'activate' : 'deactivate';
-    const isConfirmed = window.confirm(
-      `Are you sure you want to ${action} this user?`
-    );
-    if (!isConfirmed) return;
+    const isDeactivation = action === 'deactivate';
+    const userToUpdate = users.find((u) => u.id === id);
+    if (!userToUpdate) return;
 
-    try {
-      await updateUserStatus(id, newStatus);
-      setUsers((currentUsers) =>
-        currentUsers.map((user) =>
-          user.id === id ? { ...user, state: newStatus } : user
-        )
-      );
-    } catch (err) {
-      alert(`Error: ${err.message}`);
-    }
+    const performUpdate = async () => {
+      try {
+        await updateUserStatus(id, newStatus);
+        setUsers((currentUsers) =>
+          currentUsers.map((user) =>
+            user.id === id ? { ...user, state: newStatus } : user
+          )
+        );
+        closeModal();
+      } catch (err) {
+        setModalConfig({
+          isOpen: true,
+          title: 'Error',
+          message: `Failed to ${action} user: ${err.message}`,
+          confirmText: 'OK',
+          onConfirm: closeModal,
+          showCancelButton: false,
+          confirmButtonClass:
+            'bg-red-600 hover:bg-red-700 focus-visible:ring-red-500',
+        });
+      }
+    };
+
+    setModalConfig({
+      isOpen: true,
+      title: `Confirm ${action.charAt(0).toUpperCase() + action.slice(1)}`,
+      message: `Are you sure you want to ${action} the user "${userToUpdate.firstName} ${userToUpdate.lastName}"?`,
+      confirmText: action.charAt(0).toUpperCase() + action.slice(1),
+      onConfirm: performUpdate,
+      showCancelButton: true,
+      confirmButtonClass: isDeactivation
+        ? 'bg-red-600 hover:bg-red-700 focus-visible:ring-red-500'
+        : 'bg-green-600 hover:bg-green-700 focus-visible:ring-green-500',
+    });
   };
 
   const handleShowMore = () => {
@@ -165,6 +292,19 @@ const UserManagement = () => {
   // ---------- Render ----------
   return (
     <div className="max-w-7xl mx-auto">
+      {/* ---- Modal ---- */}
+      <Modal
+        isOpen={modalConfig.isOpen}
+        onClose={closeModal}
+        title={modalConfig.title}
+        confirmText={modalConfig.confirmText}
+        onConfirm={modalConfig.onConfirm}
+        showCancelButton={modalConfig.showCancelButton}
+        confirmButtonClass={modalConfig.confirmButtonClass}
+      >
+        <p>{modalConfig.message}</p>
+      </Modal>
+
       {/* ---- Header ---- */}
       <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">
@@ -199,10 +339,14 @@ const UserManagement = () => {
               <thead className="text-slate-500 dark:text-slate-400">
                 <tr className="border-b border-slate-200 dark:border-slate-800">
                   <th className="p-4 font-medium text-left">User</th>
-                  <th className="p-4 font-medium text-left">Contact Information</th>
+                  <th className="p-4 font-medium text-left">
+                    Contact Information
+                  </th>
                   <th className="p-4 font-medium text-left">Location</th>
                   <th className="p-4 font-medium text-center">Status</th>
-                  <th className="p-4 font-medium text-left">Registration Date</th>
+                  <th className="p-4 font-medium text-left">
+                    Registration Date
+                  </th>
                   <th className="p-4 font-medium text-center">Actions</th>
                 </tr>
               </thead>
@@ -240,7 +384,9 @@ const UserManagement = () => {
                     <td className="p-4 text-center">
                       {user.state === 'active' ? (
                         <button
-                          onClick={() => handleUpdateStatus(user.id, 'deactivated')}
+                          onClick={() =>
+                            handleUpdateStatus(user.id, 'deactivated')
+                          }
                           className={`${baseButtonClasses} ${deactivateButtonClasses}`}
                         >
                           Deactivate
@@ -267,7 +413,8 @@ const UserManagement = () => {
                 onClick={handleShowMore}
                 className="py-2 px-4 text-sm font-medium rounded-md border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
-                Show More ({Math.min(5, filteredUsers.length - visibleCount)} more)
+                Show More ({Math.min(5, filteredUsers.length - visibleCount)}{' '}
+                more)
               </button>
             </div>
           )}
