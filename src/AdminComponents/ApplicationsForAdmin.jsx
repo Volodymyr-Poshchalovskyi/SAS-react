@@ -7,6 +7,7 @@ import { useAuth } from '../hooks/useAuth';
 // Status Badge Component
 // =======================
 const StatusBadge = ({ status }) => {
+  // ... (цей компонент залишається без змін)
   const baseClasses =
     'inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full text-xs font-medium capitalize';
   const statusStyles = {
@@ -32,9 +33,10 @@ const StatusBadge = ({ status }) => {
 };
 
 // =======================
-// Highlight Component (for search matches)
+// Highlight Component
 // =======================
 const Highlight = ({ text, highlight }) => {
+  // ... (цей компонент залишається без змін)
   if (!text) return null;
   if (!highlight.trim()) return <span>{text}</span>;
 
@@ -59,6 +61,92 @@ const Highlight = ({ text, highlight }) => {
   );
 };
 
+// ===================================
+// ✨ NEW: Confirmation Modal Component
+// ===================================
+const ConfirmationModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  title,
+  children,
+  confirmText = 'Confirm',
+  confirmVariant = 'default',
+}) => {
+  useEffect(() => {
+    const handleEsc = (event) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('keydown', handleEsc);
+    }
+    return () => {
+      document.removeEventListener('keydown', handleEsc);
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  const baseButtonClasses =
+    'inline-flex justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-800 transition-colors';
+  const variantClasses = {
+    approve: `${baseButtonClasses} bg-green-600 text-white hover:bg-green-700 focus-visible:ring-green-500`,
+    deny: `${baseButtonClasses} bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500`,
+    default: `${baseButtonClasses} bg-slate-600 text-white hover:bg-slate-700 focus-visible:ring-slate-500`,
+  };
+  const confirmButtonClasses =
+    variantClasses[confirmVariant] || variantClasses.default;
+  const cancelButtonClasses = `${baseButtonClasses} bg-transparent text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800`;
+
+  return (
+    <div
+      className="relative z-50"
+      aria-labelledby="modal-title"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 ease-in-out" />
+      <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
+        <div className="flex min-h-full items-center justify-center p-4 text-center">
+          <div className="relative w-full max-w-md transform overflow-hidden rounded-2xl bg-white dark:bg-slate-900 text-left align-middle shadow-xl transition-all duration-300 ease-in-out">
+            <div className="p-6">
+              <h3
+                className="text-lg font-medium leading-6 text-slate-900 dark:text-slate-50"
+                id="modal-title"
+              >
+                {title}
+              </h3>
+              <div className="mt-2">
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  {children}
+                </p>
+              </div>
+            </div>
+            <div className="bg-slate-50 dark:bg-slate-900/50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-3">
+              <button
+                type="button"
+                className={confirmButtonClasses}
+                onClick={onConfirm}
+              >
+                {confirmText}
+              </button>
+              <button
+                type="button"
+                className={cancelButtonClasses}
+                onClick={onClose}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // =======================
 // Main Component
 // =======================
@@ -69,6 +157,16 @@ const ApplicationsForAdmin = () => {
   const [error, setError] = useState('');
   const [visibleCount, setVisibleCount] = useState(8);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // --- ✨ NEW: State for managing the modal ---
+  const [modalConfig, setModalConfig] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    confirmText: 'Confirm',
+    confirmVariant: 'default',
+  });
 
   const { getApplications, updateApplicationStatus } = useAuth();
 
@@ -95,7 +193,7 @@ const ApplicationsForAdmin = () => {
     fetchApplications();
   }, [fetchApplications]);
 
-  // ---------- Filtered Applications (by search) ----------
+  // ---------- Filtered Applications ----------
   const filteredApplications = useMemo(() => {
     if (!searchTerm) return applications;
     return applications.filter(
@@ -106,21 +204,41 @@ const ApplicationsForAdmin = () => {
   }, [applications, searchTerm]);
 
   // ---------- Handlers ----------
-  const handleUpdateStatus = async (id, newStatus, email) => {
-    const isConfirmed = window.confirm(
-      `Are you sure you want to ${newStatus} this application for ${email}?`
-    );
-    if (!isConfirmed) return;
+  const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
 
+  // --- ✨ NEW: Function to execute the update after confirmation ---
+  const executeStatusUpdate = async (id, newStatus, email) => {
     try {
       await updateApplicationStatus(id, newStatus, email);
-      // Update local state
       setApplications((apps) =>
         apps.map((app) => (app.id === id ? { ...app, status: newStatus } : app))
       );
     } catch (err) {
-      alert(`Error: ${err.message}`);
+      // Show error in a modal instead of an alert
+      setModalConfig({
+        isOpen: true,
+        title: 'An Error Occurred',
+        message: err.message,
+        confirmText: 'OK',
+        confirmVariant: 'deny',
+        onConfirm: closeModal, // Just close the modal on OK
+      });
+    } finally {
+      closeModal();
     }
+  };
+
+  // --- ✨ MODIFIED: This function now just opens the modal ---
+  const handleUpdateStatus = (id, newStatus, email) => {
+    const isApproving = newStatus === 'approved';
+    setModalConfig({
+      isOpen: true,
+      title: `Confirm Action: ${isApproving ? 'Approve' : 'Deny'}`,
+      message: `Are you sure you want to ${newStatus} this application for ${email}? This action cannot be undone.`,
+      onConfirm: () => executeStatusUpdate(id, newStatus, email),
+      confirmText: isApproving ? 'Approve' : 'Deny',
+      confirmVariant: isApproving ? 'approve' : 'deny',
+    });
   };
 
   const handleShowMore = () => {
@@ -150,7 +268,7 @@ const ApplicationsForAdmin = () => {
   // ---------- Render ----------
   return (
     <div className="max-w-7xl mx-auto">
-      {/* ---- Header ---- */}
+      {/* ... (Header and table JSX remains the same) ... */}
       <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">
           Applications
@@ -165,8 +283,7 @@ const ApplicationsForAdmin = () => {
           />
         </div>
       </div>
-
-      {/* ---- Empty State ---- */}
+      {/* ... */}
       {filteredApplications.length === 0 ? (
         <div className="text-center p-8 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl bg-white dark:bg-slate-900/70">
           <p className="text-slate-500 dark:text-slate-400">
@@ -237,7 +354,6 @@ const ApplicationsForAdmin = () => {
               </tbody>
             </table>
           </div>
-
           {/* ---- Show More Button ---- */}
           {visibleCount < filteredApplications.length && (
             <div className="p-4 text-center border-t border-slate-100 dark:border-slate-800">
@@ -252,6 +368,18 @@ const ApplicationsForAdmin = () => {
           )}
         </div>
       )}
+
+      {/* --- ✨ NEW: Render the modal here --- */}
+      <ConfirmationModal
+        isOpen={modalConfig.isOpen}
+        onClose={closeModal}
+        onConfirm={modalConfig.onConfirm}
+        title={modalConfig.title}
+        confirmText={modalConfig.confirmText}
+        confirmVariant={modalConfig.confirmVariant}
+      >
+        {modalConfig.message}
+      </ConfirmationModal>
     </div>
   );
 };
