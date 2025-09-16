@@ -19,8 +19,6 @@ const AuthProvider = ({ children }) => {
   // ---------- Initialize Session and Auth Listener ----------
   useEffect(() => {
     setLoading(true);
-
-    // Fetch current session
     const getSession = async () => {
       const { data } = await supabase.auth.getSession();
       setSession(data.session);
@@ -28,15 +26,9 @@ const AuthProvider = ({ children }) => {
       setLoading(false);
     };
     getSession();
-
-    // Listen for auth state changes
     const { data: listener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        // ---------- Google Staff Restriction ----------
-        if (
-          event === 'SIGNED_IN' &&
-          session?.user.app_metadata.provider === 'google'
-        ) {
+        if (event === 'SIGNED_IN' && session?.user.app_metadata.provider === 'google') {
           const userEmail = session.user.email;
           if (!userEmail.endsWith('@sinnersandsaints.la')) {
             await supabase.auth.signOut();
@@ -54,11 +46,7 @@ const AuthProvider = ({ children }) => {
         setLoading(false);
       }
     );
-
-    // Cleanup listener on unmount
-    return () => {
-      listener?.subscription.unsubscribe();
-    };
+    return () => listener?.subscription.unsubscribe();
   }, []);
 
   // ---------- Extract Invitation Token from URL Hash ----------
@@ -72,177 +60,72 @@ const AuthProvider = ({ children }) => {
   }, []);
 
   // ---------- Authentication Methods ----------
-
-  // Sign in with Google OAuth
-  const signInWithGoogle = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin + '/auth/callback' },
-    });
-  };
-
-  // Sign in with email & password
-  const signInWithPassword = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) throw error;
-    return data;
-  };
-
-  // Sign out
-  const signOut = async () => {
-    await supabase.auth.signOut();
-  };
+  const signInWithGoogle = async () => await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + '/auth/callback' } });
+  const signInWithPassword = async (email, password) => { const { data, error } = await supabase.auth.signInWithPassword({ email, password }); if (error) throw error; return data; };
+  const signOut = async () => await supabase.auth.signOut();
 
   // ---------- Application Methods ----------
-
-  // Submit a new application
-  const submitApplication = async ({ email, message }) => {
-    const { data, error } = await supabase
-      .from('applications')
-      .insert({ email, message });
-    if (error) {
-      if (error.code === '23505')
-        throw new Error('An application with this email already exists.');
-      throw error;
-    }
-    return data;
-  };
-
-  // Complete user registration
-  const completeRegistration = async ({
-    password,
-    firstName,
-    lastName,
-    location,
-    state,
-    phone,
-  }) => {
-    const { data, error } = await supabase.auth.updateUser({
-      password: password,
-      data: {
-        full_name: `${firstName} ${lastName}`.trim(),
-        location,
-        state,
-        phone,
-      },
-    });
-    if (error) throw error;
-
-    // Sign out after registration
-    await supabase.auth.signOut();
-    return data;
-  };
-
-  // Fetch all applications
-  const getApplications = async () => {
-    const { data, error } = await supabase
-      .from('applications')
-      .select('*')
-      .order('created_at', { ascending: false });
-    if (error) throw error;
-    return data;
-  };
-
-  // Update application status (approve or deny)
+  const submitApplication = async ({ email, message }) => { const { data, error } = await supabase.from('applications').insert({ email, message }); if (error) { if (error.code === '23505') throw new Error('An application with this email already exists.'); throw error; } return data; };
+  const completeRegistration = async ({ password, firstName, lastName, location, state, phone }) => { const { data, error } = await supabase.auth.updateUser({ password: password, data: { full_name: `${firstName} ${lastName}`.trim(), location, state, phone } }); if (error) throw error; await supabase.auth.signOut(); return data; };
+  const getApplications = async () => { const { data, error } = await supabase.from('applications').select('*').order('created_at', { ascending: false }); if (error) throw error; return data; };
   const updateApplicationStatus = async (applicationId, newStatus, email) => {
     if (newStatus === 'approved') {
-      // Invoke function to send invite email
-      const { data: inviteData, error: inviteError } =
-        await supabase.functions.invoke('invite-user', { body: { email } });
-
-      if (inviteError) {
-        throw new Error(`Failed to invite user: ${inviteError.message}`);
-      }
-
-      // Update application status to approved
-      const { data, error } = await supabase
-        .from('applications')
-        .update({ status: 'approved' })
-        .eq('id', applicationId);
-      if (error) {
-        throw new Error(
-          `Failed to update application status: ${error.message}`
-        );
-      }
+      const { error: inviteError } = await supabase.functions.invoke('invite-user', { body: { email } });
+      if (inviteError) throw new Error(`Failed to invite user: ${inviteError.message}`);
+      const { data, error } = await supabase.from('applications').update({ status: 'approved' }).eq('id', applicationId);
+      if (error) throw new Error(`Failed to update application status: ${error.message}`);
       return data;
     } else if (newStatus === 'denied') {
-      // Update application status to denied
-      const { data, error } = await supabase
-        .from('applications')
-        .update({ status: 'denied' })
-        .eq('id', applicationId);
+      const { data, error } = await supabase.from('applications').update({ status: 'denied' }).eq('id', applicationId);
       if (error) throw error;
-
-      console.log(
-        `Application for ${email} denied. Email sending is currently disabled.`
-      );
+      console.log(`Application for ${email} denied. Email sending is currently disabled.`);
       return data;
     }
   };
 
   // ---------- User Management Methods ----------
-
-  // Fetch all non-staff users
   const getUsers = async () => {
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .neq('role', 'staff')
-      .order('created_at', { ascending: false });
+    const { data, error } = await supabase.from('user_profiles').select('*').neq('role', 'staff').order('created_at', { ascending: false });
     if (error) throw error;
     return data;
   };
 
+  // ===============================================================
+  // ▼▼▼ ОСЬ ТУТ ЗМІНИ ▼▼▼
+  // ===============================================================
+
   // Update user status (active/deactivated)
   const updateUserStatus = async (userId, newStatus) => {
-    const shouldDeactivate = newStatus === 'deactivated';
+    // Просто викликаємо нашу єдину, безпечну Edge Function
+    const { data, error } = await supabase.functions.invoke('update-user-status', {
+      body: { userId, newStatus },
+    });
 
-    // Call Supabase function to deactivate auth user if necessary
-    const { error: funcError } = await supabase.functions.invoke(
-      'deactivate-auth-user',
-      {
-        body: { userId, shouldDeactivate },
-      }
-    );
-    if (funcError) throw funcError;
+    if (error) {
+      // Викидаємо помилку, щоб компонент міг її обробити
+      throw error;
+    }
 
-    // Update user profile status
-    const { data, error: updateError } = await supabase
-      .from('user_profiles')
-      .update({ status: newStatus })
-      .eq('id', userId);
-    if (updateError) throw updateError;
     return data;
   };
 
+  // ===============================================================
+  // ▲▲▲ КІНЕЦЬ ЗМІН ▲▲▲
+  // ===============================================================
+
   // ---------- Context Value ----------
   const value = {
-    session,
-    user,
-    loading,
-    error,
-    clearError,
-    signInWithGoogle,
-    signInWithPassword,
-    signOut,
-    submitApplication,
-    invitationToken,
-    completeRegistration,
-    getApplications,
-    updateApplicationStatus,
+    session, user, loading, error, clearError,
+    signInWithGoogle, signInWithPassword, signOut,
+    submitApplication, invitationToken, completeRegistration,
+    getApplications, updateApplicationStatus,
     getUsers,
-    updateUserStatus,
+    updateUserStatus, // Передаємо оновлену функцію
+    supabase, // Додаємо supabase клієнт в контекст для виклику функцій
   };
 
   // ---------- Render Provider ----------
-  return (
-    <AuthContext.Provider value={value}>
-      {!loading && children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
 };
 
 export default AuthProvider;
