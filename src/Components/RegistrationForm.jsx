@@ -17,6 +17,10 @@ const RegistrationForm = () => {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  // --- Новий стан для підтвердження пароля та його видимості ---
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  // ---
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -30,15 +34,22 @@ const RegistrationForm = () => {
   // ---------- Submit Handler ----------
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
     setError('');
 
     // ---------- Validation ----------
     if (password.length < 6) {
       setError('Password must be at least 6 characters long.');
-      setLoading(false);
       return;
     }
+
+    // --- Нова перевірка: чи збігаються паролі ---
+    if (password !== confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+    // ---
+
+    setLoading(true);
 
     // ---------- Complete Registration ----------
     try {
@@ -197,14 +208,50 @@ const RegistrationForm = () => {
           >
             PASSWORD
           </label>
-          <input
-            type="password"
-            id="reg-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="w-full bg-transparent text-black border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm"
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              id="reg-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full bg-transparent text-black border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm pr-16"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 flex items-center px-4 text-xs uppercase text-gray-500 hover:text-black focus:outline-none"
+            >
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
+          </div>
+        </div>
+
+        {/* Confirm Password */}
+        <div>
+          <label
+            htmlFor="reg-confirm-password"
+            className="block text-xs font-semibold text-black mb-2 uppercase tracking-wider"
+          >
+            CONFIRM PASSWORD
+          </label>
+          <div className="relative">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              id="reg-confirm-password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              className="w-full bg-transparent text-black border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm pr-16"
+            />
+             <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 flex items-center px-4 text-xs uppercase text-gray-500 hover:text-black focus:outline-none"
+            >
+              {showPassword ? 'Hide' : 'Show'}
+            </button>
+          </div>
         </div>
 
         {/* Submit Button */}
