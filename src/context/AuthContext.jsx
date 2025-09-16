@@ -1,5 +1,3 @@
-// src/context/AuthContext.js
-
 import { createContext, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabaseClient';
 
@@ -8,13 +6,13 @@ export const AuthContext = createContext({});
 
 const AuthProvider = ({ children }) => {
   // ---------- State ----------
-  const [user, setUser] = useState(null); // Current user object
-  const [session, setSession] = useState(null); // Supabase session
-  const [loading, setLoading] = useState(true); // Loading state for auth
-  const [error, setError] = useState(null); // Error messages
-  const [invitationToken, setInvitationToken] = useState(null); // Token from invite links
+  const [user, setUser] = useState(null);
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [invitationToken, setInvitationToken] = useState(null);
 
-  const clearError = () => setError(null); // Helper to clear errors
+  const clearError = () => setError(null);
 
   // ---------- Initialize Session and Auth Listener ----------
   useEffect(() => {
@@ -26,6 +24,7 @@ const AuthProvider = ({ children }) => {
       setLoading(false);
     };
     getSession();
+
     const { data: listener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === 'SIGNED_IN' && session?.user.app_metadata.provider === 'google') {
@@ -46,6 +45,7 @@ const AuthProvider = ({ children }) => {
         setLoading(false);
       }
     );
+
     return () => listener?.subscription.unsubscribe();
   }, []);
 
@@ -59,24 +59,138 @@ const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  // ===============================================================
+  // ▼▼▼ Realtime логіка (авто-логаут при деактивації) ▼▼▼
+  // ===============================================================
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`realtime_user_status_check:${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'user_profiles',
+          filter: `id=eq.${user.id}`,
+        },
+        (payload) => {
+          if (payload.new?.status === 'deactivated') {
+            supabase.auth.signOut();
+            setUser(null);
+            setSession(null);
+            window.location.href = '/login';
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
   // ---------- Authentication Methods ----------
-  const signInWithGoogle = async () => await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + '/auth/callback' } });
-  const signInWithPassword = async (email, password) => { const { data, error } = await supabase.auth.signInWithPassword({ email, password }); if (error) throw error; return data; };
-  const signOut = async () => await supabase.auth.signOut();
+  const signInWithGoogle = async () =>
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin + '/auth/callback' },
+    });
+
+  const signInWithPassword = async (email, password) => {
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (signInError) throw signInError;
+    if (!signInData.user) throw new Error('Could not sign in.');
+
+    const { data: profile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('status')
+      .eq('id', signInData.user.id)
+      .single();
+
+    if (profileError) {
+      await supabase.auth.signOut();
+      throw new Error('User profile not found.');
+    }
+
+    if (profile.status === 'deactivated') {
+      await supabase.auth.signOut();
+      throw new Error('Your account has been deactivated.');
+    }
+
+    return signInData;
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setSession(null);
+  };
 
   // ---------- Application Methods ----------
-  const submitApplication = async ({ email, message }) => { const { data, error } = await supabase.from('applications').insert({ email, message }); if (error) { if (error.code === '23505') throw new Error('An application with this email already exists.'); throw error; } return data; };
-  const completeRegistration = async ({ password, firstName, lastName, location, state, phone }) => { const { data, error } = await supabase.auth.updateUser({ password: password, data: { full_name: `${firstName} ${lastName}`.trim(), location, state, phone } }); if (error) throw error; await supabase.auth.signOut(); return data; };
-  const getApplications = async () => { const { data, error } = await supabase.from('applications').select('*').order('created_at', { ascending: false }); if (error) throw error; return data; };
+  const submitApplication = async ({ email, message }) => {
+    const { data, error } = await supabase.from('applications').insert({ email, message });
+    if (error) {
+      if (error.code === '23505') throw new Error('An application with this email already exists.');
+      throw error;
+    }
+    return data;
+  };
+
+  const completeRegistration = async ({
+    password,
+    firstName,
+    lastName,
+    location,
+    state,
+    phone,
+  }) => {
+    const { data, error } = await supabase.auth.updateUser({
+      password: password,
+      data: {
+        full_name: `${firstName} ${lastName}`.trim(),
+        location,
+        state,
+        phone,
+      },
+    });
+    if (error) throw error;
+    await supabase.auth.signOut();
+    return data;
+  };
+
+  const getApplications = async () => {
+    const { data, error } = await supabase
+      .from('applications')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  };
+
   const updateApplicationStatus = async (applicationId, newStatus, email) => {
     if (newStatus === 'approved') {
-      const { error: inviteError } = await supabase.functions.invoke('invite-user', { body: { email } });
+      const { error: inviteError } = await supabase.functions.invoke('invite-user', {
+        body: { email },
+      });
       if (inviteError) throw new Error(`Failed to invite user: ${inviteError.message}`);
-      const { data, error } = await supabase.from('applications').update({ status: 'approved' }).eq('id', applicationId);
+
+      const { data, error } = await supabase
+        .from('applications')
+        .update({ status: 'approved' })
+        .eq('id', applicationId);
+
       if (error) throw new Error(`Failed to update application status: ${error.message}`);
       return data;
     } else if (newStatus === 'denied') {
-      const { data, error } = await supabase.from('applications').update({ status: 'denied' }).eq('id', applicationId);
+      const { data, error } = await supabase
+        .from('applications')
+        .update({ status: 'denied' })
+        .eq('id', applicationId);
       if (error) throw error;
       console.log(`Application for ${email} denied. Email sending is currently disabled.`);
       return data;
@@ -85,47 +199,48 @@ const AuthProvider = ({ children }) => {
 
   // ---------- User Management Methods ----------
   const getUsers = async () => {
-    const { data, error } = await supabase.from('user_profiles').select('*').neq('role', 'staff').order('created_at', { ascending: false });
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .neq('role', 'staff')
+      .order('created_at', { ascending: false });
     if (error) throw error;
     return data;
   };
 
-  // ===============================================================
-  // ▼▼▼ ОСЬ ТУТ ЗМІНИ ▼▼▼
-  // ===============================================================
-
-  // Update user status (active/deactivated)
   const updateUserStatus = async (userId, newStatus) => {
-    // Просто викликаємо нашу єдину, безпечну Edge Function
     const { data, error } = await supabase.functions.invoke('update-user-status', {
       body: { userId, newStatus },
     });
-
-    if (error) {
-      // Викидаємо помилку, щоб компонент міг її обробити
-      throw error;
-    }
-
+    if (error) throw error;
     return data;
   };
 
-  // ===============================================================
-  // ▲▲▲ КІНЕЦЬ ЗМІН ▲▲▲
-  // ===============================================================
-
   // ---------- Context Value ----------
   const value = {
-    session, user, loading, error, clearError,
-    signInWithGoogle, signInWithPassword, signOut,
-    submitApplication, invitationToken, completeRegistration,
-    getApplications, updateApplicationStatus,
+    session,
+    user,
+    loading,
+    error,
+    clearError,
+    signInWithGoogle,
+    signInWithPassword,
+    signOut,
+    submitApplication,
+    invitationToken,
+    completeRegistration,
+    getApplications,
+    updateApplicationStatus,
     getUsers,
-    updateUserStatus, // Передаємо оновлену функцію
-    supabase, // Додаємо supabase клієнт в контекст для виклику функцій
+    updateUserStatus,
+    supabase,
   };
 
-  // ---------- Render Provider ----------
-  return <AuthContext.Provider value={value}>{!loading && children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {!loading && children}
+    </AuthContext.Provider>
+  );
 };
 
 export default AuthProvider;

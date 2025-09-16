@@ -1,40 +1,55 @@
-// src/Routes/ProtectedRoute.jsx
-
 import { useAuth } from '../hooks/useAuth';
 import { Navigate, Outlet } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabaseClient';
 
 /**
  * ProtectedRoute
  * Protects routes that require authentication.
  * - Redirects unauthenticated users to login.
  * - Handles loading state while checking authentication.
+ * - Redirects deactivated users.
  * - Redirects non-admin users with incomplete registration to login.
  */
 const ProtectedRoute = () => {
-  const { user, loading } = useAuth(); // Get current user and loading state from Auth context
+  const { user, loading } = useAuth();
+  const [checking, setChecking] = useState(true);
+  const [active, setActive] = useState(true);
 
-  // Show loading indicator while auth state is being determined
-  if (loading) {
+  // Extra check against DB in case realtime failed
+  useEffect(() => {
+    const checkProfile = async () => {
+      if (user?.id) {
+        const { data } = await supabase
+          .from('user_profiles')
+          .select('status')
+          .eq('id', user.id)
+          .single();
+        if (data?.status === 'deactivated') {
+          setActive(false);
+          await supabase.auth.signOut();
+        }
+      }
+      setChecking(false);
+    };
+    checkProfile();
+  }, [user?.id]);
+
+  if (loading || checking) {
     return <h1>Loading...</h1>;
   }
 
-  // Redirect unauthenticated users to login
-  if (!user) {
+  if (!user || !active) {
     return <Navigate to="/login" />;
   }
 
-  // Check if registration is complete (full_name exists in metadata)
   const isRegistrationComplete = !!user.user_metadata?.full_name;
-
-  // Check if user is an admin based on email domain
   const isAdmin = user.email.endsWith('@sinnersandsaints.la');
 
-  // Non-admin users with incomplete registration are redirected to login
   if (!isAdmin && !isRegistrationComplete) {
     return <Navigate to="/login" />;
   }
 
-  // Render nested routes for authenticated users
   return <Outlet />;
 };
 

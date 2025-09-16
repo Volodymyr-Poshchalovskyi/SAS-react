@@ -1,5 +1,3 @@
-// src/AdminComponents/Layout/AdminLayout.jsx
-
 import { Outlet, useNavigate, useLocation, NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -17,21 +15,19 @@ function AdminLayout() {
   const location = useLocation();
   const { signOut } = useAuth();
 
-  // ! Handle logout action and redirect to home
+  // Проста функція для кнопки ручного виходу
   const handleLogout = async () => {
     try {
       await signOut();
-      navigate('/');
+      navigate('/'); // Перенаправляємо на головну після ручного виходу
     } catch (error) {
       console.error('Error logging out:', error);
     }
   };
 
-  // ? Check whether user is on admin panel or user panel
   const isAdminPanel = location.pathname.startsWith('/adminpanel');
   const basePath = isAdminPanel ? '/adminpanel' : '/userpanel';
 
-  // * Utility: define classes for active/inactive nav links
   const getNavLinkClasses = ({ isActive }) => {
     const baseClasses =
       'w-full flex items-center justify-start px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150';
@@ -42,7 +38,6 @@ function AdminLayout() {
     return `${baseClasses} text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-50`;
   };
 
-  // * Navigation items available for both panels
   const navItems = [
     { to: `${basePath}/dashboard`, label: 'Dashboard', icon: LayoutDashboard },
     { to: `${basePath}/create-reel`, label: 'Create reel', icon: Clapperboard },
@@ -50,7 +45,6 @@ function AdminLayout() {
     { to: `${basePath}/my-analytic`, label: 'My Analytics', icon: BarChart },
   ];
 
-  // * Additional navigation items only for Admin panel
   const adminNavItems = [
     { to: '/adminpanel/applications', label: 'Applications', icon: FileText },
     {
@@ -62,48 +56,29 @@ function AdminLayout() {
 
   return (
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
-      {/* === Sidebar === */}
       <aside className="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col">
-        {/* Sidebar header */}
         <div className="p-4 border-b border-slate-200 dark:border-slate-800">
           <h1 className="text-xl font-bold text-center">
             {isAdminPanel ? 'Admin Panel' : 'User Panel'}
           </h1>
         </div>
-
-        {/* Sidebar navigation */}
         <div className="flex-1 p-4">
           <nav className="flex flex-col space-y-1">
-            {/* Common navigation items */}
             {navItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end
-                className={getNavLinkClasses}
-              >
+              <NavLink key={item.to} to={item.to} end className={getNavLinkClasses}>
                 <item.icon className="mr-3 h-4 w-4" />
                 <span>{item.label}</span>
               </NavLink>
             ))}
-
-            {/* Admin-only navigation items */}
             {isAdminPanel &&
               adminNavItems.map((item) => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end
-                  className={getNavLinkClasses}
-                >
+                <NavLink key={item.to} to={item.to} end className={getNavLinkClasses}>
                   <item.icon className="mr-3 h-4 w-4" />
                   <span>{item.label}</span>
                 </NavLink>
               ))}
           </nav>
         </div>
-
-        {/* Sidebar footer (Logout button) */}
         <div className="mt-auto p-4 border-t border-slate-200 dark:border-slate-800">
           <button
             onClick={handleLogout}
@@ -116,8 +91,6 @@ function AdminLayout() {
           </button>
         </div>
       </aside>
-
-      {/* === Main content === */}
       <main className="flex-1 p-6 lg:p-8 overflow-auto">
         <Outlet />
       </main>
