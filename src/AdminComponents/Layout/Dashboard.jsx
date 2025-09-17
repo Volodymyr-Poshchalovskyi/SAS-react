@@ -123,7 +123,7 @@ const Dashboard = () => {
           {/* Weekly Views Card */}
           <div className={`${cardClasses} dark:bg-slate-800`}>
             <div className="p-6">
-              <h2 className="text-xl font-bold text-slate-100 mb-1">
+              <h2 className="text-xl font-bold dark:text-slate-50 mb-1">
                 TOTAL WEEKLY VIEWS
               </h2>
               <p className="text-sm text-slate-400 mb-4">

@@ -5,7 +5,9 @@ import React from 'react';
 const generateSmoothPath = (data, getX, getY) => {
   if (data.length === 0) return '';
   if (data.length === 1)
-    return `M ${getX(0)},${getY(data[0].views)} L ${getX(0)},${getY(data[0].views)}`;
+    return `M ${getX(0)},${getY(data[0].views)} L ${getX(0)},${getY(
+      data[0].views,
+    )}`;
 
   let path = `M ${getX(0)},${getY(data[0].views)}`;
   for (let i = 0; i < data.length - 1; i++) {
@@ -50,7 +52,9 @@ const WeeklyViewsChart = ({ data = [] }) => {
 
   const pathData = generateSmoothPath(data, getX, getY);
 
-  const areaPathData = `${pathData} L ${getX(data.length - 1)},${height - paddingY} L ${getX(0)},${height - paddingY} Z`;
+  const areaPathData = `${pathData} L ${getX(data.length - 1)},${
+    height - paddingY
+  } L ${getX(0)},${height - paddingY} Z`;
 
   return (
     <div className="h-64 w-full">
@@ -66,7 +70,8 @@ const WeeklyViewsChart = ({ data = [] }) => {
             <stop offset="100%" stopColor="#81E6D9" stopOpacity={0} />
           </linearGradient>
         </defs>
-        <g className="text-slate-700">
+        {/* === ЗМІНЕНО: Додано класи для світлої/темної теми === */}
+        <g className="text-slate-200 dark:text-slate-700">
           {[0, 0.25, 0.5, 0.75, 1].map((multiple) => (
             <line
               key={multiple}
@@ -101,7 +106,11 @@ const WeeklyViewsChart = ({ data = [] }) => {
             />
           ))}
         </g>
-        <g className="text-xs text-slate-400" textAnchor="middle">
+        {/* === ЗМІНЕНО: Додано класи для світлої/темної теми === */}
+        <g
+          className="text-xs text-slate-600 dark:text-slate-400"
+          textAnchor="middle"
+        >
           {data.map((point, index) => (
             <text
               key={index}
