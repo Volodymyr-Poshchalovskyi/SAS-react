@@ -55,14 +55,17 @@ function AdminLayout() {
   ];
 
   return (
-    <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
-      <aside className="w-64 flex-shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
+      {/* ===== SIDEBAR ===== */}
+      <aside className="fixed top-0 left-0 z-40 w-64 h-screen border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col">
         <div className="p-4 border-b border-slate-200 dark:border-slate-800">
           <h1 className="text-xl font-bold text-center">
             {isAdminPanel ? 'Admin Panel' : 'User Panel'}
           </h1>
         </div>
-        <div className="flex-1 p-4">
+
+        {/* Навігація з можливістю скролу */}
+        <div className="flex-1 p-4 overflow-y-auto">
           <nav className="flex flex-col space-y-1">
             {navItems.map((item) => (
               <NavLink key={item.to} to={item.to} end className={getNavLinkClasses}>
@@ -79,6 +82,8 @@ function AdminLayout() {
               ))}
           </nav>
         </div>
+
+        {/* Кнопка виходу завжди внизу */}
         <div className="mt-auto p-4 border-t border-slate-200 dark:border-slate-800">
           <button
             onClick={handleLogout}
@@ -91,7 +96,9 @@ function AdminLayout() {
           </button>
         </div>
       </aside>
-      <main className="flex-1 p-6 lg:p-8 overflow-auto">
+
+      {/* ===== MAIN CONTENT ===== */}
+      <main className="ml-64 flex-1 p-6 lg:p-8">
         <Outlet />
       </main>
     </div>
