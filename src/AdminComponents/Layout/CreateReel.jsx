@@ -1,6 +1,8 @@
 // src/AdminComponents/Layout/CreateReel.jsx
 
-import React from 'react';
+import React, { useState } from 'react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 /* -------------------------------- */
 /* === Small Reusable Icons ===     */
@@ -40,11 +42,43 @@ const CalendarIcon = () => (
   </svg>
 );
 
+const PlusIcon = () => (
+  <svg
+    className="w-4 h-4"
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+    />
+  </svg>
+);
+
+const TrashIcon = () => (
+  <svg
+    className="w-5 h-5"
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+    />
+  </svg>
+);
+
 /* -------------------------------- */
 /* === Reusable Form Components === */
 /* -------------------------------- */
-
-// * Wrapper for a section in the form
 const FormSection = ({ title, children, hasSeparator = true }) => (
   <div className="bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl p-6">
     {title && (
@@ -59,9 +93,8 @@ const FormSection = ({ title, children, hasSeparator = true }) => (
   </div>
 );
 
-// * Wrapper for individual form field with label
 const FormField = ({ label, children, required = false }) => (
-  <div>
+  <div className="mb-4">
     <label className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">
       {label} {required && <span className="text-red-500">*</span>}
     </label>
@@ -69,14 +102,63 @@ const FormField = ({ label, children, required = false }) => (
   </div>
 );
 
-// * Shared input classes (text, select, etc.)
 const inputClasses =
-  'flex h-10 w-full rounded-md border border-slate-300 bg-white dark:bg-slate-800 px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500';
+  'flex h-10 w-full rounded-md border border-slate-300 bg-white dark:bg-slate-800 px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500 disabled:cursor-not-allowed disabled:bg-slate-100 dark:disabled:bg-slate-800/50';
 
 /* -------------------------------- */
 /* === Main Component ===           */
 /* -------------------------------- */
 const CreateReel = () => {
+  // State for date picker
+  const [publicationDate, setPublicationDate] = useState(new Date());
+  const [publishOption, setPublishOption] = useState('schedule');
+  const isSchedulingDisabled = publishOption === 'now';
+
+  // State for Meta Data section
+  const [metaData, setMetaData] = useState({
+    artist: '',
+    client: '',
+    title: '',
+    contentType: 'promo',
+    featuredCelebrity: '',
+  });
+
+  const [crafts, setCrafts] = useState(['', '']);
+  const [categories, setCategories] = useState([]);
+  const [customFields, setCustomFields] = useState([{ key: '', value: '' }]);
+
+  // --- Handlers for Meta Data ---
+  const handleMetaDataChange = (e) => {
+    const { name, value } = e.target;
+    setMetaData((prev) => ({ ...prev, [name]: value }));
+  };
+  const handleCraftChange = (index, value) => {
+    const newCrafts = [...crafts];
+    newCrafts[index] = value;
+    setCrafts(newCrafts);
+  };
+  const addCraft = () => setCrafts([...crafts, '']);
+  const removeCraft = (index) => setCrafts(crafts.filter((_, i) => i !== index));
+  const handleCategoryKeyDown = (e) => {
+    if (e.key === 'Enter' && e.target.value.trim() !== '') {
+      e.preventDefault();
+      if (categories.length < 5 && !categories.includes(e.target.value.trim())) {
+        setCategories([...categories, e.target.value.trim()]);
+      }
+      e.target.value = '';
+    }
+  };
+  const removeCategory = (tagToRemove) => {
+    setCategories(categories.filter((tag) => tag !== tagToRemove));
+  };
+  const handleCustomFieldChange = (index, field, value) => {
+    const newFields = [...customFields];
+    newFields[index][field] = value;
+    setCustomFields(newFields);
+  };
+  const addCustomField = () => setCustomFields([...customFields, { key: '', value: '' }]);
+  const removeCustomField = (index) => setCustomFields(customFields.filter((_, i) => i !== index));
+
   return (
     <div className="max-w-7xl mx-auto space-y-8">
       {/* Title Section */}
@@ -142,35 +224,67 @@ const CreateReel = () => {
       {/* Content Data Section */}
       <FormSection title="Content Data">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Publication Date */}
           <FormField label="Publication Date" required>
+            <div className="flex items-center space-x-6 mb-3">
+              <div className="flex items-center">
+                <input
+                  id="schedule"
+                  type="radio"
+                  name="publishOption"
+                  value="schedule"
+                  checked={!isSchedulingDisabled}
+                  onChange={(e) => setPublishOption(e.target.value)}
+                  className="h-4 w-4 border-slate-300 text-teal-600 focus:ring-teal-500"
+                />
+                <label
+                  htmlFor="schedule"
+                  className="ml-2 text-sm text-slate-700 dark:text-slate-300"
+                >
+                  Schedule
+                </label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  id="publish-now"
+                  type="radio"
+                  name="publishOption"
+                  value="now"
+                  checked={isSchedulingDisabled}
+                  onChange={(e) => setPublishOption(e.target.value)}
+                  className="h-4 w-4 border-slate-300 text-teal-600 focus:ring-teal-500"
+                />
+                <label
+                  htmlFor="publish-now"
+                  className="ml-2 text-sm text-slate-700 dark:text-slate-300"
+                >
+                  Publish Now
+                </label>
+              </div>
+            </div>
             <div className="relative">
-              <input
-                type="text"
-                defaultValue="09-09-2025"
-                className={`${inputClasses} pl-10`}
+              <DatePicker
+                selected={publicationDate}
+                onChange={(date) => setPublicationDate(date)}
+                disabled={isSchedulingDisabled}
+                showTimeSelect
+                dateFormat="MMMM d, yyyy h:mm aa"
+                className={`${inputClasses} pl-10 w-full`}
               />
               <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
                 <CalendarIcon />
               </div>
             </div>
           </FormField>
-
-          {/* Artist */}
           <FormField label="Artist">
             <select className={inputClasses}>
               <option>Choose Artist...</option>
             </select>
           </FormField>
-
-          {/* Client */}
           <FormField label="Client">
             <select className={inputClasses}>
               <option>Choose Client...</option>
             </select>
           </FormField>
-
-          {/* Description with mock toolbar */}
           <div className="md:col-span-3">
             <FormField label="Description">
               <div className="p-2 border border-slate-300 dark:border-slate-700 rounded-md">
@@ -188,61 +302,126 @@ const CreateReel = () => {
         </div>
       </FormSection>
 
-      {/* Meta Data Section */}
+      {/* === MODIFIED META DATA SECTION === */}
       <FormSection title="Meta Data" hasSeparator={false}>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <FormField label="Agency">
-            <select className={inputClasses}>
-              <option>Choose Agency...</option>
-            </select>
-          </FormField>
-          <FormField label="Content Types">
-            <select className={inputClasses}>
-              <option>Choose Content Types...</option>
-            </select>
-          </FormField>
-          <FormField label="Categories">
-            <input
-              type="text"
-              placeholder="Choose one or more categories..."
-              className={inputClasses}
-            />
-          </FormField>
-          <FormField label="Version">
-            <select className={inputClasses}>
-              <option>Choose Version...</option>
-            </select>
-          </FormField>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
           <FormField label="Artist">
-            <input type="text" className={inputClasses} />
+            <input name="artist" value={metaData.artist} onChange={handleMetaDataChange} type="text" className={inputClasses} />
           </FormField>
-          <FormField label="Year">
-            <input type="text" className={inputClasses} />
+          <FormField label="Client">
+            <input name="client" value={metaData.client} onChange={handleMetaDataChange} type="text" className={inputClasses} />
           </FormField>
           <FormField label="Title">
-            <input type="text" className={inputClasses} />
+            <input name="title" value={metaData.title} onChange={handleMetaDataChange} type="text" className={inputClasses} />
           </FormField>
-          <FormField label="Director of Photography">
-            <select className={inputClasses}>
-              <option>Choose...</option>
+          <FormField label="Featured Celebrity">
+            <input name="featuredCelebrity" value={metaData.featuredCelebrity} onChange={handleMetaDataChange} type="text" className={inputClasses} />
+          </FormField>
+          <FormField label="Content Type">
+            <select name="contentType" value={metaData.contentType} onChange={handleMetaDataChange} className={inputClasses}>
+              <option value="promo">Promo</option>
+              <option value="tutorial">Tutorial</option>
+              <option value="highlight">Highlight</option>
             </select>
           </FormField>
-          <FormField label="Producer">
-            <input type="text" className={inputClasses} />
-          </FormField>
-          <FormField label="Photographer">
-            <select className={inputClasses}>
-              <option>Choose...</option>
-            </select>
-          </FormField>
-          <FormField label="Simian Media ID">
-            <input type="text" defaultValue="0" className={inputClasses} />
-          </FormField>
-          <FormField label="song title">
-            <select className={inputClasses}>
-              <option>Choose...</option>
-            </select>
-          </FormField>
+
+          <div className="md:col-span-2">
+            <FormField label="Craft">
+              {crafts.map((craft, index) => (
+                <div key={index} className="flex items-center space-x-2 mb-2">
+                  <input
+                    type="text"
+                    value={craft}
+                    onChange={(e) => handleCraftChange(index, e.target.value)}
+                    className={inputClasses}
+                    placeholder={`Craft #${index + 1}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeCraft(index)}
+                    className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-slate-700 rounded-md"
+                  >
+                    <TrashIcon />
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={addCraft}
+                className="mt-2 flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600"
+              >
+                <PlusIcon />
+                <span>Add Craft</span>
+              </button>
+            </FormField>
+          </div>
+
+          <div className="md:col-span-2">
+            <FormField label={`Categories (${categories.length}/5)`}>
+              <div className="flex flex-wrap items-center gap-2 p-2 border border-slate-300 dark:border-slate-700 rounded-md">
+                {categories.map((tag) => (
+                  <span key={tag} className="flex items-center bg-teal-100 dark:bg-teal-900/50 text-teal-800 dark:text-teal-200 text-sm font-medium px-2.5 py-1 rounded-full">
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => removeCategory(tag)}
+                      className="ml-2 -mr-1 p-0.5 text-teal-600 dark:text-teal-300 hover:bg-teal-200 dark:hover:bg-teal-700 rounded-full"
+                    >
+                      &times;
+                    </button>
+                  </span>
+                ))}
+                {categories.length < 5 && (
+                  <input
+                    type="text"
+                    onKeyDown={handleCategoryKeyDown}
+                    placeholder="Add category and press Enter..."
+                    className="flex-grow bg-transparent focus:outline-none p-1"
+                  />
+                )}
+              </div>
+            </FormField>
+          </div>
+          
+          <div className="md:col-span-2">
+            <FormField label="Additional Custom Fields">
+              {customFields.map((field, index) => (
+                <div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-2 items-center mb-2">
+                   <input
+                      type="text"
+                      value={field.key}
+                      onChange={(e) => handleCustomFieldChange(index, 'key', e.target.value)}
+                      className={inputClasses}
+                      placeholder="Key (e.g., Colorist)"
+                    />
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="text"
+                      value={field.value}
+                      onChange={(e) => handleCustomFieldChange(index, 'value', e.target.value)}
+                      className={inputClasses}
+                      placeholder="Value"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeCustomField(index)}
+                      className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-slate-700 rounded-md"
+                    >
+                      <TrashIcon />
+                    </button>
+                  </div>
+                </div>
+              ))}
+               <button
+                type="button"
+                onClick={addCustomField}
+                className="mt-2 flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600"
+              >
+                <PlusIcon />
+                <span>Add Field</span>
+              </button>
+            </FormField>
+          </div>
         </div>
       </FormSection>
     </div>
