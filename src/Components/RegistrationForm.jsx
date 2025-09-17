@@ -1,57 +1,67 @@
-// src/Components/RegistrationForm.jsx
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, forwardRef } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
+import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
+import './PhoneNumberInput.css'; // Імпортуємо кастомні стилі
+
+// Визначаємо кастомний input за межами основного компонента,
+// щоб уникнути його перестворення при кожному рендері.
+const CustomPhoneNumberInput = forwardRef((props, ref) => {
+  return (
+    <input
+      {...props}
+      ref={ref}
+      className="w-full bg-transparent text-black focus:outline-none p-0"
+    />
+  );
+});
+CustomPhoneNumberInput.displayName = 'CustomPhoneNumberInput';
+
 const RegistrationForm = () => {
-  // ---------- Auth Hook ----------
   const { user, completeRegistration } = useAuth();
   const navigate = useNavigate();
 
-  // ---------- State ----------
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [location, setLocation] = useState('');
   const [state, setState] = useState('');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState();
   const [password, setPassword] = useState('');
-  // --- Новий стан для підтвердження пароля та його видимості ---
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  // ---
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // ---------- Populate Email if User Exists ----------
   useEffect(() => {
     if (user?.email) {
       setEmail(user.email);
     }
   }, [user]);
 
-  // ---------- Submit Handler ----------
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    // ---------- Validation ----------
     if (password.length < 6) {
       setError('Password must be at least 6 characters long.');
       return;
     }
 
-    // --- Нова перевірка: чи збігаються паролі ---
     if (password !== confirmPassword) {
       setError('Passwords do not match.');
       return;
     }
-    // ---
+    
+    if (!phone || !isValidPhoneNumber(phone)) {
+      setError('Please enter a valid phone number.');
+      return;
+    }
 
     setLoading(true);
 
-    // ---------- Complete Registration ----------
     try {
       await completeRegistration({
         password,
@@ -62,23 +72,20 @@ const RegistrationForm = () => {
         phone,
       });
 
-      // Navigate to login with success message
       navigate('/login', {
         state: { message: 'Registration successful! Please sign in.' },
       });
       window.location.hash = '';
     } catch (err) {
-      console.error('Detailed Registration Error:', err); // <-- ДОДАЙТЕ ЦЕЙ РЯДОК
-  setError(err.message);
+      console.error('Detailed Registration Error:', err);
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // ---------- Render Form ----------
   return (
     <div className="max-w-sm mx-auto text-center animate-fadeIn">
-      {/* ---- Header ---- */}
       <div className="mb-10">
         <h2 className="text-xl font-semibold text-black mb-2 tracking-wider uppercase">
           REGISTRATION
@@ -88,10 +95,8 @@ const RegistrationForm = () => {
         </p>
       </div>
 
-      {/* ---- Error Message ---- */}
       {error && <p className="text-red-500 text-xs mb-4">{error}</p>}
 
-      {/* ---- Form Fields ---- */}
       <form onSubmit={handleSubmit} className="text-left space-y-6">
         {/* First Name */}
         <div>
@@ -182,8 +187,8 @@ const RegistrationForm = () => {
             className="w-full bg-transparent text-black border-b border-gray-300 focus:outline-none py-2 text-sm text-gray-500"
           />
         </div>
-
-        {/* Phone */}
+        
+        {/* Phone Input */}
         <div>
           <label
             htmlFor="reg-phone"
@@ -191,13 +196,18 @@ const RegistrationForm = () => {
           >
             PHONE
           </label>
-          <input
-            type="tel"
+          <PhoneInput
             id="reg-phone"
+            placeholder="Enter phone number"
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={setPhone}
+            defaultCountry="US"
             required
-            className="w-full bg-transparent text-black border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm"
+            international
+            withCountryCallingCode
+            showCountrySelect={true}
+            className="phone-input-container"
+            inputComponent={CustomPhoneNumberInput}
           />
         </div>
 

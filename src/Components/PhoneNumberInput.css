@@ -1,0 +1,68 @@
+/* PhoneNumberInput.css */
+
+/* Основний контейнер для поля вводу */
+.phone-input-container {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  background-color: transparent;
+  color: black;
+  border-bottom: 1px solid #d1d5db; /* border-gray-300 */
+  padding: 0.5rem 0; /* py-2 */
+  font-size: 0.875rem; /* text-sm */
+  transition: border-color 0.2s;
+}
+
+/* Зміна кольору рамки при фокусі на будь-якому елементі всередині */
+.phone-input-container:focus-within {
+  border-color: black; /* focus:border-black */
+  outline: none; /* Додатково прибираємо outline з самого контейнера */
+}
+
+/* ПОВНІСТЮ ПРИБИРАЄМО СИНЄ ВИДІЛЕННЯ З УСІХ ЕЛЕМЕНТІВ */
+.PhoneInputInput:focus, 
+.PhoneInputCountrySelect:focus {
+  outline: none !important;
+  box-shadow: none !important; /* На випадок, якщо outline заданий через box-shadow */
+}
+
+/* Скидання стилів для внутрішнього поля вводу бібліотеки */
+.PhoneInputInput {
+  border: none !important;
+  background-color: transparent !important;
+  padding: 0 !important;
+  margin-left: 0.5rem; 
+  width: 100%;
+}
+
+/* Кнопка вибору країни */
+.PhoneInputCountry {
+  margin-top: -3px;
+}
+.PhoneInputCountrySelect {
+  display: flex;
+  align-items: center;
+}
+
+/* Кастомізація стрілки */
+.PhoneInputCountryIcon--arrow {
+  margin-left: 0.5rem;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 4px 4px 0 4px;
+  border-color: #6b7280 transparent transparent transparent; /* text-gray-500 */
+  opacity: 1;
+  transition: color 0.2s, transform 0.2s;
+}
+
+/* Колір стрілки при наведенні або фокусі */
+.PhoneInputCountrySelect:hover .PhoneInputCountryIcon--arrow,
+.PhoneInputCountrySelect:focus .PhoneInputCountryIcon--arrow {
+  border-color: black transparent transparent transparent;
+}
+
+/* Поворот стрілки при відкритому списку */
+.PhoneInputCountrySelect[aria-expanded='true'] .PhoneInputCountryIcon--arrow {
+  transform: rotate(180deg);
+}
