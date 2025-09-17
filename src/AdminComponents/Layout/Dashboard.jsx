@@ -1,64 +1,33 @@
 // src/AdminComponents/Layout/Dashboard.jsx
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react'; // Додано useMemo
 import WeeklyViewsChart from './WeeklyViewsChart';
 import DateRangePicker from './DateRangePicker';
 
-// * Shared card style classes
+// ... (решта коду для VideoCard та ListItem залишається без змін)
 const cardClasses =
   'bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl';
 
-/* -------------------------------- */
-/* === Reusable Components ===      */
-/* -------------------------------- */
-
-// * Video card with title, optional description, and badge
 const VideoCard = ({ title, imageUrl, badge, description }) => (
   <div className={`${cardClasses} p-5`}>
-    <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">
-      {title}
-    </h3>
-    {description && (
-      <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-        {description}
-      </p>
-    )}
+    <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">{title}</h3>
+    {description && <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{description}</p>}
     <div className="relative overflow-hidden aspect-video rounded-lg">
       <img src={imageUrl} alt={title} className="w-full h-full object-cover" />
-      {badge && (
-        <div className="absolute top-2 left-2 border text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-900 border-slate-200 dark:bg-slate-800 dark:text-slate-50 dark:border-slate-700">
-          {badge}
-        </div>
-      )}
+      {badge && <div className="absolute top-2 left-2 border text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-900 border-slate-200 dark:bg-slate-800 dark:text-slate-50 dark:border-slate-700">{badge}</div>}
     </div>
   </div>
 );
 
-// * List item for activity/content feed
 const ListItem = ({ imageUrl, title, subtitle, time, actionText }) => (
   <div className="flex items-center space-x-4 py-2">
-    <img
-      className="w-16 h-10 object-cover rounded-md border border-slate-200 dark:border-slate-800"
-      src={imageUrl}
-      alt={title}
-    />
+    <img className="w-16 h-10 object-cover rounded-md border border-slate-200 dark:border-slate-800" src={imageUrl} alt={title} />
     <div className="flex-grow min-w-0">
-      <p className="text-sm font-medium text-slate-800 dark:text-slate-200 break-words whitespace-normal">
-        {title}
-      </p>
-      <p className="text-xs text-slate-500 dark:text-slate-400 break-words whitespace-normal">
-        {subtitle}
-      </p>
+      <p className="text-sm font-medium text-slate-800 dark:text-slate-200 break-words whitespace-normal">{title}</p>
+      <p className="text-xs text-slate-500 dark:text-slate-400 break-words whitespace-normal">{subtitle}</p>
       <span className="text-xs text-slate-400 dark:text-slate-500">{time}</span>
     </div>
-    {actionText && (
-      <a
-        href="#"
-        className="flex-shrink-0 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:underline ml-auto"
-      >
-        {actionText}
-      </a>
-    )}
+    {actionText && <a href="#" className="flex-shrink-0 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:underline ml-auto">{actionText}</a>}
   </div>
 );
 
@@ -66,7 +35,6 @@ const ListItem = ({ imageUrl, title, subtitle, time, actionText }) => (
 /* === Main Component (Dashboard) === */
 /* -------------------------------- */
 const Dashboard = () => {
-  // ? Date range (defaults to last 7 days)
   const today = new Date();
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(today.getDate() - 7);
@@ -75,17 +43,24 @@ const Dashboard = () => {
     from: sevenDaysAgo,
     to: today,
   });
+  
+  // === ЗМІНЕНО: Генерація даних для діаграми з датами ===
+  const weeklyViewsData = useMemo(() => {
+    const data = [];
+    // Створюємо масив з 7 днів, починаючи з 6 днів тому і до сьогодні
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(today.getDate() - i);
+      data.push({
+        // Зберігаємо дату у форматі YYYY-MM-DD для стабільної роботи
+        date: date.toISOString().split('T')[0],
+        // Генеруємо випадкові дані для демонстрації
+        views: Math.floor(Math.random() * (100 - 40 + 1)) + 40,
+      });
+    }
+    return data;
+  }, []); // Пустий масив залежностей, щоб дані генерувалися один раз
 
-  // * Dummy data for weekly views chart
-  const weeklyViewsData = [
-    { day: 'Mon', views: 65 },
-    { day: 'Tue', views: 59 },
-    { day: 'Wed', views: 80 },
-    { day: 'Thu', views: 81 },
-    { day: 'Fri', views: 56 },
-    { day: 'Sat', views: 95 },
-    { day: 'Sun', views: 85 },
-  ];
 
   // * Dummy data for recent activity feed
   const recentActivity = [
@@ -97,12 +72,9 @@ const Dashboard = () => {
   ];
 
   // * Demo images
-  const listImageUrl =
-    'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80';
-  const trendingVideoImage =
-    'https://images.unsplash.com/photo-1534224039826-c7a0eda0e6b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80';
-  const trendingDirectorImage =
-    'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80';
+  const listImageUrl = 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80';
+  const trendingVideoImage = 'https://images.unsplash.com/photo-1534224039826-c7a0eda0e6b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80';
+  const trendingDirectorImage = 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80';
 
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
@@ -129,6 +101,7 @@ const Dashboard = () => {
               <p className="text-sm text-slate-400 mb-4">
                 LAST 7 DAYS OVERVIEW
               </p>
+              {/* Передаємо нові дані в компонент */}
               <WeeklyViewsChart data={weeklyViewsData} />
               <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
                 FOR DETAILED GOOGLE ANALYTICS STATS ABOVE, PLEASE CONTACT YOUR
