@@ -18,32 +18,42 @@ export default function VideoModal({ video, onClose }) {
   }, [onClose]);
 
   return (
-    // Оверлей, який затемнює фон
+    // Оверлей, який затемнює фон.
+    // 1. z-index підвищено до z-[9999] для гарантованого відображення поверх усього.
+    // 2. Відступи реалізовано через padding (p-[50px]), щоб контент не прилягав до країв екрана.
     <div
-      className="fixed inset-0 bg-black bg-opacity-80 z-50 flex justify-center items-center"
+      className="fixed inset-0 bg-black bg-opacity-90 z-[9999] flex flex-col justify-center items-center p-[50px] box-border"
       onClick={onClose} // Закривати модалку при кліку на фон
     >
+      {/* Кнопка закриття тепер позиціонується відносно всього екрана */}
+      <button
+        onClick={onClose}
+        className="absolute top-5 right-7 text-white text-5xl hover:text-gray-300 transition-colors z-[10000]"
+        aria-label="Close video player"
+      >
+        &times;
+      </button>
+
+      {/* Контейнер для контенту, який займає всю доступну область всередині padding */}
       <div
-        className="relative bg-black w-full max-w-4xl p-4 rounded-lg"
+        className="w-full h-full flex flex-col"
         onClick={(e) => e.stopPropagation()} // Зупиняємо клік, щоб він не закривав вікно
       >
-        {/* Кнопка закриття */}
-        <button
-          onClick={onClose}
-          className="absolute -top-10 right-0 text-white text-4xl hover:text-gray-300 transition-colors"
-          aria-label="Close video player"
-        >
-          &times;
-        </button>
-
-        {/* Відео плеєр */}
-        <video
-          src={video.src}
-          className="w-full h-auto"
-          controls // Вмикає стандартні елементи керування: пауза, звук, перемотка
-          autoPlay // Відео почне відтворюватися автоматично при відкритті
-        />
-        <p className="text-white text-center mt-4 text-xl">{video.title}</p>
+        {/* Обгортка для відео, що дозволяє йому гнучко розтягуватися */}
+        <div className="w-full flex-grow relative">
+          <video
+            src={video.src}
+            // object-contain зберігає пропорції відео, вписуючи його в контейнер
+            className="absolute top-0 left-0 w-full h-full object-contain"
+            controls // Вмикає стандартні елементи керування
+            autoPlay // Відео почне відтворюватися автоматично
+          />
+        </div>
+        
+        {/* Назва відео */}
+        <p className="text-white text-center pt-4 text-xl flex-shrink-0">
+          {video.title}
+        </p>
       </div>
     </div>
   );
