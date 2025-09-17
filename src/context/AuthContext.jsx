@@ -141,7 +141,7 @@ const AuthProvider = ({ children }) => {
     return data;
   };
 
-  const completeRegistration = async ({
+ const completeRegistration = async ({
     password,
     firstName,
     lastName,
@@ -149,7 +149,8 @@ const AuthProvider = ({ children }) => {
     state,
     phone,
   }) => {
-    const { data, error } = await supabase.auth.updateUser({
+    // 1. Оновлюємо пароль та метадані користувача в auth.users
+    const { data: authData, error: authError } = await supabase.auth.updateUser({
       password: password,
       data: {
         full_name: `${firstName} ${lastName}`.trim(),
@@ -158,9 +159,34 @@ const AuthProvider = ({ children }) => {
         phone,
       },
     });
-    if (error) throw error;
+
+    if (authError) throw authError;
+
+    // ===============================================================
+    // ▼▼▼ ДОДАЙТЕ ЦЕЙ БЛОК КОДУ ▼▼▼
+    // ===============================================================
+    // 2. Оновлюємо дані у публічній таблиці user_profiles
+    const { error: profileError } = await supabase
+      .from('user_profiles')
+      .update({
+        full_name: `${firstName} ${lastName}`.trim(),
+        location,
+        state,
+        phone,
+        status: 'active' // Опціонально: встановлюємо статус 'active' після реєстрації
+      })
+      .eq('id', authData.user.id); // Використовуємо ID оновленого користувача
+
+    if (profileError) throw profileError;
+    // ===============================================================
+    // ▲▲▲ КІНЕЦЬ БЛОКУ ▲▲▲
+    // ===============================================================
+
+    // 3. Вилогінюємо користувача, щоб він увійшов з новим паролем
     await supabase.auth.signOut();
-    return data;
+    
+    // Повертаємо дані, хоча в цьому випадку вони не використовуються далі
+    return authData; 
   };
 
   const getApplications = async () => {
