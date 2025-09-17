@@ -105,10 +105,13 @@ const StatusBadge = ({ status }) => {
       'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
     deactivated:
       'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
+    pending: // <-- ADDED
+      'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300',
   };
   const statusDotStyles = {
     active: 'bg-green-500',
     deactivated: 'bg-slate-500',
+    pending: 'bg-yellow-500', // <-- ADDED
   };
   return (
     <span className={`${baseClasses} ${statusStyles[status] || ''}`}>
@@ -382,6 +385,7 @@ const UserManagement = () => {
                       {formatDate(user.registered_at)}
                     </td>
                     <td className="p-4 text-center">
+                      {/* ==================== MODIFIED LOGIC HERE ==================== */}
                       {user.state === 'active' ? (
                         <button
                           onClick={() =>
@@ -391,14 +395,15 @@ const UserManagement = () => {
                         >
                           Deactivate
                         </button>
-                      ) : (
+                      ) : user.state === 'deactivated' ? (
                         <button
                           onClick={() => handleUpdateStatus(user.id, 'active')}
                           className={`${baseButtonClasses} ${activateButtonClasses}`}
                         >
                           Activate
                         </button>
-                      )}
+                      ) : null}
+                      {/* ============================================================= */}
                     </td>
                   </tr>
                 ))}
