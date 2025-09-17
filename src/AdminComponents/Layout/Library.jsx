@@ -1,12 +1,17 @@
-// src/AdminComponents/Layout/Library.jsx
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Check, ChevronLeft, ChevronRight, ArrowUpDown, FileText } from 'lucide-react';
+import {
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUpDown,
+  FileText,
+} from 'lucide-react';
 
 // =======================
 // Mock data (симуляція бібліотеки)
 // =======================
 const mockLibraryItems = [
+  // ... (mock data залишається без змін)
   {
     id: 1,
     title: 'Burger King',
@@ -277,6 +282,38 @@ const mockLibraryItems = [
     'https://images.unsplash.com/photo-1534224039826-c7a0eda0e6b3?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80',
 }));
 
+
+// =======================
+// Sortable Header Component (Новий компонент)
+// =======================
+const SortableHeader = ({
+  children,
+  sortKey,
+  sortConfig,
+  onSort,
+  className = '',
+}) => {
+  const isActive = sortConfig.key === sortKey;
+  return (
+    <th className={`p-4 font-medium text-left ${className}`}>
+      <button
+        className="flex items-center gap-1 group"
+        onClick={() => onSort(sortKey)}
+      >
+        {children}
+        <ArrowUpDown
+          className={`h-4 w-4 transition-colors ${
+            isActive
+              ? 'text-slate-700 dark:text-slate-200'
+              : 'text-slate-400 group-hover:text-slate-500 dark:group-hover:text-slate-300'
+          }`}
+        />
+      </button>
+    </th>
+  );
+};
+
+
 // =======================
 // Library Component
 // =======================
@@ -294,8 +331,6 @@ const Library = () => {
 
   const itemsPerPage = 10; // кількість рядків на сторінку
   const headerCheckboxRef = useRef(null);
-
-
 
   // ---------- Memoized Data ----------
   // Сортування
@@ -331,7 +366,7 @@ const Library = () => {
     return filteredItems.slice(indexOfFirstItem, indexOfLastItem);
   }, [filteredItems, currentPage]);
 
-    // ---------- Effects ----------
+  // ---------- Effects ----------
   // Симуляція завантаження даних
   useEffect(() => {
     setTimeout(() => {
@@ -377,7 +412,9 @@ const Library = () => {
   const handleRowCheck = (itemId) => {
     setSelectedItems((prev) => {
       const newSelected = new Set(prev);
-      newSelected.has(itemId) ? newSelected.delete(itemId) : newSelected.add(itemId);
+      newSelected.has(itemId)
+        ? newSelected.delete(itemId)
+        : newSelected.add(itemId);
       return newSelected;
     });
   };
@@ -441,7 +478,7 @@ const Library = () => {
           {/* ---- Table ---- */}
           <div className="overflow-x-auto">
             <table className="w-full text-sm table-fixed">
-              {/* Table head */}
+              {/* Table head -- ОНОВЛЕНО */}
               <thead className="text-slate-500 dark:text-slate-400">
                 <tr className="border-b border-slate-200 dark:border-slate-800">
                   <th className="p-4 w-12 text-left">
@@ -452,14 +489,62 @@ const Library = () => {
                       className={checkboxClasses}
                     />
                   </th>
-                  {/* тут ідуть сортувальні хедери (можна винести окремо, але поки залишаю inline) */}
-                  <th className="p-4 font-medium text-left w-[28%]">Title</th>
-                  <th className="p-4 font-medium text-left w-[12%]">Artists</th>
-                  <th className="p-4 font-medium text-left w-[12%]">Client</th>
-                  <th className="p-4 font-medium text-left w-[12%]">Categories</th>
-                  <th className="p-4 font-medium text-left w-[12%]">Added By</th>
-                  <th className="p-4 font-medium text-left w-24">Views</th>
-                  <th className="p-4 font-medium text-left w-32">Created At</th>
+                  <SortableHeader
+                    sortKey="title"
+                    sortConfig={sortConfig}
+                    onSort={handleSort}
+                    className="w-[28%]"
+                  >
+                    Title
+                  </SortableHeader>
+                  <SortableHeader
+                    sortKey="artists"
+                    sortConfig={sortConfig}
+                    onSort={handleSort}
+                    className="w-[12%]"
+                  >
+                    Artists
+                  </SortableHeader>
+                  <SortableHeader
+                    sortKey="client"
+                    sortConfig={sortConfig}
+                    onSort={handleSort}
+                    className="w-[12%]"
+                  >
+                    Client
+                  </SortableHeader>
+                  <SortableHeader
+                    sortKey="categories"
+                    sortConfig={sortConfig}
+                    onSort={handleSort}
+                    className="w-[12%]"
+                  >
+                    Categories
+                  </SortableHeader>
+                  <SortableHeader
+                    sortKey="addedBy"
+                    sortConfig={sortConfig}
+                    onSort={handleSort}
+                    className="w-[12%]"
+                  >
+                    Added By
+                  </SortableHeader>
+                  <SortableHeader
+                    sortKey="views"
+                    sortConfig={sortConfig}
+                    onSort={handleSort}
+                    className="w-24"
+                  >
+                    Views
+                  </SortableHeader>
+                  <SortableHeader
+                    sortKey="createdAt"
+                    sortConfig={sortConfig}
+                    onSort={handleSort}
+                    className="w-32"
+                  >
+                    Created At
+                  </SortableHeader>
                 </tr>
               </thead>
 
@@ -535,14 +620,18 @@ const Library = () => {
               </div>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.max(prev - 1, 1))
+                  }
                   disabled={currentPage === 1}
                   className="px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                  }
                   disabled={currentPage === totalPages}
                   className="px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -572,44 +661,3 @@ const Library = () => {
 };
 
 export default Library;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
