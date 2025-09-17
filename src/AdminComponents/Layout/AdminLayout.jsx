@@ -1,3 +1,5 @@
+// src/AdminComponents/Layout/AdminLayout.jsx
+
 import { Outlet, useNavigate, useLocation, NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -13,13 +15,12 @@ import { useAuth } from '../../hooks/useAuth';
 function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signOut } = useAuth();
+  const { user, signOut } = useAuth();
 
-  // Проста функція для кнопки ручного виходу
   const handleLogout = async () => {
     try {
       await signOut();
-      navigate('/'); // Перенаправляємо на головну після ручного виходу
+      navigate('/');
     } catch (error) {
       console.error('Error logging out:', error);
     }
@@ -58,11 +59,7 @@ function AdminLayout() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
       {/* ===== SIDEBAR ===== */}
       <aside className="fixed top-0 left-0 z-40 w-64 h-screen border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col">
-        <div className="p-4 border-b border-slate-200 dark:border-slate-800">
-          <h1 className="text-xl font-bold text-center">
-            {isAdminPanel ? 'Admin Panel' : 'User Panel'}
-          </h1>
-        </div>
+        {/* БЛОК З НАЗВОЮ ПАНЕЛІ БУВ ТУТ, ТЕПЕР ЙОГО ПЕРЕМІЩЕНО ВНИЗ */}
 
         {/* Навігація з можливістю скролу */}
         <div className="flex-1 p-4 overflow-y-auto">
@@ -83,8 +80,21 @@ function AdminLayout() {
           </nav>
         </div>
 
+        {/* ▼▼▼ БЛОК З ІНФОРМАЦІЄЮ ПРО ЮЗЕРА ТЕПЕР ТУТ (НАД КНОПКОЮ ВИХОДУ) ▼▼▼ */}
+        <div className="p-4"> {/* Прибрали border-b */}
+          <h1 className="text-xl font-bold text-center">
+            {isAdminPanel ? 'Admin Panel' : 'User Panel'}
+          </h1>
+          {user && (
+            // Оновлені класи: text-xs (менший шрифт) та break-all (перенос тексту)
+            <p className="text-center text-xs text-slate-500 dark:text-slate-400 mt-1 break-all" title={user.email}>
+              {user.email}
+            </p>
+          )}
+        </div>
+
         {/* Кнопка виходу завжди внизу */}
-        <div className="mt-auto p-4 border-t border-slate-200 dark:border-slate-800">
+        <div className="p-4 border-t border-slate-200 dark:border-slate-800"> {/* Тут border-t створює лінію-розділювач */}
           <button
             onClick={handleLogout}
             className="w-full flex items-center justify-center px-4 py-2 rounded-md text-sm font-semibold transition-colors
