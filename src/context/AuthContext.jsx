@@ -141,7 +141,7 @@ const AuthProvider = ({ children }) => {
     return data;
   };
 
- const completeRegistration = async ({
+  const completeRegistration = async ({
     password,
     firstName,
     lastName,
@@ -153,6 +153,8 @@ const AuthProvider = ({ children }) => {
     const { data: authData, error: authError } = await supabase.auth.updateUser({
       password: password,
       data: {
+        // Ми оновлюємо метадані в auth, це можна залишити як є.
+        // Головне - виправити запит до public.user_profiles.
         full_name: `${firstName} ${lastName}`.trim(),
         location,
         state,
@@ -160,32 +162,37 @@ const AuthProvider = ({ children }) => {
       },
     });
 
-    if (authError) throw authError;
+    if (authError) {
+      console.error('Supabase Auth Update Error:', authError);
+      throw authError;
+    }
 
-    // ===============================================================
-    // ▼▼▼ ДОДАЙТЕ ЦЕЙ БЛОК КОДУ ▼▼▼
-    // ===============================================================
     // 2. Оновлюємо дані у публічній таблиці user_profiles
-    const { error: profileError } = await supabase
+    const { data: profileData, error: profileError } = await supabase
       .from('user_profiles')
       .update({
-        full_name: `${firstName} ${lastName}`.trim(),
+        // ▼▼▼ ОСНОВНІ ЗМІНИ ТУТ ▼▼▼
+        first_name: firstName, // Замінено "full_name" на правильні назви колонок
+        last_name: lastName,   // 
+        // ▲▲▲ КІНЕЦЬ ЗМІН ▲▲▲
         location,
         state,
         phone,
-        status: 'active' // Опціонально: встановлюємо статус 'active' після реєстрації
+        status: 'active'
       })
-      .eq('id', authData.user.id); // Використовуємо ID оновленого користувача
+      .eq('id', authData.user.id)
+      .select();
 
-    if (profileError) throw profileError;
-    // ===============================================================
-    // ▲▲▲ КІНЕЦЬ БЛОКУ ▲▲▲
-    // ===============================================================
+    if (profileError) {
+      console.error('Supabase Profile Update Error:', profileError);
+      throw profileError;
+    }
+
+    console.log('Profile updated successfully:', profileData);
 
     // 3. Вилогінюємо користувача, щоб він увійшов з новим паролем
     await supabase.auth.signOut();
     
-    // Повертаємо дані, хоча в цьому випадку вони не використовуються далі
     return authData; 
   };
 

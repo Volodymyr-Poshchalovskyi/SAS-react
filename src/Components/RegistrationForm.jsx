@@ -68,7 +68,8 @@ const RegistrationForm = () => {
       });
       window.location.hash = '';
     } catch (err) {
-      setError(err.message);
+      console.error('Detailed Registration Error:', err); // <-- ДОДАЙТЕ ЦЕЙ РЯДОК
+  setError(err.message);
     } finally {
       setLoading(false);
     }
