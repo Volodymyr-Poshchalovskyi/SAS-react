@@ -1,12 +1,12 @@
-// src/Components/DirectorPage.jsx
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { directorsData } from '../Data/DirectorsData';
 import VideoContainer from '../Components/VideoContainer';
+import VideoModal from '../Components/VideoModal'; // <-- 1. Імпортуємо новий компонент
 import Photo from '../assets/Photos/DirectorPhoto.png';
 
-const DirectorVideoBlock = ({ video }) => {
+// DirectorVideoBlock тепер приймає onExpand як пропс
+const DirectorVideoBlock = ({ video, onExpand }) => {
   const [shouldPlay, setShouldPlay] = useState(false);
   const videoRef = useRef(null);
 
@@ -36,6 +36,7 @@ const DirectorVideoBlock = ({ video }) => {
         <div className="text-center text-white pb-24">
           <p className="text-2xl mb-6 text-shadow">{video.title}</p>
           <button
+            onClick={() => onExpand(video)} // <-- 2. Викликаємо функцію при кліку
             className="bg-white text-black py-4 px-6 text-xs font-semibold uppercase tracking-wider flex items-center gap-2
                            transition-transform hover:scale-105"
           >
@@ -53,6 +54,18 @@ const DirectorVideoBlock = ({ video }) => {
 export default function DirectorPage() {
   const { directorSlug } = useParams();
   const director = directorsData.find((d) => d.slug === directorSlug);
+
+  // 3. Стан для модального вікна
+  const [expandedVideo, setExpandedVideo] = useState(null);
+
+  // 4. Функції для керування модальним вікном
+  const handleExpandVideo = (video) => {
+    setExpandedVideo(video);
+  };
+
+  const handleCloseModal = () => {
+    setExpandedVideo(null);
+  };
 
   if (!director) {
     return (
@@ -92,11 +105,16 @@ export default function DirectorPage() {
 
       <div className="bg-black">
         {director.videos.map((video, index) => (
-          <DirectorVideoBlock key={index} video={video} />
+          <DirectorVideoBlock
+            key={index}
+            video={video}
+            onExpand={handleExpandVideo} // <-- 5. Передаємо функцію в компонент
+          />
         ))}
       </div>
 
       <section className="w-full bg-white text-black py-16 md:py-24">
+        {/* ... решта вашого коду для біографії ... */}
         <div className="max-w-7xl mx-auto px-8 flex flex-col md:flex-row items-center justify-center gap-12 md:gap-24">
           <div className="w-full max-w-md md:w-[450px] flex-shrink-0">
             <img
@@ -115,6 +133,11 @@ export default function DirectorPage() {
           </div>
         </div>
       </section>
+
+      {/* 6. Умовний рендер модального вікна */}
+      {expandedVideo && (
+        <VideoModal video={expandedVideo} onClose={handleCloseModal} />
+      )}
     </div>
   );
 }
