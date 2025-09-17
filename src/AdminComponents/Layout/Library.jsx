@@ -3,7 +3,9 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
-  ArrowUpDown,
+  ArrowUpDown, // Іконка за замовчуванням
+  ArrowUp,     // Нова іконка
+  ArrowDown,   // Нова іконка
   FileText,
 } from 'lucide-react';
 
@@ -284,7 +286,7 @@ const mockLibraryItems = [
 
 
 // =======================
-// Sortable Header Component (Новий компонент)
+// Sortable Header Component (ОНОВЛЕНИЙ КОМПОНЕНТ)
 // =======================
 const SortableHeader = ({
   children,
@@ -294,6 +296,20 @@ const SortableHeader = ({
   className = '',
 }) => {
   const isActive = sortConfig.key === sortKey;
+
+  const renderSortIcon = () => {
+    if (!isActive) {
+      return (
+        <ArrowUpDown className="h-4 w-4 text-slate-400 group-hover:text-slate-500 dark:group-hover:text-slate-300 transition-colors" />
+      );
+    }
+    return sortConfig.direction === 'ascending' ? (
+      <ArrowUp className="h-4 w-4 text-slate-800 dark:text-slate-200" />
+    ) : (
+      <ArrowDown className="h-4 w-4 text-slate-800 dark:text-slate-200" />
+    );
+  };
+
   return (
     <th className={`p-4 font-medium text-left ${className}`}>
       <button
@@ -301,13 +317,7 @@ const SortableHeader = ({
         onClick={() => onSort(sortKey)}
       >
         {children}
-        <ArrowUpDown
-          className={`h-4 w-4 transition-colors ${
-            isActive
-              ? 'text-slate-700 dark:text-slate-200'
-              : 'text-slate-400 group-hover:text-slate-500 dark:group-hover:text-slate-300'
-          }`}
-        />
+        {renderSortIcon()}
       </button>
     </th>
   );
@@ -478,7 +488,7 @@ const Library = () => {
           {/* ---- Table ---- */}
           <div className="overflow-x-auto">
             <table className="w-full text-sm table-fixed">
-              {/* Table head -- ОНОВЛЕНО */}
+              {/* Table head */}
               <thead className="text-slate-500 dark:text-slate-400">
                 <tr className="border-b border-slate-200 dark:border-slate-800">
                   <th className="p-4 w-12 text-left">
