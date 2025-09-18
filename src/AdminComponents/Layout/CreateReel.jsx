@@ -112,16 +112,15 @@ const CreateReel = () => {
   // --- States ---
   const [publicationDate, setPublicationDate] = useState(new Date());
   const [publishOption, setPublishOption] = useState('schedule');
-  const [metaData, setMetaData] = useState({ artist: '', client: '', title: '', contentType: 'promo', featuredCelebrity: '' });
+  const [metaData, setMetaData] = useState({ contentType: 'promo', featuredCelebrity: '' });
   const [crafts, setCrafts] = useState(['', '']);
   const [categories, setCategories] = useState([]);
-  const [customFields, setCustomFields] = useState([{ key: '', value: '' }]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [mainPreviewUrl, setMainPreviewUrl] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [customPreview, setCustomPreview] = useState(null);
   const [customPreviewUrl, setCustomPreviewUrl] = useState(null);
-  const [description, setDescription] = useState(''); // NEW: State for description
+  const [description, setDescription] = useState('');
 
   // --- Refs ---
   const fileInputRef = useRef(null);
@@ -135,16 +134,12 @@ const CreateReel = () => {
   const removeCraft = (index) => setCrafts(crafts.filter((_, i) => i !== index));
   const handleCategoryKeyDown = (e) => { if (e.key === 'Enter' && e.target.value.trim() !== '') { e.preventDefault(); if (categories.length < 5 && !categories.includes(e.target.value.trim())) { setCategories([...categories, e.target.value.trim()]); } e.target.value = ''; } };
   const removeCategory = (tag) => { setCategories(categories.filter(t => t !== tag)); };
-  const handleCustomFieldChange = (index, field, value) => { const f = [...customFields]; f[index][field] = value; setCustomFields(f); };
-  const addCustomField = () => setCustomFields([...customFields, { key: '', value: '' }]);
-  const removeCustomField = (index) => setCustomFields(customFields.filter((_, i) => i !== index));
   const handleFileValidation = (file, types = ['image/', 'video/']) => {
     if (!file) return false;
     const isValid = types.some(type => file.type.startsWith(type));
     if (!isValid) { alert(`Please upload a valid file type (${types.join(', ')}).`); return false; }
     return true;
   };
-
   const handleFileSelect = (file) => { if (handleFileValidation(file)) setSelectedFile(file); };
   const handleDragOver = (e) => { e.preventDefault(); setIsDragging(true); };
   const handleDragLeave = (e) => { e.preventDefault(); setIsDragging(false); };
@@ -156,7 +151,7 @@ const CreateReel = () => {
     if (handleFileValidation(file, ['image/'])) { setCustomPreview(file); }
   };
   const removeCustomPreview = () => setCustomPreview(null);
-  const handleDescriptionChange = (e) => { setDescription(e.target.value); }; // NEW: Handler for description
+  const handleDescriptionChange = (e) => { setDescription(e.target.value); };
 
   // --- Effects ---
   useEffect(() => {
@@ -215,7 +210,7 @@ const CreateReel = () => {
       <FormSection title="Preview">
         {!customPreviewUrl ? (
           <div className="text-center text-slate-400 py-8">
-            <p className="mb-4">Тут буде показано ваше прев'ю</p>
+            <p className="mb-4">Here will be shown your preview</p>
             <button type="button" onClick={() => previewFileInputRef.current.click()} className="px-4 py-1.5 text-xs font-semibold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600">
               Choose preview
             </button>
@@ -258,8 +253,6 @@ const CreateReel = () => {
           </FormField>
           <FormField label="Artist"><select className={inputClasses}><option>Choose Artist...</option></select></FormField>
           <FormField label="Client"><select className={inputClasses}><option>Choose Client...</option></select></FormField>
-          
-          {/* === MODIFIED DESCRIPTION FIELD === */}
           <div className="md:col-span-3">
             <FormField label="Description">
               <div className="relative w-full">
@@ -276,22 +269,38 @@ const CreateReel = () => {
               </div>
             </FormField>
           </div>
-          {/* === END OF MODIFICATIONS === */}
-
         </div>
       </FormSection>
 
       {/* Meta Data Section */}
       <FormSection title="Meta Data" hasSeparator={false}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
-          <FormField label="Artist"><input name="artist" value={metaData.artist} onChange={handleMetaDataChange} type="text" className={inputClasses} /></FormField>
-          <FormField label="Client"><input name="client" value={metaData.client} onChange={handleMetaDataChange} type="text" className={inputClasses} /></FormField>
-          <FormField label="Title"><input name="title" value={metaData.title} onChange={handleMetaDataChange} type="text" className={inputClasses} /></FormField>
-          <FormField label="Featured Celebrity"><input name="featuredCelebrity" value={metaData.featuredCelebrity} onChange={handleMetaDataChange} type="text" className={inputClasses} /></FormField>
-          <FormField label="Content Type"><select name="contentType" value={metaData.contentType} onChange={handleMetaDataChange} className={inputClasses}><option value="promo">Promo</option><option value="tutorial">Tutorial</option><option value="highlight">Highlight</option></select></FormField>
+          <FormField label="Featured Celebrity">
+            <select
+              name="featuredCelebrity"
+              value={metaData.featuredCelebrity}
+              onChange={handleMetaDataChange}
+              className={inputClasses}
+            >
+              <option value="">Choose Celebrity...</option>
+              {/* You can add more options here later */}
+            </select>
+          </FormField>
+          <FormField label="Content Type">
+            <select
+              name="contentType"
+              value={metaData.contentType}
+              onChange={handleMetaDataChange}
+              className={inputClasses}
+            >
+              <option value="promo">Promo</option>
+              <option value="tutorial">Tutorial</option>
+              <option value="highlight">Highlight</option>
+            </select>
+          </FormField>
           <div className="md:col-span-2"><FormField label="Craft">{crafts.map((craft, index) => (<div key={index} className="flex items-center space-x-2 mb-2"><input type="text" value={craft} onChange={(e) => handleCraftChange(index, e.target.value)} className={inputClasses} placeholder={`Craft #${index + 1}`} /><button type="button" onClick={() => removeCraft(index)} className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-slate-700 rounded-md"><TrashIcon /></button></div>))}<button type="button" onClick={addCraft} className="mt-2 flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600"><PlusIcon /><span>Add Craft</span></button></FormField></div>
           <div className="md:col-span-2"><FormField label={`Categories (${categories.length}/5)`}><div className="flex flex-wrap items-center gap-2 p-2 border border-slate-300 dark:border-slate-700 rounded-md">{categories.map((tag) => (<span key={tag} className="flex items-center bg-teal-100 dark:bg-teal-900/50 text-teal-800 dark:text-teal-200 text-sm font-medium px-2.5 py-1 rounded-full">{tag}<button type="button" onClick={() => removeCategory(tag)} className="ml-2 -mr-1 p-0.5 text-teal-600 dark:text-teal-300 hover:bg-teal-200 dark:hover:bg-teal-700 rounded-full">&times;</button></span>))}{categories.length < 5 && (<input type="text" onKeyDown={handleCategoryKeyDown} placeholder="Add category and press Enter..." className="flex-grow bg-transparent focus:outline-none p-1" />)}</div></FormField></div>
-          <div className="md:col-span-2"><FormField label="Additional Custom Fields">{customFields.map((field, index) => (<div key={index} className="grid grid-cols-1 md:grid-cols-2 gap-2 items-center mb-2"><input type="text" value={field.key} onChange={(e) => handleCustomFieldChange(index, 'key', e.target.value)} className={inputClasses} placeholder="Key (e.g., Colorist)" /><div className="flex items-center space-x-2"><input type="text" value={field.value} onChange={(e) => handleCustomFieldChange(index, 'value', e.target.value)} className={inputClasses} placeholder="Value" /><button type="button" onClick={() => removeCustomField(index)} className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-slate-700 rounded-md"><TrashIcon /></button></div></div>))}<button type="button" onClick={addCustomField} className="mt-2 flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600"><PlusIcon /><span>Add Field</span></button></FormField></div>
+          {/* === SECTION FOR "Additional Custom Fields" REMOVED === */}
         </div>
       </FormSection>
 

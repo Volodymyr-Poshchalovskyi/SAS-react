@@ -303,7 +303,7 @@ const MyAnalytics = () => {
     <div className="max-w-7xl mx-auto">
       <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">
-          My Analytics
+          Analytics
         </h1>
         <div className="w-full sm:w-72">
           <input
