@@ -1,5 +1,3 @@
-// src/AdminComponents/Layout/CreateReel.jsx
-
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -79,6 +77,7 @@ const SearchableSelect = ({ label, options, value, onChange, placeholder, requir
           }}
           placeholder={placeholder}
           className={inputClasses}
+          required={required} // ✨ CHANGED: Pass required prop to input for native validation
         />
         {isOpen && (
           <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md shadow-lg max-h-60 overflow-y-auto">
@@ -186,7 +185,8 @@ const CreateReel = () => {
     const newCategory = e.target.value.trim();
     if (e.key === 'Enter' && newCategory !== '') {
       e.preventDefault();
-      if (formData.categories.length < 5 && !formData.categories.includes(newCategory)) {
+      // ✨ CHANGED: Category limit updated from 5 to 10
+      if (formData.categories.length < 10 && !formData.categories.includes(newCategory)) {
         handleFormChange('categories', [...formData.categories, newCategory]);
       }
       e.target.value = '';
@@ -217,7 +217,8 @@ const CreateReel = () => {
       {/* Title Section */}
       <FormSection>
         <FormField label="Title" required>
-          <input type="text" value={formData.title} onChange={(e) => handleFormChange('title', e.target.value)} placeholder="Enter title..." className={inputClasses} />
+          {/* ✨ CHANGED: Added 'required' attribute */}
+          <input type="text" value={formData.title} onChange={(e) => handleFormChange('title', e.target.value)} placeholder="Enter title..." className={inputClasses} required />
         </FormField>
       </FormSection>
 
@@ -289,21 +290,25 @@ const CreateReel = () => {
             </div>
             <div className="relative"><DatePicker selected={formData.publicationDate} onChange={(date) => handleFormChange('publicationDate', date)} disabled={isSchedulingDisabled} showTimeSelect dateFormat="MMMM d, yyyy h:mm aa" className={`${inputClasses} pl-10 w-full`} /><div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none"><CalendarIcon /></div></div>
           </FormField>
-          {/* ✨ UPDATED ARTIST INPUT ✨ */}
+          
+          {/* ✨ CHANGED: Added 'required' prop */}
           <SearchableSelect
             label="Artist"
             options={artists}
             value={formData.artist}
             onChange={(newValue) => handleFormChange('artist', newValue)}
             placeholder={isLoadingOptions ? 'Loading...' : 'Choose or type artist...'}
+            required
           />
-          {/* ✨ UPDATED CLIENT INPUT ✨ */}
+          
+          {/* ✨ CHANGED: Added 'required' prop */}
           <SearchableSelect
             label="Client"
             options={clients}
             value={formData.client}
             onChange={(newValue) => handleFormChange('client', newValue)}
             placeholder={isLoadingOptions ? 'Loading...' : 'Choose or type client...'}
+            required
           />
 
           <div className="md:col-span-3">
@@ -320,7 +325,6 @@ const CreateReel = () => {
       {/* Meta Data Section */}
       <FormSection title="Meta Data" hasSeparator={false}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">
-          {/* ✨ UPDATED FEATURED CELEBRITY INPUT ✨ */}
           <SearchableSelect
             label="Featured Celebrity"
             options={celebrities}
@@ -341,7 +345,24 @@ const CreateReel = () => {
             </select>
           </FormField>
           <div className="md:col-span-2"><FormField label="Craft">{formData.crafts.map((craft, index) => (<div key={index} className="flex items-center space-x-2 mb-2"><input type="text" value={craft} onChange={(e) => handleCraftChange(index, e.target.value)} className={inputClasses} placeholder={`Craft #${index + 1}`} /><button type="button" onClick={() => removeCraft(index)} className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-slate-700 rounded-md"><TrashIcon /></button></div>))}<button type="button" onClick={addCraft} className="mt-2 flex items-center space-x-2 px-3 py-1.5 text-xs font-semibold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600"><PlusIcon /><span>Add Craft</span></button></FormField></div>
-          <div className="md:col-span-2"><FormField label={`Categories (${formData.categories.length}/5)`}><div className="flex flex-wrap items-center gap-2 p-2 border border-slate-300 dark:border-slate-700 rounded-md">{formData.categories.map((tag) => (<span key={tag} className="flex items-center bg-teal-100 dark:bg-teal-900/50 text-teal-800 dark:text-teal-200 text-sm font-medium px-2.5 py-1 rounded-full">{tag}<button type="button" onClick={() => removeCategory(tag)} className="ml-2 -mr-1 p-0.5 text-teal-600 dark:text-teal-300 hover:bg-teal-200 dark:hover:bg-teal-700 rounded-full">&times;</button></span>))}{formData.categories.length < 5 && (<input type="text" onKeyDown={handleCategoryKeyDown} placeholder="Add category and press Enter..." className="flex-grow bg-transparent focus:outline-none p-1" />)}</div></FormField></div>
+          
+          {/* ✨ CHANGED: Category limit updated in label and conditional render */}
+          <div className="md:col-span-2">
+            <FormField label={`Categories (${formData.categories.length}/10)`}>
+              <div className="flex flex-wrap items-center gap-2 p-2 border border-slate-300 dark:border-slate-700 rounded-md">
+                {formData.categories.map((tag) => (
+                  <span key={tag} className="flex items-center bg-teal-100 dark:bg-teal-900/50 text-teal-800 dark:text-teal-200 text-sm font-medium px-2.5 py-1 rounded-full">
+                    {tag}
+                    <button type="button" onClick={() => removeCategory(tag)} className="ml-2 -mr-1 p-0.5 text-teal-600 dark:text-teal-300 hover:bg-teal-200 dark:hover:bg-teal-700 rounded-full">&times;</button>
+                  </span>
+                ))}
+                {formData.categories.length < 10 && (
+                  <input type="text" onKeyDown={handleCategoryKeyDown} placeholder="Add category and press Enter..." className="flex-grow bg-transparent focus:outline-none p-1" />
+                )}
+              </div>
+            </FormField>
+          </div>
+
         </div>
       </FormSection>
 
