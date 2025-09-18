@@ -3,11 +3,12 @@ import {
   LayoutDashboard,
   Clapperboard,
   Library,
-  BookUser, // <<< Додано
+  BookUser,
   BarChart,
   FileText,
   Users,
   LogOut,
+  Tags, // ✨ ЗМІНИ ТУТ: 1. Імпортуємо нову іконку
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -46,11 +47,17 @@ function AdminLayout() {
       to: `${basePath}/management`,
       label: 'Artists / Clients',
       icon: BookUser,
-    }, // <<< Додано
+    },
     { to: `${basePath}/analytic`, label: 'Analytics', icon: BarChart },
   ];
 
   const adminNavItems = [
+    // ✨ ЗМІНИ ТУТ: 2. Додаємо новий пункт меню для адмінів
+    {
+      to: '/adminpanel/metadata-management',
+      label: 'Metadata',
+      icon: Tags,
+    },
     { to: '/adminpanel/applications', label: 'Applications', icon: FileText },
     {
       to: '/adminpanel/user-management',

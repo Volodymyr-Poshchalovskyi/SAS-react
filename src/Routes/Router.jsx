@@ -24,9 +24,11 @@ import Dashboard from '../AdminComponents/Layout/Dashboard.jsx';
 import CreateReel from '../AdminComponents/Layout/CreateReel.jsx';
 import Library from '../AdminComponents/Layout/Library.jsx';
 import MyAnalytic from '../AdminComponents/Layout/MyAnalytic.jsx';
-import ManagementPage from '../AdminComponents/Layout/Management.jsx'; // <<< Додано
+import ManagementPage from '../AdminComponents/Layout/Management.jsx';
 import ApplicationsForAdmin from '../AdminComponents/ApplicationsForAdmin.jsx';
 import UserManagement from '../AdminComponents/UserManagement.jsx';
+// ✨ ЗМІНИ ТУТ: 1. Імпортуємо новий компонент
+import MetaDataManagement from '../AdminComponents/Layout/MetaDataManagement.jsx';
 
 // Auth & Utility Pages
 import AuthCallback from '../Pages/AuthCallback.jsx';
@@ -87,6 +89,8 @@ export default function AppRouter() {
               <Route path="library" element={<Library />} />
               <Route path="management" element={<ManagementPage />} />
               <Route path="analytic" element={<MyAnalytic />} />
+              {/* ✨ ЗМІНИ ТУТ: 2. Додаємо маршрут для нової сторінки */}
+              <Route path="metadata-management" element={<MetaDataManagement />} />
               <Route path="applications" element={<ApplicationsForAdmin />} />
               <Route path="user-management" element={<UserManagement />} />
             </Route>
