@@ -23,7 +23,6 @@ const mockLibraryItems = [
         categories: 'Food',
         addedBy: 'Thomas Carrol',
         createdAt: '2025-09-11T14:48:00Z',
-        views: 12543,
       },
       {
         id: 2,
@@ -34,7 +33,6 @@ const mockLibraryItems = [
         categories: 'Food',
         addedBy: 'Thomas Carrol',
         createdAt: '2025-09-11T14:45:00Z',
-        views: 8201,
       },
       {
         id: 3,
@@ -45,7 +43,6 @@ const mockLibraryItems = [
         categories: 'Beverage',
         addedBy: 'Jane Smith',
         createdAt: '2025-09-11T13:30:00Z',
-        views: 22890,
       },
       {
         id: 4,
@@ -56,7 +53,6 @@ const mockLibraryItems = [
         categories: 'Food',
         addedBy: 'Thomas Carrol',
         createdAt: '2025-09-11T12:39:00Z',
-        views: 4500,
       },
       {
         id: 5,
@@ -67,217 +63,7 @@ const mockLibraryItems = [
         categories: 'Apparel',
         addedBy: 'Peter Jones',
         createdAt: '2025-09-10T18:00:00Z',
-        views: 52300,
-      },
-      {
-        id: 6,
-        title: 'Apple',
-        subtitle: 'Think Different',
-        artists: 'Creative Minds',
-        client: 'Apple Inc.',
-        categories: 'Technology',
-        addedBy: 'Susan Williams',
-        createdAt: '2025-09-10T17:50:00Z',
-        views: 102500,
-      },
-      {
-        id: 7,
-        title: 'Coca-Cola',
-        subtitle: 'Open Happiness',
-        artists: 'Studio Art',
-        client: 'Coca-Cola',
-        categories: 'Beverage',
-        addedBy: 'Jane Smith',
-        createdAt: '2025-09-10T16:45:00Z',
-        views: 75000,
-      },
-      {
-        id: 8,
-        title: 'Toyota',
-        subtitle: 'Lets Go Places',
-        artists: 'Car Media',
-        client: 'Toyota',
-        categories: 'Automotive',
-        addedBy: 'Peter Jones',
-        createdAt: '2025-09-09T11:20:00Z',
-        views: 42000,
-      },
-      {
-        id: 9,
-        title: 'Samsung',
-        subtitle: 'Galaxy S25',
-        artists: 'Tech Visuals',
-        client: 'Samsung',
-        categories: 'Technology',
-        addedBy: 'Susan Williams',
-        createdAt: '2025-09-09T10:10:00Z',
-        views: 89000,
-      },
-      {
-        id: 10,
-        title: 'McDonalds',
-        subtitle: 'Im Lovin It',
-        artists: 'Rob Fiocca',
-        client: 'McDonalds',
-        categories: 'Food',
-        addedBy: 'Thomas Carrol',
-        createdAt: '2025-09-08T15:00:00Z',
-        views: 150000,
-      },
-      {
-        id: 11,
-        title: 'Adidas',
-        subtitle: 'Impossible is Nothing',
-        artists: 'Jane Roe',
-        client: 'Adidas',
-        categories: 'Apparel',
-        addedBy: 'Peter Jones',
-        createdAt: '2025-09-08T14:00:00Z',
-        views: 61000,
-      },
-      {
-        id: 12,
-        title: 'Google',
-        subtitle: 'Pixel 9 Pro',
-        artists: 'Creative Minds',
-        client: 'Google',
-        categories: 'Technology',
-        addedBy: 'Susan Williams',
-        createdAt: '2025-09-08T12:00:00Z',
-        views: 95000,
-      },
-      {
-        id: 13,
-        title: 'KFC',
-        subtitle: 'Finger Lickin Good',
-        artists: 'Rob Fiocca',
-        client: 'KFC',
-        categories: 'Food',
-        addedBy: 'Thomas Carrol',
-        createdAt: '2025-09-07T16:00:00Z',
-        views: 78000,
-      },
-      {
-        id: 14,
-        title: 'Ford',
-        subtitle: 'Built Ford Tough',
-        artists: 'Car Media',
-        client: 'Ford',
-        categories: 'Automotive',
-        addedBy: 'Peter Jones',
-        createdAt: '2025-09-07T13:00:00Z',
-        views: 32000,
-      },
-      {
-        id: 15,
-        title: 'Subway',
-        subtitle: 'Eat Fresh',
-        artists: 'Rob Fiocca',
-        client: 'Subway',
-        categories: 'Food',
-        addedBy: 'Thomas Carrol',
-        createdAt: '2025-09-06T19:00:00Z',
-        views: 45000,
-      },
-      {
-        id: 16,
-        title: 'Amazon',
-        subtitle: 'Prime Day',
-        artists: 'Creative Minds',
-        client: 'Amazon',
-        categories: 'E-commerce',
-        addedBy: 'Susan Williams',
-        createdAt: '2025-09-06T18:00:00Z',
-        views: 250000,
-      },
-      {
-        id: 17,
-        title: 'Lays',
-        subtitle: 'Betcha Cant Eat Just One',
-        artists: 'John Doe',
-        client: 'Frito-Lay',
-        categories: 'Snacks',
-        addedBy: 'Jane Smith',
-        createdAt: '2025-09-05T14:00:00Z',
-        views: 5000,
-      },
-      {
-        id: 18,
-        title: 'Honda',
-        subtitle: 'The Power of Dreams',
-        artists: 'Car Media',
-        client: 'Honda',
-        categories: 'Automotive',
-        addedBy: 'Peter Jones',
-        createdAt: '2025-09-05T11:00:00Z',
-        views: 28000,
-      },
-      {
-        id: 19,
-        title: 'Starbucks',
-        subtitle: 'Pumpkin Spice Latte',
-        artists: 'Rob Fiocca',
-        client: 'Starbucks',
-        categories: 'Beverage',
-        addedBy: 'Thomas Carrol',
-        createdAt: '2025-09-04T10:00:00Z',
-        views: 62000,
-      },
-      {
-        id: 20,
-        title: 'Microsoft',
-        subtitle: 'Surface Pro 10',
-        artists: 'Tech Visuals',
-        client: 'Microsoft',
-        categories: 'Technology',
-        addedBy: 'Susan Williams',
-        createdAt: '2025-09-04T09:00:00Z',
-        views: 71000,
-      },
-      {
-        id: 21,
-        title: 'Puma',
-        subtitle: 'Forever Faster',
-        artists: 'Jane Roe',
-        client: 'Puma',
-        categories: 'Apparel',
-        addedBy: 'Peter Jones',
-        createdAt: '2025-09-03T17:00:00Z',
-        views: 18000,
-      },
-      {
-        id: 22,
-        title: 'BMW',
-        subtitle: 'The Ultimate Driving Machine',
-        artists: 'Car Media',
-        client: 'BMW',
-        categories: 'Automotive',
-        addedBy: 'Peter Jones',
-        createdAt: '2025-09-03T16:00:00Z',
-        views: 99000,
-      },
-      {
-        id: 23,
-        title: 'Taco Bell',
-        subtitle: 'Live Más',
-        artists: 'Rob Fiocca',
-        client: 'Taco Bell',
-        categories: 'Food',
-        addedBy: 'Thomas Carrol',
-        createdAt: '2025-09-02T15:00:00Z',
-        views: 88000,
-      },
-      {
-        id: 24,
-        title: "Wendy's",
-        subtitle: 'Quality is Our Recipe',
-        artists: 'Rob Fiocca',
-        client: "Wendy's",
-        categories: 'Food',
-        addedBy: 'Thomas Carrol',
-        createdAt: '2025-09-02T14:00:00Z',
-        views: 34000,
-      },
+      }
 ].map((item) => ({
   ...item,
   preview:
@@ -324,7 +110,7 @@ const SortableHeader = ({
 };
 
 // =======================
-// Right Sidebar Component (New)
+// Right Sidebar Component
 // =======================
 const ReelCreatorSidebar = ({ allItems }) => {
     const [reelItems, setReelItems] = useState([]);
@@ -572,14 +358,15 @@ const Library = () => {
   };
 
   // ---------- Helpers ----------
-  const formatDate = (dateString) =>
-    new Date(dateString).toLocaleDateString('en-US', {
+  const formatDateTime = (dateString) =>
+    new Date(dateString).toLocaleString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
     });
-
-  const formatNumber = (num) => new Intl.NumberFormat().format(num);
 
   const checkboxClasses =
     'h-4 w-4 shrink-0 rounded-sm border border-slate-300 dark:border-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:focus-visible:ring-slate-500 ring-offset-white dark:ring-offset-slate-900 accent-slate-900 dark:accent-slate-50 cursor-pointer';
@@ -631,7 +418,7 @@ const Library = () => {
           <div className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900/70">
             {/* ---- Table ---- */}
             <div className="overflow-x-auto">
-              <table className="w-full text-sm table-fixed">
+              <table className="w-full text-xs table-fixed">
                 <thead className="text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50">
                   <tr className="border-b border-slate-200 dark:border-slate-800">
                     <th className="p-4 w-12 text-left">
@@ -642,13 +429,12 @@ const Library = () => {
                         className={checkboxClasses}
                       />
                     </th>
-                    <SortableHeader sortKey="title" sortConfig={sortConfig} onSort={handleSort} className="w-[28%]">Title</SortableHeader>
-                    <SortableHeader sortKey="artists" sortConfig={sortConfig} onSort={handleSort} className="w-[12%]">Artists</SortableHeader>
-                    <SortableHeader sortKey="client" sortConfig={sortConfig} onSort={handleSort} className="w-[12%]">Client</SortableHeader>
-                    <SortableHeader sortKey="categories" sortConfig={sortConfig} onSort={handleSort} className="w-[12%]">Categories</SortableHeader>
-                    <SortableHeader sortKey="addedBy" sortConfig={sortConfig} onSort={handleSort} className="w-[12%]">Added By</SortableHeader>
-                    <SortableHeader sortKey="views" sortConfig={sortConfig} onSort={handleSort} className="w-24">Views</SortableHeader>
-                    <SortableHeader sortKey="createdAt" sortConfig={sortConfig} onSort={handleSort} className="w-32">Created At</SortableHeader>
+                    <SortableHeader sortKey="title" sortConfig={sortConfig} onSort={handleSort} className="w-[35%]">Title</SortableHeader>
+                    <SortableHeader sortKey="artists" sortConfig={sortConfig} onSort={handleSort} className="w-[13%]">Artists</SortableHeader>
+                    <SortableHeader sortKey="client" sortConfig={sortConfig} onSort={handleSort} className="w-[13%]">Client</SortableHeader>
+                    <SortableHeader sortKey="categories" sortConfig={sortConfig} onSort={handleSort} className="w-[13%]">Categories</SortableHeader>
+                    <SortableHeader sortKey="addedBy" sortConfig={sortConfig} onSort={handleSort} className="w-[13%]">Added By</SortableHeader>
+                    <SortableHeader sortKey="createdAt" sortConfig={sortConfig} onSort={handleSort} className="w-28">Created At</SortableHeader>
                   </tr>
                 </thead>
                 <tbody className="text-slate-800 dark:text-slate-200">
@@ -692,8 +478,7 @@ const Library = () => {
                       <td className="p-4 text-left whitespace-nowrap truncate">{item.client}</td>
                       <td className="p-4 text-left whitespace-nowrap truncate">{item.categories}</td>
                       <td className="p-4 text-left whitespace-nowrap truncate">{item.addedBy}</td>
-                      <td className="p-4 text-left whitespace-nowrap">{formatNumber(item.views)}</td>
-                      <td className="p-4 text-left whitespace-nowrap">{formatDate(item.createdAt)}</td>
+                      <td className="p-4 text-left">{formatDateTime(item.createdAt)}</td>
                     </tr>
                   ))}
                 </tbody>
