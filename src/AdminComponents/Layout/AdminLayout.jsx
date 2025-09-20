@@ -41,7 +41,7 @@ function AdminLayout() {
 
   const navItems = [
     { to: `${basePath}/dashboard`, label: 'Dashboard', icon: LayoutDashboard },
-    { to: `${basePath}/create-reel`, label: 'Create reel', icon: Clapperboard },
+    { to: `${basePath}/upload-media`, label: 'Upload media', icon: Clapperboard },
     { to: `${basePath}/library`, label: 'Library', icon: Library },
     {
       to: `${basePath}/management`,

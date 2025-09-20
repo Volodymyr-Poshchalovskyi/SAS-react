@@ -74,7 +74,7 @@ export default function AppRouter() {
           <Route path="/userpanel" element={<UserPanel />}>
             <Route index element={<Dashboard />} />
             <Route path="dashboard" element={<Dashboard />} />
-            <Route path="create-reel" element={<CreateReel />} />
+            <Route path="upload-media" element={<CreateReel />} />
             <Route path="library" element={<Library />} />
             <Route path="management" element={<ManagementPage />} />
             <Route path="analytic" element={<MyAnalytic />} />
@@ -85,7 +85,7 @@ export default function AppRouter() {
             <Route path="/adminpanel" element={<AdminPanel />}>
               <Route index element={<Dashboard />} />
               <Route path="dashboard" element={<Dashboard />} />
-              <Route path="create-reel" element={<CreateReel />} />
+              <Route path="upload-media" element={<CreateReel />} />
               <Route path="library" element={<Library />} />
               <Route path="management" element={<ManagementPage />} />
               <Route path="analytic" element={<MyAnalytic />} />

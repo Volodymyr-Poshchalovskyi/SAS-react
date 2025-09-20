@@ -75,7 +75,7 @@ const ReelPartialForm = ({ reel, onUpdate, onRemove }) => {
 
   return (
     <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-4 space-y-8 relative mb-8">
-       <button type="button" onClick={() => onRemove(id)} className="absolute -top-4 -right-4 z-10 p-2 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-75" aria-label="Remove Reel" > <Trash2 size={18} /> </button>
+       <button type="button" onClick={() => onRemove(id)} className="absolute -top-4 -right-4 z-10 p-2 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-75" aria-label="Remove Media" > <Trash2 size={18} /> </button>
       <FormSection> <FormField label="Title" required> <input type="text" value={title} onChange={(e) => handleChange('title', e.target.value)} placeholder="Enter unique title..." className={inputClasses} required /> </FormField> </FormSection>
       <FormSection title="Upload Content"> 
         <div onDragOver={(e) => {e.preventDefault(); setIsDragging(true);}} onDragLeave={(e) => {e.preventDefault(); setIsDragging(false);}} onDrop={handleDrop} className={`relative flex flex-col items-center justify-center w-full aspect-[16/9] border-2 border-slate-300 border-dashed rounded-lg cursor-pointer transition-colors dark:border-slate-600 ${isDragging ? 'border-teal-500 bg-teal-50 dark:bg-slate-800' : 'bg-slate-50 dark:bg-slate-800/50'}`}> 
@@ -133,7 +133,7 @@ const CreateReel = () => {
     <div className="max-w-7xl mx-auto space-y-8 pb-36">
       {reels.map((reel, index) => (
         <div key={reel.id}>
-            <h2 className="text-xl font-bold text-slate-700 dark:text-slate-200 mb-4"> Reel #{index + 1} </h2>
+            <h2 className="text-xl font-bold text-slate-700 dark:text-slate-200 mb-4"> Media #{index + 1} </h2>
             <ReelPartialForm 
               reel={reel} 
               onUpdate={handleUpdateReel} 
@@ -141,7 +141,7 @@ const CreateReel = () => {
             />
         </div>
       ))}
-      <div className="flex justify-center"> <button type="button" onClick={handleAddReel} className="px-6 py-2 border-2 border-dashed border-teal-500 text-teal-600 font-semibold rounded-lg hover:bg-teal-50 dark:hover:bg-slate-800 transition-colors" > + Add Another Reel </button> </div>
+      <div className="flex justify-center"> <button type="button" onClick={handleAddReel} className="px-6 py-2 border-2 border-dashed border-teal-500 text-teal-600 font-semibold rounded-lg hover:bg-teal-50 dark:hover:bg-slate-800 transition-colors" > + Add Another Media </button> </div>
       
       <hr className="border-slate-300 dark:border-slate-700" />
       
