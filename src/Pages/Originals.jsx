@@ -6,22 +6,9 @@ import PreloaderBanner from '../Components/PreloaderBanner';
 import { useAnimation } from '../context/AnimationContext';
 import VideoContainer from '../Components/VideoContainer';
 import { Link } from 'react-router-dom';
+import { originalsData } from '../Data/OriginalsData'; // <-- 1. Імпортуйте дані
 
-const originalsData = [
-  {
-    id: 1,
-    title: 'SINNERS AND SAINTS SHOWREEL 2024',
-    projectLink: '/projects/showreel-2024',
-    videoSrc: '/video/SHOWREEL SINNERS AND SAINTS 2024_1.mp4',
-  },
-  {
-    id: 2,
-    title: 'FEATURED FASHION FILM',
-    projectLink: '/projects/fashion-film',
-    videoSrc: '/video/SHOWREEL SINNERS AND SAINTS 2024_1.mp4',
-  },
-];
-
+// Тепер цей компонент приймає 'item', який є об'єктом з originalsData
 const OriginalsVideoOverlay = ({ item }) => {
   return (
     <div className="absolute top-[80%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full text-center">
@@ -30,9 +17,11 @@ const OriginalsVideoOverlay = ({ item }) => {
           className="text-2xl mb-6 font-light"
           style={{ textShadow: '0 2px 6px rgba(0,0,0,0.5)' }}
         >
-          {item.title}
+          {/* Використовуємо title з об'єкта */}
+          {item.title} 
         </p>
-        <Link to={item.projectLink}>
+        {/* 2. Оновлюємо посилання на динамічний маршрут */}
+        <Link to={`/projects/${item.slug}`}>
           <button
             className="bg-white text-black py-4 px-10 text-xs font-semibold uppercase tracking-wider
                            transition-transform hover:scale-105"
@@ -84,6 +73,7 @@ export default function Originals() {
       </AnimatePresence>
 
       <div className="flex flex-col">
+        {/* 3. Використовуємо масив з імпортованого файлу */}
         {originalsData.map((item) => (
           <section
             key={item.id}

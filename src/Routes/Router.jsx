@@ -18,6 +18,8 @@ import Studio from '../Pages/Studio.jsx';
 import Team from '../Pages/Team.jsx';
 import PrivacyPolicyPage from '../Pages/PrivacyPolicy.jsx';
 import PublicReelPage from '../Pages/PublicReelPage.jsx'; // Новий імпорт
+import ProjectPage from '../Pages/ProjectPage.jsx';
+
 
 // Admin Pages
 import AdminPanel from '../AdminPages/AdminPanel.jsx';
@@ -60,6 +62,7 @@ export default function AppRouter() {
         <Route path="/assignment" element={<Assignment />} />
         <Route path="/directors" element={<Directors />} />
         <Route path="/directors/:directorSlug" element={<DirectorPage />} />
+        <Route path="/projects/:projectSlug" element={<ProjectPage />} /> 
         <Route path="/feature" element={<Feature />} />
         <Route path="/management" element={<Management />} />
         <Route path="/originals" element={<Originals />} />
