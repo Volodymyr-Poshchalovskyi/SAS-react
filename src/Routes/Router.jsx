@@ -17,6 +17,7 @@ import Production from '../Pages/Production.jsx';
 import Studio from '../Pages/Studio.jsx';
 import Team from '../Pages/Team.jsx';
 import PrivacyPolicyPage from '../Pages/PrivacyPolicy.jsx';
+import PublicReelPage from '../Pages/PublicReelPage.jsx'; // Новий імпорт
 
 // Admin Pages
 import AdminPanel from '../AdminPages/AdminPanel.jsx';
@@ -28,7 +29,6 @@ import MyAnalytic from '../AdminComponents/Layout/MyAnalytic.jsx';
 import ManagementPage from '../AdminComponents/Layout/Management.jsx';
 import ApplicationsForAdmin from '../AdminComponents/ApplicationsForAdmin.jsx';
 import UserManagement from '../AdminComponents/UserManagement.jsx';
-// ✨ ЗМІНИ ТУТ: 1. Імпортуємо новий компонент
 import MetaDataManagement from '../AdminComponents/Layout/MetaDataManagement.jsx';
 
 // Auth & Utility Pages
@@ -56,6 +56,7 @@ export default function AppRouter() {
       {/* Public Routes with main site layout */}
       <Route element={<Layout />}>
         <Route path="/" element={<Main />} />
+        <Route path="/reel/:reelId" element={<PublicReelPage />} /> {/* Новий маршрут */}
         <Route path="/assignment" element={<Assignment />} />
         <Route path="/directors" element={<Directors />} />
         <Route path="/directors/:directorSlug" element={<DirectorPage />} />
@@ -91,7 +92,6 @@ export default function AppRouter() {
               <Route path="library" element={<Library />} />
               <Route path="management" element={<ManagementPage />} />
               <Route path="analytic" element={<MyAnalytic />} />
-              {/* ✨ ЗМІНИ ТУТ: 2. Додаємо маршрут для нової сторінки */}
               <Route path="metadata-management" element={<MetaDataManagement />} />
               <Route path="applications" element={<ApplicationsForAdmin />} />
               <Route path="user-management" element={<UserManagement />} />
