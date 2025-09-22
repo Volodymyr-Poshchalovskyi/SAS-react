@@ -16,6 +16,7 @@ import Originals from '../Pages/Originals.jsx';
 import Production from '../Pages/Production.jsx';
 import Studio from '../Pages/Studio.jsx';
 import Team from '../Pages/Team.jsx';
+import PrivacyPolicyPage from '../Pages/PrivacyPolicy.jsx';
 
 // Admin Pages
 import AdminPanel from '../AdminPages/AdminPanel.jsx';
@@ -65,6 +66,7 @@ export default function AppRouter() {
         <Route path="/studio" element={<Studio />} />
         <Route path="/team" element={<Team />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
       </Route>
 
       {/* Protected Routes (require authentication) */}

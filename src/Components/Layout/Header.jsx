@@ -33,11 +33,13 @@ export default function Header() {
   const { isPreloaderActive } = useAnimation();
   const location = useLocation();
 
+  // 👇 ЗМІНА ТУТ: Додано шлях '/privacy-policy'
   const isSpecialPage =
     location.pathname === '/' ||
     location.pathname.startsWith('/directors/') ||
     location.pathname === '/login' ||
-    location.pathname === '/studio';
+    location.pathname === '/studio' ||
+    location.pathname === '/privacy-policy';
 
   const preloaderPages = [
     '/directors',
