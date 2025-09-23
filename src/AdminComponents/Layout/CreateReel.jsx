@@ -30,9 +30,8 @@ const CreateReel = () => {
   const [crafts, setCrafts] = useState([]);
   const [isLoadingOptions, setIsLoadingOptions] = useState(true);
 
-  // --- НОВИЙ СТАН для процесу завантаження ---
+  // --- СТАН для процесу завантаження ---
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadMessage, setUploadMessage] = useState('');
   
   // --- Завантаження опцій для випадаючих списків (без змін) ---
@@ -51,27 +50,36 @@ const CreateReel = () => {
   const isSchedulingDisabled = commonFormData.publishOption === 'now';
 
   /* -------------------------------------------------------------------------- */
-  /* 🚀 ПОЧАТОК НОВОЇ ЛОГІКИ ЗАВАНТАЖЕННЯ 🚀                      */
+  /* 🚀 НОВА ЛОГІКА ЗАВАНТАЖЕННЯ 🚀                      */
   /* -------------------------------------------------------------------------- */
 
   // Допоміжна функція для завантаження одного файлу в GCS
-  const uploadFileToGCS = async (file) => {
+  // Допоміжна функція для завантаження одного файлу в GCS
+const uploadFileToGCS = async (file) => {
     if (!file) return null;
 
-    // 1. Викликаємо нашу Edge Function, щоб отримати безпечне посилання для завантаження
-    const { data, error } = await supabase.functions.invoke('generate-upload-url', {
-      body: {
+    setUploadMessage(`Getting upload URL for ${file.name}...`);
+    
+    // 1. Звертаємось до НАШОГО ЛОКАЛЬНОГО БЕКЕНДА
+    const response = await fetch('http://localhost:3001/generate-upload-url', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
         fileName: file.name,
         fileType: file.type,
-      },
+      }),
     });
 
-    if (error) {
-      throw new Error(`Failed to get signed URL: ${error.message}`);
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(`Failed to get signed URL from local server: ${errorData.details || errorData.error}`);
     }
 
-    const { signedUrl, gcsPath } = data;
+    const { signedUrl, gcsPath } = await response.json();
 
+    setUploadMessage(`Uploading ${file.name}...`);
     // 2. Використовуємо отримане посилання для завантаження файлу напряму в GCS
     const uploadResponse = await fetch(signedUrl, {
       method: 'PUT',
@@ -80,12 +88,13 @@ const CreateReel = () => {
     });
 
     if (!uploadResponse.ok) {
-      throw new Error(`Failed to upload file to GCS: ${await uploadResponse.text()}`);
+      const errorText = await uploadResponse.text();
+      throw new Error(`Failed to upload to GCS: ${errorText}`);
     }
 
     // 3. Повертаємо шлях до файлу в GCS для збереження в базі даних
     return gcsPath;
-  };
+};
 
   // Головний обробник відправки форми
   const handleSubmit = async (event) => {
@@ -93,8 +102,12 @@ const CreateReel = () => {
     
     // Валідація
     for (const reel of reels) {
-      if (!reel.title || !reel.selectedFile) {
-        alert(`Please provide a title and a content file for Media #${reels.indexOf(reel) + 1}.`);
+      if (!reel.title.trim()) {
+        alert(`Please provide a title for Media #${reels.indexOf(reel) + 1}.`);
+        return;
+      }
+      if (!reel.selectedFile) {
+        alert(`Please provide a content file for "${reel.title}".`);
         return;
       }
     }
@@ -112,33 +125,45 @@ const CreateReel = () => {
 
       // Створюємо масив промісів для завантаження всіх файлів паралельно
       const uploadPromises = reels.map(async (reel) => {
-        setUploadMessage(`Uploading ${reel.title}...`);
-        
         const video_gcs_path = await uploadFileToGCS(reel.selectedFile);
-        const preview_gcs_path = await uploadFileToGCS(reel.customPreview); // Працює, навіть якщо customPreview - null
+        // Завантажуємо прев'ю, тільки якщо воно є
+        const preview_gcs_path = reel.customPreview 
+          ? await uploadFileToGCS(reel.customPreview)
+          : null;
         
+        // Повертаємо об'єкт з усіма даними, готовий для вставки в БД
         return {
-          // Поєднуємо унікальні дані, загальні дані та шляхи до файлів
-          title: reel.title,
-          user_id: user.id,
-          allow_download: commonFormData.allowDownload,
-          publication_date: commonFormData.publishOption === 'now' ? new Date().toISOString() : commonFormData.publicationDate.toISOString(),
-          artists: commonFormData.artist,
-          clients: commonFormData.client,
-          description: commonFormData.description,
-          featured_celebrities: commonFormData.featuredCelebrity,
-          content_type: commonFormData.contentType,
-          craft: commonFormData.craft,
-          categories: commonFormData.categories,
+          reelData: reel,
           video_gcs_path,
           preview_gcs_path,
         };
       });
 
-      // Виконуємо всі завантаження
-      setUploadMessage('Uploading all files, please wait...');
-      const recordsToInsert = await Promise.all(uploadPromises);
+      // Виконуємо всі завантаження паралельно
+      setUploadMessage('Uploading files...');
+      const uploadResults = await Promise.all(uploadPromises);
       
+      // Готуємо записи для вставки в базу даних, мапуючи дані з форми на колонки таблиці
+      const recordsToInsert = uploadResults.map(result => ({
+          user_id: user.id,
+          title: result.reelData.title,
+          // ВАЖЛИВО: Перетворюємо масиви на рядки, бо в БД тип 'text'
+          artists: commonFormData.artist.join(', '),
+          client: commonFormData.client.join(', '),
+          categories: commonFormData.categories.join(', '),
+          // subtitle: , // Додайте, якщо у вас є поле для субтитрів
+          publish_date: commonFormData.publishOption === 'now' 
+            ? new Date().toISOString() 
+            : commonFormData.publicationDate.toISOString(),
+          video_gcs_path: result.video_gcs_path,
+          preview_gcs_path: result.preview_gcs_path,
+          // Додайте інші поля з commonFormData, якщо вони є в таблиці media_items
+          // description: commonFormData.description, 
+          // allow_download: commonFormData.allowDownload,
+          // content_type: commonFormData.contentType,
+          // craft: commonFormData.craft,
+      }));
+
       // Зберігаємо всі метадані в Supabase одним запитом
       setUploadMessage('Saving metadata to database...');
       const { error: insertError } = await supabase
@@ -146,7 +171,7 @@ const CreateReel = () => {
         .insert(recordsToInsert);
 
       if (insertError) {
-        throw new Error(`Database insert error: ${insertError.message}`);
+        throw new Error(`Database error: ${insertError.message}`);
       }
 
       setUploadMessage('✅ Success! All media has been uploaded.');
@@ -155,7 +180,7 @@ const CreateReel = () => {
       setCommonFormData({ allowDownload: false, publicationDate: new Date(), publishOption: 'schedule', artist: [], client: [], description: '', featuredCelebrity: [], contentType: '', craft: '', categories: [], });
 
     } catch (err) {
-      console.error(err);
+      console.error('An error occurred during the upload process:', err);
       setUploadMessage(`❌ Error: ${err.message}`);
     } finally {
       // Через 5 секунд прибираємо повідомлення і вмикаємо кнопку
@@ -167,7 +192,7 @@ const CreateReel = () => {
   };
   
   /* -------------------------------------------------------------------------- */
-  /* 🚀 КІНЕЦЬ НОВОЇ ЛОГІКИ ЗАВАНТАЖЕННЯ 🚀                       */
+  /* 🚀 КІНЕЦЬ НОВОЇ ЛОГІКИ ЗАВАНТАЖЕННЯ 🚀                  */
   /* -------------------------------------------------------------------------- */
 
 
