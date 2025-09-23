@@ -48,7 +48,7 @@ function AdminLayout() {
       label: 'Artists / Clients',
       icon: BookUser,
     },
-    { to: `${basePath}/analytic`, label: 'Analytics', icon: BarChart },
+    { to: `${basePath}/analytic`, label: 'Showreels Analytics', icon: BarChart },
   ];
 
   const adminNavItems = [
