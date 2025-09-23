@@ -7,6 +7,7 @@ import {
   ArrowDown,
   Layers,
   X,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient'; // Переконайтеся, що шлях правильний
 
@@ -17,16 +18,16 @@ const VideoModal = ({ videoUrl, onClose }) => {
   if (!videoUrl) return null;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
       onClick={onClose}
     >
-      <div 
+      <div
         className="bg-black p-4 rounded-lg relative w-full max-w-4xl"
         onClick={(e) => e.stopPropagation()}
       >
         <video src={videoUrl} controls autoPlay className="w-full max-h-[80vh]"></video>
-        <button 
+        <button
           onClick={onClose}
           className="absolute -top-4 -right-4 bg-white text-black rounded-full p-2"
         >
@@ -36,7 +37,6 @@ const VideoModal = ({ videoUrl, onClose }) => {
     </div>
   );
 };
-
 
 // =======================
 // КОМПОНЕНТ: SortableHeader
@@ -64,6 +64,7 @@ const ReelCreatorSidebar = ({ allItems }) => {
   const [reelItems, setReelItems] = useState([]);
   const [reelTitle, setReelTitle] = useState(`Draft: Showreel (${new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })})`);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+
   const handleDragOver = (e) => { e.preventDefault(); setIsDraggingOver(true); };
   const handleDragLeave = () => setIsDraggingOver(false);
   const handleDrop = (e) => {
@@ -75,6 +76,7 @@ const ReelCreatorSidebar = ({ allItems }) => {
   };
   const handleTitleChange = (e) => setReelTitle(e.target.value);
   const handleRemoveItem = (itemIdToRemove) => setReelItems(prevItems => prevItems.filter(item => item.id !== itemIdToRemove));
+
   return (
     <div className="w-96 shrink-0 space-y-4">
       <h2 className="text-xl font-bold text-slate-900 dark:text-slate-50">New Reel</h2>
@@ -95,7 +97,13 @@ const ReelCreatorSidebar = ({ allItems }) => {
               {reelItems.map(item => (
                 <div key={item.id} className="group flex items-center justify-between gap-3 p-2 rounded-md bg-white dark:bg-slate-800/50">
                   <div className="flex items-center gap-3 min-w-0">
-                    <img src={item.previewUrl} alt={item.title} className="w-14 h-9 object-cover rounded-md" />
+                    <div className="w-14 h-9 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">
+                      {item.previewUrl ? (
+                        <img src={item.previewUrl} alt={item.title} className="w-full h-full object-cover rounded-md" />
+                      ) : (
+                        <ImageIcon className="w-5 h-5 text-slate-400" />
+                      )}
+                    </div>
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{item.title}</p>
                       <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{item.subtitle}</p>
@@ -121,6 +129,7 @@ const ReelCreatorSidebar = ({ allItems }) => {
 // ОСНОВНИЙ КОМПОНЕНТ Library
 // =======================
 const Library = () => {
+  // --- Стан компонента ---
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -129,10 +138,18 @@ const Library = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'descending' });
   const [modalVideoUrl, setModalVideoUrl] = useState(null);
-  
-  const itemsPerPage = 10;
+  const [signedUrls, setSignedUrls] = useState({});
+
+  // --- Рефи ---
   const headerCheckboxRef = useRef(null);
-  const BUCKET_NAME = 'new-sas-media-storage';
+  const itemsPerPage = 10;
+
+  // --- Мемоізовані обчислення та хуки ---
+  // ✅ ВИПРАВЛЕННЯ: Цей хук перенесено сюди, щоб він завжди викликався
+  const allItemsWithUrls = useMemo(() => items.map(item => ({
+    ...item,
+    previewUrl: signedUrls[item.preview_gcs_path] || null
+  })), [items, signedUrls]);
 
   useEffect(() => {
     const fetchMediaItems = async () => {
@@ -146,23 +163,10 @@ const Library = () => {
       if (error) {
         console.error('Error fetching media items:', error);
         setError(error.message);
-        setLoading(false);
-        return;
+        setItems([]);
+      } else {
+        setItems(data || []);
       }
-
-      const itemsWithUrls = data.map(item => {
-        const previewUrl = item.preview_gcs_path 
-          ? `https://storage.googleapis.com/${BUCKET_NAME}/${item.preview_gcs_path}`
-          : 'https://via.placeholder.com/140x90.png?text=No+Preview';
-        
-        const videoUrl = item.video_gcs_path
-          ? `https://storage.googleapis.com/${BUCKET_NAME}/${item.video_gcs_path}`
-          : null;
-
-        return { ...item, previewUrl, videoUrl };
-      });
-
-      setItems(itemsWithUrls);
       setLoading(false);
     };
     fetchMediaItems();
@@ -196,6 +200,38 @@ const Library = () => {
   }, [filteredItems, currentPage, itemsPerPage]);
 
   useEffect(() => {
+    const fetchSignedUrls = async () => {
+      const pathsToFetch = currentItems
+        .flatMap(item => [item.preview_gcs_path, item.video_gcs_path])
+        .filter(path => path && !signedUrls[path]);
+
+      const uniquePathsToFetch = [...new Set(pathsToFetch)];
+
+      if (uniquePathsToFetch.length === 0) return;
+
+      try {
+        const response = await fetch('http://localhost:3001/generate-read-urls', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gcsPaths: uniquePathsToFetch }),
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch signed URLs');
+        
+        const urlsMap = await response.json();
+        setSignedUrls(prevUrls => ({ ...prevUrls, ...urlsMap }));
+
+      } catch (err) {
+        console.error('Error fetching signed URLs:', err);
+      }
+    };
+
+    if (currentItems.length > 0) {
+      fetchSignedUrls();
+    }
+  }, [currentItems]); // Залежність тепер правильна
+
+  useEffect(() => {
     if (headerCheckboxRef.current) {
       const numSelected = selectedItems.size;
       const numOnPage = currentItems.length;
@@ -204,6 +240,7 @@ const Library = () => {
     }
   }, [selectedItems, currentItems]);
 
+  // --- Обробники подій ---
   const handleSort = (key) => {
     setSortConfig(prev => ({
       key,
@@ -238,11 +275,22 @@ const Library = () => {
     hour: '2-digit', minute: '2-digit', hour12: true
   });
 
+  const handleDoubleClick = (item) => {
+    const videoUrl = item.video_gcs_path ? signedUrls[item.video_gcs_path] : null;
+    if (videoUrl) {
+      setModalVideoUrl(videoUrl);
+    } else {
+      console.warn("Video URL not yet available for:", item.title);
+    }
+  };
+
+  // --- Умовний рендеринг (після всіх хуків) ---
   if (loading) return <div className="p-8 text-center text-slate-500">Loading library... ⏳</div>;
   if (error) return <div className="p-8 text-center text-red-500">Error: {error}</div>;
 
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
 
+  // --- Рендеринг компонента ---
   return (
     <>
       <VideoModal videoUrl={modalVideoUrl} onClose={() => setModalVideoUrl(null)} />
@@ -276,22 +324,30 @@ const Library = () => {
                 <tbody className="text-slate-800 dark:text-slate-200">
                   {currentItems.map(item => {
                     const addedBy = item.user_profiles ? `${item.user_profiles.first_name || ''} ${item.user_profiles.last_name || ''}`.trim() : 'System';
+                    const previewUrl = item.preview_gcs_path ? signedUrls[item.preview_gcs_path] : null;
+
                     return (
                       <tr
                         key={item.id}
                         draggable="true"
                         onDragStart={(e) => handleDragStart(e, item)}
-                        className={`border-b border-slate-100 dark:border-slate-800 transition-colors ${selectedItems.has(item.id) ? 'bg-slate-100' : 'hover:bg-slate-50'}`}
+                        className={`border-b border-slate-100 dark:border-slate-800 transition-colors cursor-pointer ${selectedItems.has(item.id) ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
                         onClick={() => handleRowCheck(item.id)}
-                        onDoubleClick={() => setModalVideoUrl(item.videoUrl)}
+                        onDoubleClick={() => handleDoubleClick(item)}
                       >
                         <td className="p-4"><input type="checkbox" checked={selectedItems.has(item.id)} onChange={(e) => e.stopPropagation()} className="h-4 w-4 accent-slate-900" /></td>
                         <td className="p-4 text-left">
                           <div className="flex items-center gap-3">
-                            <img src={item.previewUrl} alt="preview" className="w-14 h-9 object-cover rounded-md" />
+                            <div className="w-14 h-9 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">
+                              {previewUrl ? (
+                                <img src={previewUrl} alt="preview" className="w-full h-full object-cover rounded-md" />
+                              ) : (
+                                <ImageIcon className="w-5 h-5 text-slate-400" />
+                              )}
+                            </div>
                             <div>
-                              <div className="font-medium text-slate-900 truncate">{item.title}</div>
-                              <div className="text-slate-500 text-xs truncate">{item.subtitle || ''}</div>
+                              <div className="font-medium text-slate-900 dark:text-slate-50 truncate">{item.title}</div>
+                              <div className="text-slate-500 dark:text-slate-400 text-xs truncate">{item.subtitle || ''}</div>
                             </div>
                           </div>
                         </td>
@@ -308,15 +364,19 @@ const Library = () => {
             {totalPages > 1 && (
               <div className="p-4 flex items-center justify-between text-sm">
                 <div>Page {currentPage} of {totalPages}</div>
-                <div>
-                  <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1.5 border rounded-md">Prev</button>
-                  <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1.5 border rounded-md ml-2">Next</button>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1.5 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
+                    <ChevronLeft size={16} />
+                  </button>
+                  <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1.5 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
+                    <ChevronRight size={16} />
+                  </button>
                 </div>
               </div>
             )}
           </div>
         </div>
-        <ReelCreatorSidebar allItems={items} />
+        <ReelCreatorSidebar allItems={allItemsWithUrls} />
       </div>
     </>
   );
