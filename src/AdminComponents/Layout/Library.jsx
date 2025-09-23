@@ -9,10 +9,10 @@ import {
   X,
   Image as ImageIcon,
 } from 'lucide-react';
-import { supabase } from '../../lib/supabaseClient'; // Переконайтеся, що шлях правильний
+import { supabase } from '../../lib/supabaseClient';
 
 // =======================
-// КОМПОНЕНТ: Модальне вікно для відео
+// КОМПОНЕНТ: Модальне вікно для відео (без змін)
 // =======================
 const VideoModal = ({ videoUrl, onClose }) => {
   if (!videoUrl) return null;
@@ -39,7 +39,7 @@ const VideoModal = ({ videoUrl, onClose }) => {
 };
 
 // =======================
-// КОМПОНЕНТ: SortableHeader
+// КОМПОНЕНТ: SortableHeader (без змін)
 // =======================
 const SortableHeader = ({ children, sortKey, sortConfig, onSort, className = '' }) => {
   const isActive = sortConfig.key === sortKey;
@@ -57,13 +57,14 @@ const SortableHeader = ({ children, sortKey, sortConfig, onSort, className = '' 
   );
 };
 
-// =======================
-// КОМПОНЕНТ: ReelCreatorSidebar (Drag-and-Drop)
-// =======================
+// ======================================================
+// ✨ КОМПОНЕНТ: ReelCreatorSidebar (ОНОВЛЕНО) ✨
+// ======================================================
 const ReelCreatorSidebar = ({ allItems }) => {
   const [reelItems, setReelItems] = useState([]);
   const [reelTitle, setReelTitle] = useState(`Draft: Showreel (${new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })})`);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [isCreating, setIsCreating] = useState(false); // Стан для процесу створення
 
   const handleDragOver = (e) => { e.preventDefault(); setIsDraggingOver(true); };
   const handleDragLeave = () => setIsDraggingOver(false);
@@ -71,11 +72,62 @@ const ReelCreatorSidebar = ({ allItems }) => {
     e.preventDefault();
     setIsDraggingOver(false);
     const draggedItemIds = JSON.parse(e.dataTransfer.getData("application/json"));
-    const newItems = allItems.filter(item => draggedItemIds.includes(item.id)).filter(item => !reelItems.some(reelItem => reelItem.id === item.id));
+    const newItems = allItems
+      .filter(item => draggedItemIds.includes(item.id))
+      .filter(item => !reelItems.some(reelItem => reelItem.id === item.id)); // Уникаємо дублікатів
     if (newItems.length > 0) setReelItems(prevItems => [...prevItems, ...newItems]);
   };
   const handleTitleChange = (e) => setReelTitle(e.target.value);
   const handleRemoveItem = (itemIdToRemove) => setReelItems(prevItems => prevItems.filter(item => item.id !== itemIdToRemove));
+
+  // Нова функція для відправки даних на бекенд
+  const handleCreateReel = async () => {
+    if (reelItems.length === 0) {
+      alert("Please add at least one media item to the reel.");
+      return;
+    }
+    if (!reelTitle.trim()) {
+      alert("Please provide a title for the reel.");
+      return;
+    }
+
+    setIsCreating(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User is not authenticated.");
+
+      const media_item_ids = reelItems.map(item => item.id);
+
+      const response = await fetch('http://localhost:3001/reels', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: reelTitle,
+          media_item_ids,
+          user_id: user.id
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || 'Failed to create reel.');
+      }
+
+      const newReel = await response.json();
+      alert(`✅ Reel "${newReel.title}" created successfully!`);
+
+      // Очищуємо форму
+      setReelItems([]);
+      setReelTitle(`Draft: Showreel (${new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })})`);
+
+    } catch (error) {
+      console.error("Error creating reel:", error);
+      alert(`❌ Error: ${error.message}`);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
 
   return (
     <div className="w-96 shrink-0 space-y-4">
@@ -106,7 +158,7 @@ const ReelCreatorSidebar = ({ allItems }) => {
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{item.title}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{item.subtitle}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{item.subtitle || 'No subtitle'}</p>
                     </div>
                   </div>
                   <button onClick={() => handleRemoveItem(item.id)} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700">
@@ -116,7 +168,14 @@ const ReelCreatorSidebar = ({ allItems }) => {
               ))}
             </div>
             <div className="mt-auto pt-4">
-              <button className="w-full px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">Deliver</button>
+              {/* Змінено кнопку для виклику нової функції */}
+              <button
+                onClick={handleCreateReel}
+                disabled={isCreating}
+                className="w-full px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-slate-400 disabled:cursor-not-allowed"
+              >
+                {isCreating ? 'Creating...' : 'Deliver'}
+              </button>
             </div>
           </div>
         )}
@@ -126,10 +185,9 @@ const ReelCreatorSidebar = ({ allItems }) => {
 };
 
 // =======================
-// ОСНОВНИЙ КОМПОНЕНТ Library
+// ОСНОВНИЙ КОМПОНЕНТ Library (без змін)
 // =======================
 const Library = () => {
-  // --- Стан компонента ---
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -140,12 +198,9 @@ const Library = () => {
   const [modalVideoUrl, setModalVideoUrl] = useState(null);
   const [signedUrls, setSignedUrls] = useState({});
 
-  // --- Рефи ---
   const headerCheckboxRef = useRef(null);
   const itemsPerPage = 10;
 
-  // --- Мемоізовані обчислення та хуки ---
-  // ✅ ВИПРАВЛЕННЯ: Цей хук перенесено сюди, щоб він завжди викликався
   const allItemsWithUrls = useMemo(() => items.map(item => ({
     ...item,
     previewUrl: signedUrls[item.preview_gcs_path] || null
@@ -229,7 +284,7 @@ const Library = () => {
     if (currentItems.length > 0) {
       fetchSignedUrls();
     }
-  }, [currentItems]); // Залежність тепер правильна
+  }, [currentItems]);
 
   useEffect(() => {
     if (headerCheckboxRef.current) {
@@ -240,7 +295,6 @@ const Library = () => {
     }
   }, [selectedItems, currentItems]);
 
-  // --- Обробники подій ---
   const handleSort = (key) => {
     setSortConfig(prev => ({
       key,
@@ -284,13 +338,11 @@ const Library = () => {
     }
   };
 
-  // --- Умовний рендеринг (після всіх хуків) ---
   if (loading) return <div className="p-8 text-center text-slate-500">Loading library... ⏳</div>;
   if (error) return <div className="p-8 text-center text-red-500">Error: {error}</div>;
 
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
 
-  // --- Рендеринг компонента ---
   return (
     <>
       <VideoModal videoUrl={modalVideoUrl} onClose={() => setModalVideoUrl(null)} />
