@@ -94,8 +94,8 @@ const AuthProvider = ({ children }) => {
   // ---------- Authentication Methods ----------
   const signInWithGoogle = async () =>
     await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin + '/auth/callback' },
+      provider: 'google'
+     
     });
 
   const signInWithPassword = async (email, password) => {
