@@ -44,9 +44,16 @@ function generateShortId(length = 5) {
 
 app.post('/generate-upload-url', async (req, res) => {
   try {
-    const { fileName, fileType } = req.body;
+    const { fileName, fileType, destination } = req.body; // ✨ ЗМІНА: Додано 'destination'
     if (!fileName || !fileType) return res.status(400).json({ error: 'fileName and fileType are required.' });
-    const destinationFolder = fileType.startsWith('video/') ? 'back-end/videos' : 'back-end/previews';
+
+    let destinationFolder;
+    if (destination === 'artists') {
+      destinationFolder = 'back-end/artists';
+    } else {
+      destinationFolder = fileType.startsWith('video/') ? 'back-end/videos' : 'back-end/previews';
+    }
+    
     const uniqueFileName = `${crypto.randomUUID()}-${fileName}`;
     const filePath = `${destinationFolder}/${uniqueFileName}`;
     const file = bucket.file(filePath);
@@ -83,6 +90,66 @@ app.post('/generate-read-urls', async (req, res) => {
     console.error('Error generating signed READ URLs:', error);
     res.status(500).json({ error: 'Failed to generate read URLs.', details: error.message });
   }
+});
+
+// ========================================================================== //
+// ✨ НОВЕ: ЕНДПОІНТИ ДЛЯ АРТИСТІВ
+// ========================================================================== //
+app.put('/artists/:id', async (req, res) => {
+    const { id } = req.params;
+    const { name, description, photo_gcs_path } = req.body;
+
+    try {
+        const { data: currentItem, error: fetchError } = await supabase
+            .from('artists')
+            .select('photo_gcs_path')
+            .eq('id', id)
+            .single();
+        if (fetchError) throw new Error('Could not fetch current artist to compare photo.');
+
+        const { data: updatedArtist, error: updateError } = await supabase
+            .from('artists')
+            .update({ name, description, photo_gcs_path })
+            .eq('id', id)
+            .select()
+            .single();
+        if (updateError) throw updateError;
+        
+        // Видаляємо старий файл, якщо він був і змінився
+        if (currentItem.photo_gcs_path && currentItem.photo_gcs_path !== photo_gcs_path) {
+            await bucket.file(currentItem.photo_gcs_path).delete().catch(err => console.error(`Failed to delete old artist photo ${currentItem.photo_gcs_path}:`, err.message));
+        }
+
+        res.status(200).json(updatedArtist);
+    } catch (error) {
+        console.error(`Error updating artist ${id}:`, error);
+        res.status(500).json({ error: 'Failed to update artist.', details: error.message });
+    }
+});
+
+app.delete('/artists/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const { data: item, error: fetchError } = await supabase
+            .from('artists')
+            .select('photo_gcs_path')
+            .eq('id', id)
+            .single();
+
+        if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
+
+        const { error: deleteError } = await supabase.from('artists').delete().eq('id', id);
+        if (deleteError) throw deleteError;
+
+        if (item && item.photo_gcs_path) {
+            await bucket.file(item.photo_gcs_path).delete().catch(err => console.warn(`Could not delete artist photo ${item.photo_gcs_path}`, err.message));
+        }
+        
+        res.status(200).json({ message: 'Artist deleted successfully.' });
+    } catch (error) {
+        console.error(`Error deleting artist ${id}:`, error);
+        res.status(500).json({ error: 'Failed to delete artist.', details: error.message });
+    }
 });
 
 // ========================================================================== //
@@ -178,22 +245,6 @@ app.get('/analytics/trending-media', async (req, res) => {
     } catch (error) {
         console.error('Error fetching trending media:', error);
         res.status(500).json({ error: 'Failed to fetch trending media.', details: error.message });
-    }
-});
-
-app.get('/analytics/recent-activity', async (req, res) => {
-    const { limit = 5 } = req.query;
-    try {
-        const { data: reels, error: reelsError } = await supabase.from('reels').select('id, title, created_at').order('created_at', { ascending: false }).limit(Number(limit));
-        if (reelsError) throw reelsError;
-        const enrichedReels = await Promise.all(reels.map(async (reel) => {
-            const { data: firstItem, error: itemError } = await supabase.from('reel_media_items').select('media_items(client, preview_gcs_path)').eq('reel_id', reel.id).order('display_order', { ascending: true }).limit(1).single();
-            return { ...reel, client: itemError ? 'N/A' : firstItem.media_items.client, preview_gcs_path: itemError ? null : firstItem.media_items.preview_gcs_path };
-        }));
-        res.status(200).json(enrichedReels);
-    } catch (error) {
-        console.error('Error fetching recent activity:', error);
-        res.status(500).json({ error: 'Failed to fetch recent activity.', details: error.message });
     }
 });
 
@@ -327,12 +378,22 @@ app.delete('/reels/:id', async (req, res) => {
 
 app.get('/reels/public/:short_link', async (req, res) => {
     try {
-        const { data: reel, error: reelError } = await supabase.from('reels').select(`id, title, status, reel_media_items(display_order, media_items(id, title, client, artists, video_gcs_path, preview_gcs_path))`).eq('short_link', req.params.short_link).single();
+        const { data: reel, error: reelError } = await supabase
+            .from('reels')
+            .select(`id, title, status, reel_media_items(display_order, media_items(id, title, client, artists, video_gcs_path, preview_gcs_path))`)
+            .eq('short_link', req.params.short_link)
+            .single();
+
         if (reelError || !reel) return res.status(404).json({ details: "Reel not found." });
         if (reel.status !== 'Active') return res.status(403).json({ details: "This reel is not active." });
-        
-        const sortedMediaItems = (reel.reel_media_items || []).sort((a, b) => a.display_order - b.display_order).map(item => item.media_items).filter(Boolean);
+
+        const sortedMediaItems = (reel.reel_media_items || [])
+            .sort((a, b) => a.display_order - b.display_order)
+            .map(item => item.media_items)
+            .filter(Boolean);
+
         const readOptions = { version: 'v4', action: 'read', expires: Date.now() + 20 * 60 * 1000 };
+
         const mediaItemsWithUrls = await Promise.all(sortedMediaItems.map(async (item) => {
             let videoUrl = null, previewUrl = null;
             try {
@@ -341,7 +402,40 @@ app.get('/reels/public/:short_link', async (req, res) => {
             } catch (urlError) {
                 console.error(`Failed to get signed URL for item ${item.id}:`, urlError.message);
             }
-            return { ...item, videoUrl, previewUrl: previewUrl || videoUrl };
+
+            // ✨ ЗМІНА: Збагачуємо дані про артистів
+            const artistNames = (item.artists || '').split(',').map(name => name.trim()).filter(Boolean);
+            let enrichedArtists = [];
+            if (artistNames.length > 0) {
+                const { data: artistRecords, error: artistsError } = await supabase
+                    .from('artists')
+                    .select('name, description, photo_gcs_path')
+                    .in('name', artistNames);
+
+                if (artistsError) console.error("Error fetching artists:", artistsError.message);
+                
+                const artistMap = (artistRecords || []).reduce((acc, artist) => {
+                    acc[artist.name] = artist;
+                    return acc;
+                }, {});
+
+                enrichedArtists = await Promise.all(artistNames.map(async name => {
+                    const record = artistMap[name];
+                    if (record) {
+                        let photoUrl = null;
+                        if (record.photo_gcs_path) {
+                             try {
+                                [photoUrl] = await bucket.file(record.photo_gcs_path).getSignedUrl(readOptions);
+                            } catch (e) { console.error(`Failed to sign URL for artist photo ${record.photo_gcs_path}`); }
+                        }
+                        return { name: record.name, description: record.description, photoUrl };
+                    }
+                    // Fallback для артистів, яких немає в базі
+                    return { name, description: null, photoUrl: null };
+                }));
+            }
+            
+            return { ...item, artists: enrichedArtists, videoUrl, previewUrl: previewUrl || videoUrl };
         }));
         
         const publicData = { reelDbId: reel.id, reelTitle: reel.title, mediaItems: mediaItemsWithUrls };
