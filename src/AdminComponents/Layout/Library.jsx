@@ -259,8 +259,10 @@ const Library = () => {
   useEffect(() => {
     const fetchMediaItems = async () => {
       setLoading(true); setError(null);
-      const { data, error } = await supabase.from('media_items').select(`*, user_profiles(first_name, last_name)`).order('created_at', { ascending: false });
-      if (error) { console.error('Error fetching media items:', error); setError(error.message); setItems([]); }
+const { data, error } = await supabase
+  .from('media_items')
+  .select(`*, user_profiles:public_user_profiles(first_name, last_name)`)
+  .order('created_at', { ascending: false });      if (error) { console.error('Error fetching media items:', error); setError(error.message); setItems([]); }
       else { setItems(data || []); }
       setLoading(false);
     };
