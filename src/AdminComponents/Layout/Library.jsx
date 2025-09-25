@@ -13,8 +13,8 @@ import {
   Trash2,
   AlertTriangle,
   Edit,
-  Loader2, // ✨ ДОДАНО
-  CheckCircle, // ✨ ДОДАНО
+  Loader2,
+  CheckCircle,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -54,13 +54,76 @@ const SortableHeader = ({ children, sortKey, sortConfig, onSort, className = '' 
 };
 
 // ======================================================
-// КОМПОНЕНТ: ReelCreatorSidebar (без змін)
+// ✨ КОМПОНЕНТ: Модальне вікно статусу (НОВИЙ)
+// ======================================================
+const CreationStatusModal = ({ isOpen, onClose, status, title, message }) => {
+  useEffect(() => {
+    let timer;
+    if (isOpen && status === 'success') {
+      timer = setTimeout(() => {
+        onClose();
+      }, 2500);
+    }
+    return () => clearTimeout(timer);
+  }, [isOpen, status, onClose]);
+
+  if (!isOpen) return null;
+
+  const renderContent = () => {
+    switch (status) {
+      case 'creating':
+        return (
+          <div className="text-center py-4">
+            <Loader2 className="h-16 w-16 text-blue-500 mx-auto mb-4 animate-spin" />
+            <h3 className="text-lg font-medium text-slate-900 dark:text-slate-50">Creating Reel...</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Please wait a moment.</p>
+          </div>
+        );
+      case 'success':
+        return (
+          <div className="text-center py-4">
+            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-slate-900 dark:text-slate-50">{title}</h3>
+            {message && <p className="text-sm text-slate-500 dark:text-slate-400 mt-2" dangerouslySetInnerHTML={{ __html: message }} />}
+          </div>
+        );
+      case 'error':
+        return (
+          <div className="text-center py-4">
+            <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-slate-900 dark:text-slate-50">{title}</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">{message}</p>
+            <button onClick={onClose} className="mt-6 px-4 py-2 text-sm font-semibold bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">
+              Close
+            </button>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-md">
+        {renderContent()}
+      </div>
+    </div>
+  );
+};
+
+
+// ======================================================
+// ✨ КОМПОНЕНТ: ReelCreatorSidebar (ОНОВЛЕНО)
 // ======================================================
 const ReelCreatorSidebar = ({ allItems }) => {
   const [reelItems, setReelItems] = useState([]);
   const [reelTitle, setReelTitle] = useState(`Draft: Showreel (${new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })})`);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
-  const [isCreating, setIsCreating] = useState(false);
+  
+  // ✨ Стан для керування модальним вікном (замість isCreating)
+  const [modalState, setModalState] = useState({ isOpen: false, status: 'idle', title: '', message: '' });
+
   const handleDragOver = (e) => { e.preventDefault(); setIsDraggingOver(true); };
   const handleDragLeave = () => setIsDraggingOver(false);
   const handleDrop = (e) => {
@@ -70,63 +133,110 @@ const ReelCreatorSidebar = ({ allItems }) => {
     if (newItems.length > 0) setReelItems(prevItems => [...prevItems, ...newItems]);
   };
   const handleRemoveItem = (itemIdToRemove) => setReelItems(prevItems => prevItems.filter(item => item.id !== itemIdToRemove));
+  
+  // ✨ Оновлена логіка створення
   const handleCreateReel = async () => {
     if (reelItems.length === 0 || !reelTitle.trim()) return;
-    setIsCreating(true);
+    setModalState({ isOpen: true, status: 'creating', title: '', message: '' });
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("User is not authenticated.");
       const media_item_ids = reelItems.map(item => item.id);
+      
       const response = await fetch('http://localhost:3001/reels', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: reelTitle, media_item_ids, user_id: user.id })
       });
-      if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.details || 'Failed to create reel.'); }
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.details || 'Failed to create reel.');
+      }
+      
       const newReel = await response.json();
-      alert(`✅ Reel "${newReel.title}" created successfully!`);
-      setReelItems([]);
-      setReelTitle(`Draft: Showreel (${new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })})`);
-    } catch (error) { console.error("Error creating reel:", error); alert(`❌ Error: ${error.message}`); }
-    finally { setIsCreating(false); }
+      setModalState({ 
+        isOpen: true, 
+        status: 'success', 
+        title: 'Reel Created!', 
+        message: `Your reel "<strong>${newReel.title}</strong>" was created successfully.` 
+      });
+
+    } catch (error) {
+      console.error("Error creating reel:", error);
+      setModalState({ 
+        isOpen: true, 
+        status: 'error', 
+        title: 'Creation Failed', 
+        message: error.message 
+      });
+    }
   };
 
+  // ✨ Функція для закриття модалки та скидання стану
+  const handleCloseModal = () => {
+    if (modalState.status === 'success') {
+      setReelItems([]);
+      setReelTitle(`Draft: Showreel (${new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })})`);
+    }
+    setModalState({ isOpen: false, status: 'idle', title: '', message: '' });
+  };
+
+
   return (
-    <div className="w-96 shrink-0 space-y-4">
-      <h2 className="text-xl font-bold text-slate-900 dark:text-slate-50">New Reel</h2>
-      <div onDragOver={handleDragOver} onDrop={handleDrop} onDragLeave={handleDragLeave} className={`flex flex-col p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 transition-all duration-300 min-h-[400px] ${isDraggingOver ? 'border-2 border-blue-500 ring-4 ring-blue-500/20' : 'border border-slate-200 dark:border-slate-800'}`}>
-        {reelItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center text-center py-16 pointer-events-none h-full">
-            <Layers className="h-12 w-12 text-slate-400 dark:text-slate-500 mb-4" /><h3 className="font-semibold text-slate-800 dark:text-slate-200">Drag work here</h3><p className="text-sm text-slate-500 dark:text-slate-400 mt-1">TO CREATE A REEL</p>
-          </div>
-        ) : (
-          <div className="flex flex-col h-full">
-            <div className="mb-4">
-              <label htmlFor="reel-title" className="text-xs font-medium text-slate-500 dark:text-slate-400">TITLE</label>
-              <input id="reel-title" type="text" value={reelTitle} onChange={(e) => setReelTitle(e.target.value)} className="mt-1 block w-full bg-transparent text-sm text-slate-900 dark:text-slate-50 font-semibold border-none p-0 focus:ring-0" />
+    <>
+      <CreationStatusModal
+        isOpen={modalState.isOpen}
+        onClose={handleCloseModal}
+        status={modalState.status}
+        title={modalState.title}
+        message={modalState.message}
+      />
+      <div className="w-96 shrink-0 space-y-4">
+        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-50">New Reel</h2>
+        <div onDragOver={handleDragOver} onDrop={handleDrop} onDragLeave={handleDragLeave} className={`flex flex-col p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 transition-all duration-300 min-h-[400px] ${isDraggingOver ? 'border-2 border-blue-500 ring-4 ring-blue-500/20' : 'border border-slate-200 dark:border-slate-800'}`}>
+          {reelItems.length === 0 ? (
+            <div className="flex flex-col items-center justify-center text-center py-16 pointer-events-none h-full">
+              <Layers className="h-12 w-12 text-slate-400 dark:text-slate-500 mb-4" /><h3 className="font-semibold text-slate-800 dark:text-slate-200">Drag work here</h3><p className="text-sm text-slate-500 dark:text-slate-400 mt-1">TO CREATE A REEL</p>
             </div>
-            <div className="flex-1 space-y-2 overflow-y-auto max-h-[calc(100vh-300px)] pr-2">
-              {reelItems.map(item => (
-                <div key={item.id} className="group flex items-center justify-between gap-3 p-2 rounded-md bg-white dark:bg-slate-800/50">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-14 h-9 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">
-                      {item.previewUrl ? <img src={item.previewUrl} alt={item.title} className="w-full h-full object-cover rounded-md" /> : <ImageIcon className="w-5 h-5 text-slate-400" />}
+          ) : (
+            <div className="flex flex-col h-full">
+              <div className="mb-4">
+                <label htmlFor="reel-title" className="text-xs font-medium text-slate-500 dark:text-slate-400">TITLE</label>
+                <input id="reel-title" type="text" value={reelTitle} onChange={(e) => setReelTitle(e.target.value)} className="mt-1 block w-full bg-transparent text-sm text-slate-900 dark:text-slate-50 font-semibold border-none p-0 focus:ring-0" />
+              </div>
+              <div className="flex-1 space-y-2 overflow-y-auto max-h-[calc(100vh-300px)] pr-2">
+                {reelItems.map(item => (
+                  <div key={item.id} className="group flex items-center justify-between gap-3 p-2 rounded-md bg-white dark:bg-slate-800/50">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-14 h-9 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">
+                        {item.previewUrl ? <img src={item.previewUrl} alt={item.title} className="w-full h-full object-cover rounded-md" /> : <ImageIcon className="w-5 h-5 text-slate-400" />}
+                      </div>
+                      <div className="min-w-0"><p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{item.title}</p><p className="text-xs text-slate-500 dark:text-slate-400 truncate">{item.subtitle || 'No subtitle'}</p></div>
                     </div>
-                    <div className="min-w-0"><p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{item.title}</p><p className="text-xs text-slate-500 dark:text-slate-400 truncate">{item.subtitle || 'No subtitle'}</p></div>
+                    <button onClick={() => handleRemoveItem(item.id)} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><X className="h-4 w-4 text-slate-500 dark:text-slate-400" /></button>
                   </div>
-                  <button onClick={() => handleRemoveItem(item.id)} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><X className="h-4 w-4 text-slate-500 dark:text-slate-400" /></button>
-                </div>
-              ))}
+                ))}
+              </div>
+              <div className="mt-auto pt-4">
+                <button 
+                  onClick={handleCreateReel} 
+                  disabled={modalState.status === 'creating'} 
+                  className="w-full px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center justify-center"
+                >
+                  {modalState.status === 'creating' ? <><Loader2 className="animate-spin h-5 w-5 mr-2" />Creating...</> : 'Deliver'}
+                </button>
+              </div>
             </div>
-            <div className="mt-auto pt-4"><button onClick={handleCreateReel} disabled={isCreating} className="w-full px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-slate-400 disabled:cursor-not-allowed">{isCreating ? 'Creating...' : 'Deliver'}</button></div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 
 // =======================
-// ✨ КОМПОНЕНТИ ДЛЯ ВИДАЛЕННЯ (ОНОВЛЕНО)
+// КОМПОНЕНТИ ДЛЯ ВИДАЛЕННЯ (без змін)
 // =======================
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
   const [status, setStatus] = useState('idle'); // 'idle', 'deleting', 'success', 'error'
@@ -235,7 +345,7 @@ const ItemActionsDropdown = ({ onOpenDeleteModal, onClose, onEdit, triggerElemen
 
 
 // =======================
-// ОСНОВНИЙ КОМПОНЕНТ Library
+// ОСНОВНИЙ КОМПОНЕНТ Library (без змін)
 // =======================
 const Library = () => {
   const navigate = useNavigate();
