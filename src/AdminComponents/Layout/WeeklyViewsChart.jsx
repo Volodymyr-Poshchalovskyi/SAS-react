@@ -2,7 +2,27 @@
 
 import React from 'react';
 
-// Функція для генерації шляху залишається без змін
+const getNiceUpperBound = (maxValue) => {
+  if (maxValue <= 10) return 10;
+  const exponent = Math.floor(Math.log10(maxValue));
+  const powerOf10 = 10 ** exponent;
+  const relativeValue = maxValue / powerOf10;
+  let niceValue;
+  if (relativeValue < 1.5) niceValue = 1.5;
+  else if (relativeValue < 2) niceValue = 2;
+  else if (relativeValue < 3) niceValue = 3;
+  else if (relativeValue < 5) niceValue = 5;
+  else if (relativeValue < 7.5) niceValue = 7.5;
+  else niceValue = 10;
+  return niceValue * powerOf10;
+};
+
+const formatNumber = (num) => {
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}k`;
+  return num;
+};
+
 const generateSmoothPath = (data, getX, getY) => {
   if (data.length < 2) return '';
   let path = `M ${getX(0)},${getY(data[0].views)}`;
@@ -18,32 +38,39 @@ const generateSmoothPath = (data, getX, getY) => {
   return path;
 };
 
-// НОВЕ: Функція для форматування дати (напр. '17 Sep')
 const formatDate = (dateString) => {
   const date = new Date(dateString);
   return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 };
 
-const WeeklyViewsChart = ({ data = [] }) => {
+const WeeklyViewsChart = ({ data = [], isLoading }) => {
+  if (isLoading) {
+    return (
+      <div className="h-64 w-full flex items-center justify-center text-slate-400">
+        Loading chart data...
+      </div>
+    );
+  }
   if (!data || data.length === 0) {
     return (
       <div className="h-64 w-full flex items-center justify-center text-slate-400">
-        No data available
+        No data available for the selected period.
       </div>
     );
   }
 
   const width = 500;
   const height = 200;
-  const paddingX = 40; // Збільшено відступ для міток осі Y
+  const paddingX = 40;
   const paddingY = 20;
 
-  const maxViews = Math.ceil(Math.max(...data.map((d) => d.views), 0) / 10) * 10; // Округлюємо до найближчого десятка
-  const minViews = 0; // Починаємо з нуля
-  const viewRange = maxViews - minViews;
+  const maxViews = Math.max(...data.map((d) => d.views), 0);
+  const niceMaxViews = getNiceUpperBound(maxViews);
+  const minViews = 0;
+  const viewRange = niceMaxViews - minViews;
 
   const getX = (index) =>
-    ((width - paddingX * 2) / (data.length - 1)) * index + paddingX;
+    ((width - paddingX * 2) / (data.length > 1 ? data.length - 1 : 1)) * index + paddingX;
 
   const getY = (views) =>
     height -
@@ -53,9 +80,8 @@ const WeeklyViewsChart = ({ data = [] }) => {
   const pathData = generateSmoothPath(data, getX, getY);
   const areaPathData = `${pathData} L ${getX(data.length - 1)},${height - paddingY} L ${getX(0)},${height - paddingY} Z`;
 
-  // НОВЕ: Розрахунок міток для осі Y
   const yAxisLabels = [0, 0.25, 0.5, 0.75, 1].map(
-    (multiple) => Math.round(minViews + viewRange * multiple)
+    (multiple) => minViews + viewRange * multiple
   );
 
   return (
@@ -73,7 +99,6 @@ const WeeklyViewsChart = ({ data = [] }) => {
           </linearGradient>
         </defs>
         
-        {/* === ЗМІНЕНО: Група для сітки та міток осі Y === */}
         <g className="text-xs text-slate-600 dark:text-slate-400">
           {yAxisLabels.map((labelValue) => (
             <g key={labelValue}>
@@ -86,7 +111,6 @@ const WeeklyViewsChart = ({ data = [] }) => {
                 stroke="currentColor"
                 strokeWidth="1"
               />
-              {/* НОВЕ: Текстові мітки для осі Y */}
               <text
                 x={paddingX - 8}
                 y={getY(labelValue)}
@@ -94,7 +118,7 @@ const WeeklyViewsChart = ({ data = [] }) => {
                 dominantBaseline="middle"
                 fill="currentColor"
               >
-                {labelValue}
+                {formatNumber(labelValue)}
               </text>
             </g>
           ))}
@@ -122,11 +146,7 @@ const WeeklyViewsChart = ({ data = [] }) => {
           ))}
         </g>
         
-        {/* === ЗМІНЕНО: Група для міток осі X (дати) === */}
-        <g
-          className="text-xs text-slate-600 dark:text-slate-400"
-          textAnchor="middle"
-        >
+        <g className="text-xs text-slate-600 dark:text-slate-400" textAnchor="middle">
           {data.map((point, index) => (
             <text
               key={index}
@@ -134,7 +154,6 @@ const WeeklyViewsChart = ({ data = [] }) => {
               y={height - 5}
               fill="currentColor"
             >
-              {/* Змінено point.day на відформатовану дату */}
               {formatDate(point.date)}
             </text>
           ))}

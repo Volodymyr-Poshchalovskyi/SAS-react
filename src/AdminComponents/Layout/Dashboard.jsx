@@ -1,84 +1,133 @@
 // src/AdminComponents/Layout/Dashboard.jsx
 
-import React, { useState, useMemo } from 'react'; // Додано useMemo
+import React, { useState, useEffect } from 'react';
 import WeeklyViewsChart from './WeeklyViewsChart';
 import DateRangePicker from './DateRangePicker';
+import { formatDistanceToNow } from 'date-fns';
+import TrendingVideos from './TrendingVideos';
 
-// ... (решта коду для VideoCard та ListItem залишається без змін)
 const cardClasses =
   'bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl';
 
-const VideoCard = ({ title, imageUrl, badge, description }) => (
+const VideoCard = ({ title, imageUrl, badge, description, isLoading }) => (
   <div className={`${cardClasses} p-5`}>
-    <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">{title}</h3>
-    {description && <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{description}</p>}
-    <div className="relative overflow-hidden aspect-video rounded-lg">
-      <img src={imageUrl} alt={title} className="w-full h-full object-cover" />
-      {badge && <div className="absolute top-2 left-2 border text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-900 border-slate-200 dark:bg-slate-800 dark:text-slate-50 dark:border-slate-700">{badge}</div>}
-    </div>
+    { isLoading ? (
+        <div className="animate-pulse space-y-4">
+            <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div>
+            <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
+            <div className="aspect-video bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
+        </div>
+    ) : (
+    <>
+        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">{title}</h3>
+        {description && <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{description}</p>}
+        <div className="relative overflow-hidden aspect-video rounded-lg">
+            <img src={imageUrl || 'https://placehold.co/1600x900'} alt={title} className="w-full h-full object-cover" />
+            {badge && <div className="absolute top-2 left-2 border text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-900 border-slate-200 dark:bg-slate-800 dark:text-slate-50 dark:border-slate-700">{badge}</div>}
+        </div>
+    </>
+    )}
   </div>
 );
 
-const ListItem = ({ imageUrl, title, subtitle, time, actionText }) => (
-  <div className="flex items-center space-x-4 py-2">
-    <img className="w-16 h-10 object-cover rounded-md border border-slate-200 dark:border-slate-800" src={imageUrl} alt={title} />
-    <div className="flex-grow min-w-0">
-      <p className="text-sm font-medium text-slate-800 dark:text-slate-200 break-words whitespace-normal">{title}</p>
-      <p className="text-xs text-slate-500 dark:text-slate-400 break-words whitespace-normal">{subtitle}</p>
-      <span className="text-xs text-slate-400 dark:text-slate-500">{time}</span>
+const fetchSignedUrls = async (gcsPaths) => {
+    if (!gcsPaths || gcsPaths.length === 0) return {};
+    try {
+        const response = await fetch('http://localhost:3001/generate-read-urls', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ gcsPaths }),
+        });
+        if (!response.ok) throw new Error('Failed to fetch signed URLs');
+        return await response.json();
+    } catch (err) {
+        console.error('Error fetching signed URLs:', err);
+        return {};
+    }
+};
+
+const ListItem = ({ imageUrl, title, subtitle, time, actionText, isLoading }) => (
+    <div className="flex items-center space-x-4 py-3">
+    { isLoading ? (
+        <div className="animate-pulse flex items-center space-x-4 w-full">
+            <div className="w-16 h-10 bg-slate-200 dark:bg-slate-700 rounded-md"></div>
+            <div className="flex-grow space-y-2">
+                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/3"></div>
+                <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded w-2/3"></div>
+            </div>
+        </div>
+    ) : (
+    <>
+        <img className="w-16 h-10 object-cover rounded-md border border-slate-200 dark:border-slate-800" src={imageUrl || 'https://placehold.co/160x100'} alt={title} />
+        <div className="flex-grow min-w-0">
+            <p className="text-sm font-medium text-slate-800 dark:text-slate-200 break-words whitespace-normal">{title}</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 break-words whitespace-normal truncate">{subtitle}</p>
+            <span className="text-xs text-slate-400 dark:text-slate-500">{time}</span>
+        </div>
+        {actionText && <a href="#" className="flex-shrink-0 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:underline ml-auto">{actionText}</a>}
+    </>
+    )}
     </div>
-    {actionText && <a href="#" className="flex-shrink-0 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:underline ml-auto">{actionText}</a>}
-  </div>
 );
 
-/* -------------------------------- */
-/* === Main Component (Dashboard) === */
-/* -------------------------------- */
 const Dashboard = () => {
   const today = new Date();
   const sevenDaysAgo = new Date();
-  sevenDaysAgo.setDate(today.getDate() - 7);
+  sevenDaysAgo.setDate(today.getDate() - 6);
 
   const [dateRange, setDateRange] = useState({
     from: sevenDaysAgo,
     to: today,
   });
-  
-  // === ЗМІНЕНО: Генерація даних для діаграми з датами ===
-  const weeklyViewsData = useMemo(() => {
-    const data = [];
-    // Створюємо масив з 7 днів, починаючи з 6 днів тому і до сьогодні
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(today.getDate() - i);
-      data.push({
-        // Зберігаємо дату у форматі YYYY-MM-DD для стабільної роботи
-        date: date.toISOString().split('T')[0],
-        // Генеруємо випадкові дані для демонстрації
-        views: Math.floor(Math.random() * (100 - 40 + 1)) + 40,
-      });
-    }
-    return data;
-  }, []); // Пустий масив залежностей, щоб дані генерувалися один раз
 
+  const [chartData, setChartData] = useState([]);
+  const [trendingVideos, setTrendingVideos] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // * Dummy data for recent activity feed
-  const recentActivity = [
-    { id: 1, subtitle: "'Aaron Platt Mixed Reel x Wienerschnitzel...'" },
-    { id: 2, subtitle: "'Summer Vibes Commercial: Beach Party Edition...'" },
-    { id: 3, subtitle: "'Mountain Adventure Documentary...'" },
-    { id: 4, subtitle: "'Corporate Event Highlights...'" },
-    { id: 5, subtitle: "'Product Launch Teaser...'" },
-  ];
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+        setIsLoading(true);
+        if (!dateRange.from || !dateRange.to) return;
 
-  // * Demo images
-  const listImageUrl = 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80';
-  const trendingVideoImage = 'https://images.unsplash.com/photo-1534224039826-c7a0eda0e6b3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80';
+        const startDateStr = dateRange.from.toISOString().split('T')[0];
+        const endDateStr = dateRange.to.toISOString().split('T')[0];
+        
+        try {
+            const [chartRes, trendingRes, activityRes] = await Promise.all([
+                fetch(`http://localhost:3001/analytics/views-over-time?startDate=${startDateStr}&endDate=${endDateStr}`),
+                fetch(`http://localhost:3001/analytics/trending-media?startDate=${startDateStr}&endDate=${endDateStr}&limit=4`),
+                fetch(`http://localhost:3001/analytics/recent-activity?limit=5`)
+            ]);
+
+            const chartData = await chartRes.json();
+            const trendingData = await trendingRes.json();
+            const activityData = await activityRes.json();
+
+            setChartData(chartData);
+            
+            const trendingPaths = trendingData.map(v => v.preview_gcs_path).filter(Boolean);
+            const activityPaths = activityData.map(a => a.preview_gcs_path).filter(Boolean);
+            const allPaths = [...new Set([...trendingPaths, ...activityPaths])];
+
+            const urls = await fetchSignedUrls(allPaths);
+            
+            setTrendingVideos(trendingData.map(v => ({ ...v, imageUrl: urls[v.preview_gcs_path] })));
+            setRecentActivity(activityData.map(a => ({ ...a, imageUrl: urls[a.preview_gcs_path] })));
+
+        } catch (error) {
+            console.error("Failed to fetch dashboard data:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    fetchDashboardData();
+  }, [dateRange]);
+
   const trendingDirectorImage = 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80';
-
+  
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-      {/* === Header with title + date range picker === */}
       <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">
           Dashboard
@@ -90,91 +139,58 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* === Left Column (Main stats + trending) === */}
         <div className="lg:col-span-2 space-y-8">
-          {/* Weekly Views Card */}
           <div className={`${cardClasses} dark:bg-slate-800`}>
             <div className="p-6">
               <h2 className="text-xl font-bold dark:text-slate-50 mb-1">
-                TOTAL WEEKLY VIEWS
+                TOTAL VIEWS
               </h2>
               <p className="text-sm text-slate-400 mb-4">
-                LAST 7 DAYS OVERVIEW
+                OVERVIEW FOR THE SELECTED PERIOD
               </p>
-              {/* Передаємо нові дані в компонент */}
-              <WeeklyViewsChart data={weeklyViewsData} />
+              <WeeklyViewsChart data={chartData} isLoading={isLoading} />
               <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
                 FOR DETAILED GOOGLE ANALYTICS STATS ABOVE, PLEASE CONTACT YOUR
                 ADMINISTRATOR.
               </p>
             </div>
           </div>
-
-          {/* Trending Cards */}
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <VideoCard
-              title="TRENDING VIDEO OF THE WEEK"
-              imageUrl={trendingVideoImage}
-              description="A captivating short film that saw a massive surge in viewership."
-              badge="NEW PEAK"
-            />
+            <TrendingVideos videos={trendingVideos} isLoading={isLoading} />
             <VideoCard
               title="TRENDING DIRECTOR OF THE WEEK"
               imageUrl={trendingDirectorImage}
               description="Alex Johnson's latest work garnered significant attention."
               badge="RISING STAR"
+              isLoading={isLoading}
             />
           </div>
+
         </div>
 
-        {/* === Right Column (Activity + recently viewed) === */}
         <div className="lg:col-span-1 space-y-8">
-          {/* Recent Activity */}
           <div className={cardClasses}>
             <div className="p-6">
               <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">
                 Recent Activity
               </h2>
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                {recentActivity.map((item) => (
-                  <ListItem
-                    key={item.id}
-                    imageUrl={listImageUrl}
-                    title="Showreel Edited:"
-                    subtitle={item.subtitle}
-                    time="13 hours ago"
-                    actionText="SHOWREEL"
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Recently Viewed Content */}
-          <div className={cardClasses}>
-            <div className="p-6">
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-2">
-                Recently Viewed Content
-              </h2>
-              <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                <ListItem
-                  imageUrl={listImageUrl}
-                  title="Showreel Viewed"
-                  subtitle="'Sinners and Saints MN 2025...'"
-                  time="2 hours ago"
-                />
-                <ListItem
-                  imageUrl={listImageUrl}
-                  title="Project Draft Opened"
-                  subtitle="'The Grand Budapest Hotel - Wes Anderson...'"
-                  time="4 hours ago"
-                />
-                <ListItem
-                  imageUrl={listImageUrl}
-                  title="Clip Rendered"
-                  subtitle="'Sunset Overdrive - Gaming Montage Final Cut...'"
-                  time="6 hours ago"
-                />
+                {isLoading ? (
+                    [...Array(5)].map((_, i) => <ListItem key={i} isLoading={true} />)
+                ) : (
+                    recentActivity.map((item) => (
+                      <ListItem
+                        key={item.id}
+                        imageUrl={item.imageUrl}
+                        title={item.client || 'N/A Client'}
+                        subtitle={item.title}
+                        time={formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
+                        actionText="SHOWREEL"
+                        isLoading={false}
+                      />
+                    ))
+                )}
               </div>
             </div>
           </div>

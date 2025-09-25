@@ -1,3 +1,5 @@
+// server.js
+
 // 1. Імпортуємо бібліотеки
 const express = require('express');
 const cors = require('cors');
@@ -9,10 +11,12 @@ require('dotenv').config();
 // 2. Ініціалізація
 const app = express();
 const PORT = process.env.PORT || 3001;
+
 const keyJson = Buffer.from(process.env.GCS_SERVICE_ACCOUNT_KEY_BASE64, 'base64').toString('utf-8');
 const credentials = JSON.parse(keyJson);
 const storage = new Storage({ credentials });
 const bucket = storage.bucket(process.env.GCS_BUCKET_NAME);
+
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!supabaseUrl || !supabaseKey) {
@@ -81,38 +85,20 @@ app.post('/generate-read-urls', async (req, res) => {
   }
 });
 
-/* ========================================================================== */
-/* ЕНДПОІНТИ ДЛЯ АНАЛІТИКИ                                                    */
-/* ========================================================================== */
+// ========================================================================== //
+// ЕНДПОІНТИ ДЛЯ АНАЛІТИКИ
+// ========================================================================== //
 
-// Зміни в server.js
-
-// Знайдіть ендпоінт /reels/log-event
 app.post('/reels/log-event', async (req, res) => {
-  // Додаємо `duration_seconds`
   const { reel_id, session_id, event_type, media_item_id, duration_seconds } = req.body;
-  
   if (!reel_id || !session_id || !event_type) {
     return res.status(400).json({ error: 'Missing required fields for logging.' });
   }
-
-  // Для completion події тепер duration_seconds є бажаним, але не обов'язковим полем
   if (event_type === 'completion' && !media_item_id) {
     return res.status(400).json({ error: 'media_item_id is required for completion events.' });
   }
-  
   try {
-    const { error } = await supabase
-      .from('reel_views')
-      .insert({ 
-        reel_id, 
-        session_id, 
-        event_type, 
-        media_item_id: media_item_id || null,
-        // Додаємо нове поле в запит
-        duration_seconds: duration_seconds || null 
-      });
-
+    const { error } = await supabase.from('reel_views').insert({ reel_id, session_id, event_type, media_item_id: media_item_id || null, duration_seconds: duration_seconds || null });
     if (error) throw error;
     res.status(201).json({ message: 'Event logged successfully.' });
   } catch (error) {
@@ -121,9 +107,115 @@ app.post('/reels/log-event', async (req, res) => {
   }
 });
 
-/* ========================================================================== */
-/* ЕНДПОІНТИ ДЛЯ РІЛСІВ (АДМІН ПАНЕЛЬ)                                       */
-/* ========================================================================== */
+// ========================================================================== //
+// ЕНДПОІНТИ ДЛЯ АНАЛІТИКИ ДАШБОРДУ
+// ========================================================================== //
+
+app.get('/analytics/views-over-time', async (req, res) => {
+  const { startDate, endDate } = req.query;
+  if (!startDate || !endDate) {
+    return res.status(400).json({ error: 'startDate and endDate query parameters are required.' });
+  }
+  try {
+    const { data, error } = await supabase.rpc('get_daily_view_counts', { start_date: startDate, end_date: endDate });
+    if (error) throw error;
+    res.status(200).json(data);
+  } catch (error) {
+    console.error('Error fetching views over time:', error);
+    res.status(500).json({ error: 'Failed to fetch daily view counts.', details: error.message });
+  }
+});
+
+app.get('/analytics/trending-media', async (req, res) => {
+    const { startDate, endDate, limit = 4 } = req.query;
+    if (!startDate || !endDate) {
+        return res.status(400).json({ error: 'startDate and endDate query parameters are required.' });
+    }
+    const fullEndDate = new Date(endDate);
+    fullEndDate.setUTCHours(23, 59, 59, 999);
+
+    try {
+        const { data: viewCounts, error: viewError } = await supabase
+            .from('reel_views')
+            .select('reel_id')
+            .gte('created_at', startDate)
+            .lte('created_at', fullEndDate.toISOString());
+
+        if (viewError) throw viewError;
+        if (!viewCounts || viewCounts.length === 0) return res.status(200).json([]);
+        
+        const countsByReel = viewCounts.reduce((acc, { reel_id }) => {
+            acc[reel_id] = (acc[reel_id] || 0) + 1;
+            return acc;
+        }, {});
+        
+        const topReelIds = Object.entries(countsByReel)
+            .sort(([, countA], [, countB]) => countB - countA)
+            .slice(0, Number(limit))
+            .map(([reelId]) => reelId);
+            
+        if (topReelIds.length === 0) return res.status(200).json([]);
+
+        const { data: trendingItems, error: itemsError } = await supabase
+            .from('reel_media_items')
+            .select(`reel_id, media_items (id, title, client, preview_gcs_path)`)
+            .in('reel_id', topReelIds)
+            .eq('display_order', 1);
+
+        if (itemsError) throw itemsError;
+
+        const result = trendingItems.map(item => ({
+            id: item.media_items.id,
+            title: item.media_items.title,
+            client: item.media_items.client,
+            preview_gcs_path: item.media_items.preview_gcs_path,
+            views: countsByReel[item.reel_id]
+        }));
+        
+        result.sort((a, b) => b.views - a.views);
+        res.status(200).json(result);
+
+    } catch (error) {
+        console.error('Error fetching trending media:', error);
+        res.status(500).json({ error: 'Failed to fetch trending media.', details: error.message });
+    }
+});
+
+app.get('/analytics/recent-activity', async (req, res) => {
+    const { limit = 5 } = req.query;
+    try {
+        const { data: reels, error: reelsError } = await supabase.from('reels').select('id, title, created_at').order('created_at', { ascending: false }).limit(Number(limit));
+        if (reelsError) throw reelsError;
+        const enrichedReels = await Promise.all(reels.map(async (reel) => {
+            const { data: firstItem, error: itemError } = await supabase.from('reel_media_items').select('media_items(client, preview_gcs_path)').eq('reel_id', reel.id).order('display_order', { ascending: true }).limit(1).single();
+            return { ...reel, client: itemError ? 'N/A' : firstItem.media_items.client, preview_gcs_path: itemError ? null : firstItem.media_items.preview_gcs_path };
+        }));
+        res.status(200).json(enrichedReels);
+    } catch (error) {
+        console.error('Error fetching recent activity:', error);
+        res.status(500).json({ error: 'Failed to fetch recent activity.', details: error.message });
+    }
+});
+
+app.get('/analytics/recent-activity', async (req, res) => {
+    const { limit = 5 } = req.query;
+    try {
+        const { data: reels, error: reelsError } = await supabase.from('reels').select('id, title, created_at').order('created_at', { ascending: false }).limit(Number(limit));
+        if (reelsError) throw reelsError;
+        const enrichedReels = await Promise.all(reels.map(async (reel) => {
+            const { data: firstItem, error: itemError } = await supabase.from('reel_media_items').select('media_items(client, preview_gcs_path)').eq('reel_id', reel.id).order('display_order', { ascending: true }).limit(1).single();
+            return { ...reel, client: itemError ? 'N/A' : firstItem.media_items.client, preview_gcs_path: itemError ? null : firstItem.media_items.preview_gcs_path };
+        }));
+        res.status(200).json(enrichedReels);
+    } catch (error) {
+        console.error('Error fetching recent activity:', error);
+        res.status(500).json({ error: 'Failed to fetch recent activity.', details: error.message });
+    }
+});
+
+// ========================================================================== //
+// ЕНДПОІНТИ ДЛЯ РІЛСІВ (АДМІН ПАНЕЛЬ)
+// ========================================================================== //
 
 app.post('/reels', async (req, res) => {
   const { title, media_item_ids, user_id } = req.body;
@@ -149,23 +241,17 @@ app.post('/reels', async (req, res) => {
   }
 });
 
-// Зміни в server.js
-
-// Знайдіть ендпоінт GET /reels
 app.get('/reels', async (req, res) => {
   try {
-    // 1. Отримуємо дані (тут без змін)
     const { data: reels, error: reelsError } = await supabase.from('reels').select('*').order('created_at', { ascending: false });
     if (reelsError) throw reelsError;
 
     const { data: allLinks, error: linksError } = await supabase.from('reel_media_items').select('reel_id, media_item_id, display_order, media_items(preview_gcs_path)');
     if (linksError) throw linksError;
 
-    // ЗАПИТУЄМО НОВЕ ПОЛЕ duration_seconds
     const { data: allViews, error: viewsError } = await supabase.from('reel_views').select('reel_id, session_id, event_type, media_item_id, duration_seconds');
     if (viewsError) throw viewsError;
 
-    // 2. Обробляємо дані (тут основні зміни)
     const previewPathByReelId = allLinks
       .sort((a, b) => a.display_order - b.display_order)
       .reduce((acc, link) => {
@@ -183,21 +269,11 @@ app.get('/reels', async (req, res) => {
 
     const analyticsData = reels.map(reel => {
         const reelViews = viewsByReel[reel.id] || [];
-        
-        // Унікальні сесії (перегляди)
         const sessions = new Set(reelViews.map(v => v.session_id));
         const total_views = sessions.size;
-
-        // Події "completion" (досягнення порогу перегляду)
         const completionEvents = reelViews.filter(v => v.event_type === 'completion');
-        
-        // Кількість завершених переглядів (унікальні відео в межах сесії)
         const completed_views = completionEvents.length; 
-        
-        // Розрахунок відсотка завершення
         const completion_rate = total_views > 0 ? (completed_views / total_views) * 100 : 0;
-        
-        // Розрахунок середньої тривалості перегляду
         const totalDuration = completionEvents.reduce((sum, v) => sum + (v.duration_seconds || 0), 0);
         const avg_watch_duration = completed_views > 0 ? totalDuration / completed_views : 0;
         
@@ -205,9 +281,9 @@ app.get('/reels', async (req, res) => {
             ...reel,
             preview_gcs_path: previewPathByReelId[reel.id] || null,
             total_views,
-            completed_views, // Нове поле
-            completion_rate, // Нове поле
-            avg_watch_duration, // Нове поле
+            completed_views,
+            completion_rate,
+            avg_watch_duration,
         };
     });
 
@@ -245,10 +321,9 @@ app.delete('/reels/:id', async (req, res) => {
   }
 });
 
-
-/* ========================================================================== */
-/* ПУБЛІЧНИЙ ЕНДПОІНТ ДЛЯ СТОРІНКИ РІЛСА                                     */
-/* ========================================================================== */
+// ========================================================================== //
+// ПУБЛІЧНИЙ ЕНДПОІНТ ДЛЯ СТОРІНКИ РІЛСА
+// ========================================================================== //
 
 app.get('/reels/public/:short_link', async (req, res) => {
     try {
@@ -277,9 +352,9 @@ app.get('/reels/public/:short_link', async (req, res) => {
     }
 });
 
-/* ========================================================================== */
-/* ЕНДПОІНТИ ДЛЯ МЕДІА-АЙТЕМІВ                                                */
-/* ========================================================================== */
+// ========================================================================== //
+// ЕНДПОІНТИ ДЛЯ МЕДІА-АЙТЕМІВ
+// ========================================================================== //
 
 app.get('/media-items/:id', async (req, res) => {
   const { id } = req.params;

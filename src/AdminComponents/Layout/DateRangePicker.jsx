@@ -7,27 +7,14 @@ import {
   Calendar as CalendarIcon,
 } from 'lucide-react';
 
-/* -------------------------------- */
-/* === Date Range Picker Component === */
-/* -------------------------------- */
 const DateRangePicker = ({ initialRange, onRangeChange }) => {
-  // ? State for open/close dropdown
   const [isOpen, setIsOpen] = useState(false);
-
-  // ? State for current date range
   const [range, setRange] = useState(initialRange);
-
-  // ? State for currently displayed month in calendar
   const [currentMonth, setCurrentMonth] = useState(
     initialRange.to || new Date()
   );
-
-  // * Ref for detecting outside clicks
   const pickerRef = useRef(null);
 
-  /* ---------------------------- */
-  /* === Close on outside click === */
-  /* ---------------------------- */
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (pickerRef.current && !pickerRef.current.contains(event.target)) {
@@ -38,9 +25,6 @@ const DateRangePicker = ({ initialRange, onRangeChange }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  /* ---------------------------- */
-  /* === Calendar Navigation === */
-  /* ---------------------------- */
   const handlePrevMonth = () => {
     setCurrentMonth(
       new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)
@@ -53,49 +37,33 @@ const DateRangePicker = ({ initialRange, onRangeChange }) => {
     );
   };
 
-  /* ---------------------------- */
-  /* === Day Click Logic === */
-  /* ---------------------------- */
   const handleDayClick = (day) => {
     let newRange = { ...range };
-
     if (!newRange.from || newRange.to) {
-      // Start a new range
       newRange = { from: day, to: null };
     } else if (day < newRange.from) {
-      // Restart range if clicked before start
       newRange = { from: day, to: null };
     } else {
-      // Close the range
       newRange.to = day;
       onRangeChange(newRange);
       setIsOpen(false);
     }
-
     setRange(newRange);
   };
 
-  /* ---------------------------- */
-  /* === Render Calendar Days === */
-  /* ---------------------------- */
   const renderDays = () => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
-    const firstDayOfMonth = new Date(year, month, 1).getDay();
+    const firstDayOfWeek = new Date(year, month, 1).getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
     const days = [];
-
-    // Empty slots for alignment
-    for (let i = 0; i < firstDayOfMonth; i++) {
+    for (let i = 0; i < firstDayOfWeek; i++) {
       days.push(<div key={`empty-${i}`} className="w-10 h-10"></div>);
     }
 
-    // Actual days
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(year, month, day);
-
-      // ? State checks
       const isToday = date.toDateString() === new Date().toDateString();
       const isSelectedStart =
         range.from && date.toDateString() === range.from.toDateString();
@@ -104,9 +72,7 @@ const DateRangePicker = ({ initialRange, onRangeChange }) => {
       const isInRange =
         range.from && range.to && date > range.from && date < range.to;
 
-      // * Dynamic classes
-      let classes =
-        'w-10 h-10 flex items-center justify-center rounded-lg transition-colors cursor-pointer';
+      let classes = 'w-10 h-10 flex items-center justify-center rounded-lg transition-colors cursor-pointer';
       if (isSelectedStart || isSelectedEnd) {
         classes += ' bg-white text-slate-900';
       } else if (isInRange) {
@@ -119,37 +85,32 @@ const DateRangePicker = ({ initialRange, onRangeChange }) => {
       }
 
       days.push(
-        <button
-          key={day}
-          onClick={() => handleDayClick(date)}
-          className={classes}
-        >
+        <button key={day} onClick={() => handleDayClick(date)} className={classes}>
           {day}
         </button>
       );
     }
-
     return days;
   };
 
-  /* ---------------------------- */
-  /* === Helpers === */
-  /* ---------------------------- */
-  const formatDate = (date) =>
-    date.toLocaleDateString('en-US', {
+  const formatDate = (date) => {
+    if (!date) return 'Select Date';
+    return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
     });
+  };
 
-  /* ---------------------------- */
-  /* === Render Component === */
-  /* ---------------------------- */
   return (
     <div className="relative" ref={pickerRef}>
-      {/* Button that toggles calendar */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          if (!isOpen && range.to) {
+            setCurrentMonth(new Date(range.to));
+          }
+          setIsOpen(!isOpen);
+        }}
         className="flex items-center justify-center gap-2 h-10 px-4 rounded-md text-sm font-medium border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
       >
         <CalendarIcon className="h-4 w-4 text-slate-500 dark:text-slate-400" />
@@ -158,43 +119,22 @@ const DateRangePicker = ({ initialRange, onRangeChange }) => {
         </span>
       </button>
 
-      {/* Calendar Dropdown */}
       {isOpen && (
         <div className="absolute top-12 right-0 z-10 w-80 bg-slate-800 border border-slate-700 rounded-xl shadow-lg p-4 text-white">
-          {/* Month navigation */}
           <div className="flex items-center justify-between mb-4">
-            <button
-              onClick={handlePrevMonth}
-              className="p-2 rounded-full hover:bg-slate-700"
-            >
+            <button onClick={handlePrevMonth} className="p-2 rounded-full hover:bg-slate-700">
               <ChevronLeft className="h-4 w-4" />
             </button>
             <span className="font-semibold text-sm">
-              {currentMonth.toLocaleString('en-US', {
-                month: 'long',
-                year: 'numeric',
-              })}
+              {currentMonth.toLocaleString('en-US', { month: 'long', year: 'numeric' })}
             </span>
-            <button
-              onClick={handleNextMonth}
-              className="p-2 rounded-full hover:bg-slate-700"
-            >
+            <button onClick={handleNextMonth} className="p-2 rounded-full hover:bg-slate-700">
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
-
-          {/* Weekdays header */}
           <div className="grid grid-cols-7 gap-y-1 text-center text-xs text-slate-400 mb-2">
-            <span>Su</span>
-            <span>Mo</span>
-            <span>Tu</span>
-            <span>We</span>
-            <span>Th</span>
-            <span>Fr</span>
-            <span>Sa</span>
+            <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
           </div>
-
-          {/* Days grid */}
           <div className="grid grid-cols-7 gap-y-1 text-sm">{renderDays()}</div>
         </div>
       )}
