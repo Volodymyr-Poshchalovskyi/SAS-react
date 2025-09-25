@@ -150,7 +150,7 @@ app.post('/reels', async (req, res) => {
       .insert({
         title,
         short_link: shortLink,
-        status: 'Inactive',
+        status: 'Active', // ВИПРАВЛЕНО: рілс створюється одразу активним
         created_by_user_id: user_id,
       })
       .select()
@@ -186,12 +186,27 @@ app.get('/reels', async (req, res) => {
         created_at,
         short_link,
         status,
-        user_profiles (first_name, last_name)
+        reel_media_items (
+          media_items (
+            preview_gcs_path
+          )
+        )
       `)
+      .eq('reel_media_items.display_order', 1)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    res.status(200).json(data);
+    
+    const flattenedData = data.map(reel => {
+        const preview_path = reel.reel_media_items[0]?.media_items?.preview_gcs_path || null;
+        const { reel_media_items, ...rest } = reel;
+        return {
+            ...rest,
+            preview_gcs_path: preview_path,
+        };
+    });
+
+    res.status(200).json(flattenedData);
   } catch (error) {
     console.error('Error fetching reels:', error);
     res.status(500).json({ error: 'Failed to fetch reels.', details: error.message });
@@ -226,32 +241,54 @@ app.put('/reels/:id', async (req, res) => {
 
 
 /* ========================================================================== */
-/* ПУБЛІЧНИЙ ЕНДПОІНТ ДЛЯ СТОРІНКИ РІЛСА                                   */
+/* ПУБЛІЧНИЙ ЕНДПОІНТ ДЛЯ СТОРІНКИ РІЛСА (ПОВНІСТЮ ВИПРАВЛЕНО)              */
 /* ========================================================================== */
 
 app.get('/reels/public/:short_link', async (req, res) => {
     const { short_link } = req.params;
 
     try {
-        // 1. Знаходимо рілс за посиланням та пов'язані медіа-елементи
+        // 1. Знаходимо рілс за посиланням та пов'язані медіа-елементи через проміжну таблицю
         const { data: reel, error: reelError } = await supabase
             .from('reels')
-            .select('id, title, status, media_items(id, title, subtitle, client, artists, categories, video_gcs_path, preview_gcs_path)')
+            .select(`
+                id, 
+                title, 
+                status, 
+                reel_media_items (
+                    display_order,
+                    media_items (
+                        id, title, client, artists, categories, video_gcs_path, preview_gcs_path
+                    )
+                )
+            `)
             .eq('short_link', short_link)
             .single();
 
-        if (reelError) throw new Error("Reel not found.");
+        if (reelError || !reel) {
+            console.error(`Reel lookup failed for ${short_link}:`, reelError?.message);
+            throw new Error("Reel not found.");
+        }
         if (reel.status !== 'Active') throw new Error("This reel is not active.");
-        if (!reel.media_items || reel.media_items.length === 0) throw new Error("This reel has no media content.");
+        
+        // 2. Обробляємо та сортуємо отримані медіа-елементи
+        const sortedMediaItems = (reel.reel_media_items || [])
+            .map(item => item.media_items) // Витягуємо вкладений об'єкт media_items
+            .filter(Boolean) // Видаляємо можливі null значення
+            .sort((a, b) => a.display_order - b.display_order); // Сортуємо за порядком
 
-        // 2. Генеруємо підписані URL для GCS
+        if (sortedMediaItems.length === 0) {
+            console.warn(`Reel ${short_link} is active but has no media items.`);
+        }
+        
+        // 3. Генеруємо підписані URL для GCS
         const readOptions = {
             version: 'v4',
             action: 'read',
             expires: Date.now() + 20 * 60 * 1000, // 20 хвилин
         };
 
-        const mediaItemsWithUrls = await Promise.all(reel.media_items.map(async (item) => {
+        const mediaItemsWithUrls = await Promise.all(sortedMediaItems.map(async (item) => {
             let videoUrl = null;
             let previewUrl = null;
 
@@ -275,7 +312,7 @@ app.get('/reels/public/:short_link', async (req, res) => {
             };
         }));
         
-        // 3. Формуємо фінальну відповідь
+        // 4. Формуємо фінальну відповідь
         const publicData = {
             reelTitle: reel.title,
             mediaItems: mediaItemsWithUrls,
@@ -285,7 +322,8 @@ app.get('/reels/public/:short_link', async (req, res) => {
 
     } catch (error) {
         console.error(`Error fetching public reel data for ${short_link}:`, error.message);
-        res.status(404).json({ error: 'Failed to fetch reel data.', details: error.message });
+        const statusCode = error.message === "Reel not found." ? 404 : 500;
+        res.status(statusCode).json({ error: 'Failed to fetch reel data.', details: error.message });
     }
 });
 
