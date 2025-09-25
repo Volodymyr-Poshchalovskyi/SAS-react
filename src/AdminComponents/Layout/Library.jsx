@@ -16,13 +16,41 @@ import {
   CheckCircle,
   Copy,
 } from 'lucide-react';
-import { supabase } from '../../lib/supabaseClient';
+import { createClient } from '@supabase/supabase-js';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { getSignedUrls } from '../../lib/gcsUrlCache'; 
 
 // =======================
-// КОМПОНЕНТ: Модальне вікно для відео
+// HELPER FUNCTIONS & SETUP
 // =======================
+
+// Ініціалізація клієнта Supabase. Замініть значення на ваші.
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "YOUR_SUPABASE_URL";
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "YOUR_SUPABASE_ANON_KEY";
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Логіка кешування URL-адрес GCS
+const getSignedUrls = async (gcsPaths) => {
+  const uniquePaths = [...new Set(gcsPaths.filter(path => path))];
+  if (uniquePaths.length === 0) return {};
+  try {
+    const response = await fetch('http://localhost:3001/generate-read-urls', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ gcsPaths: uniquePaths }),
+    });
+    if (!response.ok) throw new Error(`Server responded with ${response.status}`);
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching signed URLs:', error);
+    return {};
+  }
+};
+
+
+// =======================
+// SUB-COMPONENTS
+// =======================
+
 const VideoModal = ({ videoUrl, onClose }) => {
   if (!videoUrl) return null;
   return (
@@ -35,9 +63,6 @@ const VideoModal = ({ videoUrl, onClose }) => {
   );
 };
 
-// =======================
-// КОМПОНЕНТ: SortableHeader
-// =======================
 const SortableHeader = ({ children, sortKey, sortConfig, onSort, className = '' }) => {
   const isActive = sortConfig.key === sortKey;
   const renderSortIcon = () => {
@@ -53,16 +78,11 @@ const SortableHeader = ({ children, sortKey, sortConfig, onSort, className = '' 
   );
 };
 
-// ======================================================
-// КОМПОНЕНТ: Модальне вікно статусу
-// ======================================================
 const CreationStatusModal = ({ isOpen, onClose, status, title, message }) => {
   useEffect(() => {
     let timer;
     if (isOpen && status === 'success') {
-      timer = setTimeout(() => {
-        onClose();
-      }, 2500);
+      timer = setTimeout(() => { onClose(); }, 2500);
     }
     return () => clearTimeout(timer);
   }, [isOpen, status, onClose]);
@@ -72,49 +92,19 @@ const CreationStatusModal = ({ isOpen, onClose, status, title, message }) => {
   const renderContent = () => {
     switch (status) {
       case 'creating':
-        return (
-          <div className="text-center py-4">
-            <Loader2 className="h-16 w-16 text-blue-500 mx-auto mb-4 animate-spin" />
-            <h3 className="text-lg font-medium text-slate-900 dark:text-slate-50">Creating Reel...</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Please wait a moment.</p>
-          </div>
-        );
+        return (<div className="text-center py-4"><Loader2 className="h-16 w-16 text-blue-500 mx-auto mb-4 animate-spin" /><h3 className="text-lg font-medium text-slate-900 dark:text-slate-50">Creating Reel...</h3><p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Please wait a moment.</p></div>);
       case 'success':
-        return (
-          <div className="text-center py-4">
-            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-slate-900 dark:text-slate-50">{title}</h3>
-            {message && <p className="text-sm text-slate-500 dark:text-slate-400 mt-2" dangerouslySetInnerHTML={{ __html: message }} />}
-          </div>
-        );
+        return (<div className="text-center py-4"><CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" /><h3 className="text-lg font-medium text-slate-900 dark:text-slate-50">{title}</h3>{message && <p className="text-sm text-slate-500 dark:text-slate-400 mt-2" dangerouslySetInnerHTML={{ __html: message }} />}</div>);
       case 'error':
-        return (
-          <div className="text-center py-4">
-            <AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-slate-900 dark:text-slate-50">{title}</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">{message}</p>
-            <button onClick={onClose} className="mt-6 px-4 py-2 text-sm font-semibold bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">
-              Close
-            </button>
-          </div>
-        );
+        return (<div className="text-center py-4"><AlertTriangle className="h-16 w-16 text-red-500 mx-auto mb-4" /><h3 className="text-lg font-medium text-slate-900 dark:text-slate-50">{title}</h3><p className="text-sm text-slate-500 dark:text-slate-400 mt-2">{message}</p><button onClick={onClose} className="mt-6 px-4 py-2 text-sm font-semibold bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">Close</button></div>);
       default:
         return null;
     }
   };
 
-  return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-md">
-        {renderContent()}
-      </div>
-    </div>
-  );
+  return (<div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"><div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-md">{renderContent()}</div></div>);
 };
 
-// ======================================================
-// КОМПОНЕНТ: Список існуючих рілсів
-// ======================================================
 const ExistingReelsList = ({ reels, onCopy, signedUrls, isLoading }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -130,23 +120,13 @@ const ExistingReelsList = ({ reels, onCopy, signedUrls, isLoading }) => {
   return (
     <div className="flex flex-col h-full">
       <div className="mb-4">
-        <input
-          type="text"
-          placeholder="Search existing reels..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 dark:border-slate-700 dark:text-slate-50"
-        />
+        <input type="text" placeholder="Search existing reels..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 dark:border-slate-700 dark:text-slate-50" />
       </div>
       <div className="flex-1 space-y-2 overflow-y-auto max-h-[calc(100vh-250px)] pr-2">
         {isLoading ? (
-          <div className="flex items-center justify-center h-full text-slate-500">
-            <Loader2 className="animate-spin mr-2" /> Loading...
-          </div>
+          <div className="flex items-center justify-center h-full text-slate-500"><Loader2 className="animate-spin mr-2" /> Loading...</div>
         ) : filteredReels.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-center text-slate-500">
-            <p>No reels found.</p>
-          </div>
+          <div className="flex items-center justify-center h-full text-center text-slate-500"><p>No reels found.</p></div>
         ) : (
           filteredReels.map(reel => {
             const previewUrl = reel.preview_gcs_path ? signedUrls[reel.preview_gcs_path] : null;
@@ -158,39 +138,29 @@ const ExistingReelsList = ({ reels, onCopy, signedUrls, isLoading }) => {
                         </div>
                         <div className="min-w-0">
                             <p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{reel.title}</p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                                By {reel.user_profiles?.first_name || 'N/A'} | {reel.total_views || 0} visits
-                            </p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">By {reel.user_profiles?.first_name || 'N/A'} | {reel.total_views || 0} visits</p>
                         </div>
                     </div>
                     <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <button onClick={() => onCopy(reel)} title="Make a copy" className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700">
-                        <Copy className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                            <Copy className="h-4 w-4 text-slate-500 dark:text-slate-400" />
                         </button>
                     </div>
                 </div>
             );
-        })
+          })
         )}
       </div>
     </div>
   );
 };
 
-
-// ======================================================
-// КОМПОНЕНТ: ReelCreatorSidebar
-// ======================================================
-const ReelCreatorSidebar = ({ allItems }) => {
-  const [activeTab, setActiveTab] = useState('new');
-  const [reelItems, setReelItems] = useState([]);
-  const [reelTitle, setReelTitle] = useState(`Draft: Showreel (${new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })})`);
+const ReelCreatorSidebar = ({ allItems, activeTab, setActiveTab, reelItems, setReelItems, reelTitle, setReelTitle }) => {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
-  const [modalState, setModalState] = useState({ isOpen: false, status: 'idle', title: '', message: '' });
-  
+  const [modalState, setModalState] = useState({ isOpen: false, status: 'idle' });
   const [existingReels, setExistingReels] = useState([]);
   const [isLoadingReels, setIsLoadingReels] = useState(false);
-  const [signedUrls, setSignedUrls] = useState({});
+  const [signedSidebarUrls, setSignedSidebarUrls] = useState({});
 
   useEffect(() => {
     const fetchExistingReels = async () => {
@@ -201,30 +171,24 @@ const ReelCreatorSidebar = ({ allItems }) => {
           if (!response.ok) throw new Error('Failed to fetch reels');
           const data = await response.json();
           setExistingReels(data);
-        } catch (error) {
-          console.error("Error fetching existing reels:", error);
-        } finally {
-          setIsLoadingReels(false);
-        }
+        } catch (error) { console.error("Error fetching existing reels:", error); } 
+        finally { setIsLoadingReels(false); }
       }
     };
     fetchExistingReels();
-  }, [activeTab]);
+  }, [activeTab, existingReels.length]);
 
   useEffect(() => {
     const fetchAndCacheUrls = async () => {
-      const pathsToFetch = existingReels.map(item => item.preview_gcs_path).filter(path => path && !signedUrls[path]);
-      if (pathsToFetch.length === 0) return;
-      const uniquePaths = [...new Set(pathsToFetch)];
-      const urlsMap = await getSignedUrls(uniquePaths);
-      setSignedUrls(prevUrls => ({ ...prevUrls, ...urlsMap }));
+      const pathsToFetch = existingReels.map(item => item.preview_gcs_path).filter(path => path && !signedSidebarUrls[path]);
+      if (pathsToFetch.length > 0) {
+        const uniquePaths = [...new Set(pathsToFetch)];
+        const urlsMap = await getSignedUrls(uniquePaths);
+        setSignedSidebarUrls(prev => ({ ...prev, ...urlsMap }));
+      }
     };
-
-    if (existingReels.length > 0) {
-      fetchAndCacheUrls();
-    }
+    if (existingReels.length > 0) fetchAndCacheUrls();
   }, [existingReels]);
-
 
   const handleDragOver = (e) => { e.preventDefault(); setIsDraggingOver(true); };
   const handleDragLeave = () => setIsDraggingOver(false);
@@ -232,56 +196,31 @@ const ReelCreatorSidebar = ({ allItems }) => {
     e.preventDefault(); setIsDraggingOver(false);
     const draggedItemIds = JSON.parse(e.dataTransfer.getData("application/json"));
     const newItems = allItems.filter(item => draggedItemIds.includes(item.id)).filter(item => !reelItems.some(reelItem => reelItem.id === item.id));
-    if (newItems.length > 0) setReelItems(prevItems => [...prevItems, ...newItems]);
+    if (newItems.length > 0) setReelItems(prev => [...prev, ...newItems]);
   };
-  const handleRemoveItem = (itemIdToRemove) => setReelItems(prevItems => prevItems.filter(item => item.id !== itemIdToRemove));
+  const handleRemoveItem = (id) => setReelItems(prev => prev.filter(item => item.id !== id));
   
   const handleCreateReel = async () => {
     if (reelItems.length === 0 || !reelTitle.trim()) return;
-    setModalState({ isOpen: true, status: 'creating', title: '', message: '' });
-
+    setModalState({ isOpen: true, status: 'creating' });
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("User is not authenticated.");
-      const media_item_ids = reelItems.map(item => item.id);
-      
-      const response = await fetch('http://localhost:3001/reels', {
+      if (!user) throw new Error("User not authenticated.");
+      const res = await fetch('http://localhost:3001/reels', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: reelTitle, media_item_ids, user_id: user.id })
+        body: JSON.stringify({ title: reelTitle, media_item_ids: reelItems.map(i => i.id), user_id: user.id })
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.details || 'Failed to create reel.');
-      }
-      
-      const newReel = await response.json();
+      if (!res.ok) throw new Error(await res.text());
+      const newReel = await res.json();
       setExistingReels(prev => [newReel, ...prev]);
-      setModalState({ 
-        isOpen: true, 
-        status: 'success', 
-        title: 'Reel Created!', 
-        message: `Your reel "<strong>${newReel.title}</strong>" was created successfully.` 
-      });
-
-    } catch (error) {
-      console.error("Error creating reel:", error);
-      setModalState({ 
-        isOpen: true, 
-        status: 'error', 
-        title: 'Creation Failed', 
-        message: error.message 
-      });
-    }
+      setModalState({ isOpen: true, status: 'success', title: 'Reel Created!', message: `Your reel "<strong>${newReel.title}</strong>" was created.` });
+    } catch (err) { setModalState({ isOpen: true, status: 'error', title: 'Creation Failed', message: err.message }); }
   };
 
   const handleCopyReel = (reelToCopy) => {
     const itemIds = reelToCopy.media_item_ids || [];
-    const itemsToCopy = allItems.filter(item => itemIds.includes(item.id));
-    // Зберігаємо порядок, який прийшов з бекенду
-    const orderedItems = itemIds.map(id => itemsToCopy.find(item => item.id === id)).filter(Boolean);
-
-    setReelItems(orderedItems);
+    const items = itemIds.map(id => allItems.find(item => item.id === id)).filter(Boolean);
+    setReelItems(items);
     setReelTitle(`Copy: ${reelToCopy.title}`);
     setActiveTab('new');
   };
@@ -291,164 +230,37 @@ const ReelCreatorSidebar = ({ allItems }) => {
       setReelItems([]);
       setReelTitle(`Draft: Showreel (${new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })})`);
     }
-    setModalState({ isOpen: false, status: 'idle', title: '', message: '' });
+    setModalState({ isOpen: false, status: 'idle' });
   };
   
-  const TabButton = ({ tabName, label, activeTab, setActiveTab }) => (
-    <button onClick={() => setActiveTab(tabName)} className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors w-1/2 ${activeTab === tabName ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800'}`}>
-      {label}
-    </button>
-  );
+  const TabButton = ({ name, label }) => (<button onClick={() => setActiveTab(name)} className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors w-1/2 ${activeTab === name ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800'}`}>{label}</button>);
 
-  return (
-    <>
-      <CreationStatusModal
-        isOpen={modalState.isOpen}
-        onClose={handleCloseModal}
-        status={modalState.status}
-        title={modalState.title}
-        message={modalState.message}
-      />
-      <div className="w-96 shrink-0 space-y-4">
-        <div className="p-1 bg-slate-100 dark:bg-slate-900 rounded-lg flex items-center">
-          <TabButton tabName="new" label="New Reel" activeTab={activeTab} setActiveTab={setActiveTab} />
-          <TabButton tabName="existing" label="Existing Reels" activeTab={activeTab} setActiveTab={setActiveTab} />
-        </div>
-        <div onDragOver={handleDragOver} onDrop={handleDrop} onDragLeave={handleDragLeave} className={`flex flex-col p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 transition-all duration-300 min-h-[400px] ${isDraggingOver ? 'border-2 border-blue-500 ring-4 ring-blue-500/20' : 'border border-slate-200 dark:border-slate-800'}`}>
-          {activeTab === 'new' ? (
-            reelItems.length === 0 ? (
-              <div className="flex flex-col items-center justify-center text-center py-16 pointer-events-none h-full">
-                <Layers className="h-12 w-12 text-slate-400 dark:text-slate-500 mb-4" /><h3 className="font-semibold text-slate-800 dark:text-slate-200">Drag work here</h3><p className="text-sm text-slate-500 dark:text-slate-400 mt-1">TO CREATE A REEL</p>
-              </div>
-            ) : (
-              <div className="flex flex-col h-full">
-                <div className="mb-4">
-                  <label htmlFor="reel-title" className="text-xs font-medium text-slate-500 dark:text-slate-400">TITLE</label>
-                  <input id="reel-title" type="text" value={reelTitle} onChange={(e) => setReelTitle(e.target.value)} className="mt-1 block w-full bg-transparent text-sm text-slate-900 dark:text-slate-50 font-semibold border-none p-0 focus:ring-0" />
-                </div>
-                <div className="flex-1 space-y-2 overflow-y-auto max-h-[calc(100vh-350px)] pr-2">
-                  {reelItems.map(item => (
-                    <div key={item.id} className="group flex items-center justify-between gap-3 p-2 rounded-md bg-white dark:bg-slate-800/50">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-14 h-9 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">{item.previewUrl ? <img src={item.previewUrl} alt={item.title} className="w-full h-full object-cover rounded-md" /> : <ImageIcon className="w-5 h-5 text-slate-400" />}</div>
-                        <div className="min-w-0"><p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{item.title}</p><p className="text-xs text-slate-500 dark:text-slate-400 truncate">{item.subtitle || 'No subtitle'}</p></div>
-                      </div>
-                      <button onClick={() => handleRemoveItem(item.id)} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><X className="h-4 w-4 text-slate-500 dark:text-slate-400" /></button>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-auto pt-4">
-                  <button onClick={handleCreateReel} disabled={modalState.status === 'creating'} className="w-full px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center justify-center">{modalState.status === 'creating' ? <><Loader2 className="animate-spin h-5 w-5 mr-2" />Creating...</> : 'Deliver'}</button>
-                </div>
-              </div>
-            )
-          ) : (
-            <ExistingReelsList
-              reels={existingReels}
-              signedUrls={signedUrls}
-              isLoading={isLoadingReels}
-              onCopy={handleCopyReel}
-            />
-          )}
-        </div>
-      </div>
-    </>
-  );
+  return (<><CreationStatusModal {...modalState} onClose={handleCloseModal} /><div className="w-96 shrink-0 space-y-4"><div className="p-1 bg-slate-100 dark:bg-slate-900 rounded-lg flex items-center"><TabButton name="new" label="New Reel" /><TabButton name="existing" label="Existing Reels" /></div><div onDragOver={handleDragOver} onDrop={handleDrop} onDragLeave={handleDragLeave} className={`flex flex-col p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 transition-all duration-300 min-h-[400px] ${isDraggingOver ? 'border-2 border-blue-500 ring-4 ring-blue-500/20' : 'border border-slate-200 dark:border-slate-800'}`}>{activeTab === 'new' ? (reelItems.length === 0 ? <div className="flex flex-col items-center justify-center text-center py-16 pointer-events-none h-full"><Layers className="h-12 w-12 text-slate-400 dark:text-slate-500 mb-4" /><h3 className="font-semibold text-slate-800 dark:text-slate-200">Drag work here</h3><p className="text-sm text-slate-500 dark:text-slate-400 mt-1">TO CREATE A REEL</p></div> : <div className="flex flex-col h-full"><div className="mb-4"><label htmlFor="reel-title" className="text-xs font-medium text-slate-500 dark:text-slate-400">TITLE</label><input id="reel-title" type="text" value={reelTitle} onChange={(e) => setReelTitle(e.target.value)} className="mt-1 block w-full bg-transparent text-sm text-slate-900 dark:text-slate-50 font-semibold border-none p-0 focus:ring-0" /></div><div className="flex-1 space-y-2 overflow-y-auto max-h-[calc(100vh-350px)] pr-2">{reelItems.map(item => (<div key={item.id} className="group flex items-center justify-between gap-3 p-2 rounded-md bg-white dark:bg-slate-800/50"><div className="flex items-center gap-3 min-w-0"><div className="w-14 h-9 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">{item.previewUrl ? <img src={item.previewUrl} alt={item.title} className="w-full h-full object-cover rounded-md" /> : <ImageIcon className="w-5 h-5 text-slate-400" />}</div><div className="min-w-0"><p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{item.title}</p><p className="text-xs text-slate-500 dark:text-slate-400 truncate">{item.subtitle || 'No subtitle'}</p></div></div><button onClick={() => handleRemoveItem(item.id)} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><X className="h-4 w-4 text-slate-500 dark:text-slate-400" /></button></div>))}</div><div className="mt-auto pt-4"><button onClick={handleCreateReel} disabled={modalState.status === 'creating'} className="w-full px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-slate-400 flex items-center justify-center">{modalState.status === 'creating' ? <><Loader2 className="animate-spin h-5 w-5 mr-2" />Creating...</> : 'Deliver'}</button></div></div>) : (<ExistingReelsList reels={existingReels} signedUrls={signedSidebarUrls} isLoading={isLoadingReels} onCopy={handleCopyReel} />)}</div></div></>);
 };
 
-// =======================
-// КОМПОНЕНТИ ДЛЯ ВИДАЛЕННЯ
-// =======================
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
   const [status, setStatus] = useState('idle');
-
-  useEffect(() => {
-    if (isOpen) {
-      setStatus('idle');
-    }
-  }, [isOpen]);
-
+  useEffect(() => { if (isOpen) setStatus('idle'); }, [isOpen]);
   const handleConfirmClick = async () => {
     setStatus('deleting');
     try {
-      await onConfirm();
-      setStatus('success');
-      setTimeout(() => {
-        onClose();
-      }, 2000);
-    } catch (error) {
-      console.error("Deletion failed:", error);
-      setStatus('error');
-    }
+      await onConfirm(); setStatus('success');
+      setTimeout(() => { onClose(); }, 2000);
+    } catch (error) { console.error("Deletion failed:", error); setStatus('error'); }
   };
-
   if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50" onClick={status === 'idle' ? onClose : undefined}>
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-md transition-all" onClick={(e) => e.stopPropagation()}>
-        {status === 'success' ? (
-          <div className="text-center py-4">
-            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-slate-900 dark:text-slate-50">Deleted Successfully</h3>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-              Item "<strong className="text-slate-700 dark:text-slate-200">{itemTitle}</strong>" was deleted.
-            </p>
-          </div>
-        ) : (
-          <>
-            <div className="flex items-start">
-              <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/50 sm:mx-0 sm:h-10 sm:w-10">
-                <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" aria-hidden="true" />
-              </div>
-              <div className="ml-4 text-left">
-                <h3 className="text-lg leading-6 font-medium text-slate-900 dark:text-slate-50">Delete Media Item</h3>
-                <div className="mt-2">
-                  <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Are you sure you want to delete <strong className="text-slate-700 dark:text-slate-200">{itemTitle}</strong>? This action cannot be undone.
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse gap-3">
-              <button type="button" onClick={handleConfirmClick} disabled={status === 'deleting'} className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none sm:w-auto sm:text-sm disabled:bg-red-400 disabled:cursor-not-allowed">
-                {status === 'deleting' ? <Loader2 className="animate-spin h-5 w-5" /> : 'Delete'}
-              </button>
-              <button type="button" onClick={onClose} disabled={status === 'deleting'} className="mt-3 w-full inline-flex justify-center rounded-md border border-slate-300 dark:border-slate-600 shadow-sm px-4 py-2 bg-white dark:bg-slate-700 text-base font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 focus:outline-none sm:mt-0 sm:w-auto sm:text-sm disabled:opacity-50">
-                Cancel
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
+  return (<div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50" onClick={status === 'idle' ? onClose : undefined}><div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-md transition-all" onClick={(e) => e.stopPropagation()}>{status === 'success' ? <div className="text-center py-4"><CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" /><h3 className="text-lg font-medium text-slate-900 dark:text-slate-50">Deleted Successfully</h3><p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Item "<strong className="text-slate-700 dark:text-slate-200">{itemTitle}</strong>" was deleted.</p></div> : <><div className="flex items-start"><div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/50 sm:mx-0 sm:h-10 sm:w-10"><AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" /></div><div className="ml-4 text-left"><h3 className="text-lg font-medium text-slate-900 dark:text-slate-50">Delete Media Item</h3><div className="mt-2"><p className="text-sm text-slate-500 dark:text-slate-400">Are you sure you want to delete <strong className="text-slate-700 dark:text-slate-200">{itemTitle}</strong>? This action cannot be undone.</p></div></div></div><div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse gap-3"><button type="button" onClick={handleConfirmClick} disabled={status === 'deleting'} className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 sm:w-auto sm:text-sm disabled:bg-red-400">{status === 'deleting' ? <Loader2 className="animate-spin h-5 w-5" /> : 'Delete'}</button><button type="button" onClick={onClose} disabled={status === 'deleting'} className="mt-3 w-full inline-flex justify-center rounded-md border border-slate-300 dark:border-slate-600 shadow-sm px-4 py-2 bg-white dark:bg-slate-700 text-base font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 sm:mt-0 sm:w-auto sm:text-sm disabled:opacity-50">Cancel</button></div></>}</div></div>);
 };
-
 
 const ItemActionsDropdown = ({ onOpenDeleteModal, onClose, onEdit, isLastItem }) => {
   const dropdownRef = useRef(null);
-
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        onClose();
-      }
-    };
+    const handleClickOutside = (event) => { if (dropdownRef.current && !dropdownRef.current.contains(event.target)) onClose(); };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose]);
-
   const positionClass = isLastItem ? 'bottom-8' : 'top-8';
-
-  return (
-    <div ref={dropdownRef} className={`absolute right-4 ${positionClass} z-20 w-48 bg-white dark:bg-slate-800 rounded-md shadow-lg border border-slate-200 dark:border-slate-700`}>
-      <ul className="py-1">
-        <li><button onClick={onEdit} className="w-full flex items-center px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"><Edit className="mr-3 h-4 w-4" /><span>Edit</span></button></li>
-        <li><button onClick={onOpenDeleteModal} className="w-full flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-700"><Trash2 className="mr-3 h-4 w-4" /><span>Delete</span></button></li>
-      </ul>
-    </div>
-  );
+  return (<div ref={dropdownRef} className={`absolute right-4 ${positionClass} z-20 w-48 bg-white dark:bg-slate-800 rounded-md shadow-lg border border-slate-200 dark:border-slate-700`}><ul className="py-1"><li><button onClick={onEdit} className="w-full flex items-center px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"><Edit className="mr-3 h-4 w-4" /><span>Edit</span></button></li><li><button onClick={onOpenDeleteModal} className="w-full flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-700"><Trash2 className="mr-3 h-4 w-4" /><span>Delete</span></button></li></ul></div>);
 };
 
 
@@ -472,44 +284,84 @@ const Library = () => {
   
   const headerCheckboxRef = useRef(null);
   const itemsPerPage = 10;
-  const allItemsWithUrls = useMemo(() => items.map(item => ({ ...item, previewUrl: signedUrls[item.preview_gcs_path] || null })), [items, signedUrls]);
+
+  // ✨ СТАН, ПІДНЯТИЙ ІЗ САЙДБАРУ
+  const [activeTab, setActiveTab] = useState('new');
+  const [reelItems, setReelItems] = useState([]);
+  const [reelTitle, setReelTitle] = useState(`Draft: Showreel (${new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })})`);
 
   useEffect(() => {
     const fetchMediaItems = async () => {
       setLoading(true); setError(null);
-const { data, error } = await supabase
-  .from('media_items')
-  .select(`*, user_profiles:public_user_profiles(first_name, last_name)`)
-  .order('created_at', { ascending: false });      if (error) { console.error('Error fetching media items:', error); setError(error.message); setItems([]); }
-      else { setItems(data || []); }
-      setLoading(false);
+      try {
+        const { data, error } = await supabase.from('media_items').select(`*, user_profiles:public_user_profiles(first_name, last_name)`).order('created_at', { ascending: false });
+        if (error) throw error;
+        setItems(data || []);
+      } catch (e) {
+        setError(e.message); setItems([]);
+      } finally {
+        setLoading(false);
+      }
     };
     fetchMediaItems();
   }, []);
-  
-  const publishedItems = useMemo(() => {
-    const now = new Date();
-    return items.filter(item => !item.publish_date || new Date(item.publish_date) <= now);
-  }, [items]);
 
-  const sortedItems = useMemo(() => {
-    let sortableItems = [...publishedItems];
+  // ✨ ВИПРАВЛЕННЯ: Ефект для обробки копіювання тепер залежить від `items`, а не від `allItemsWithUrls`
+  useEffect(() => {
+    const reelToCopy = location.state?.reelToCopy;
+    if (reelToCopy && items.length > 0) {
+      const itemIds = reelToCopy.media_item_ids || [];
+      const rawItemsToCopy = itemIds.map(id => items.find(item => item.id === id)).filter(Boolean);
+
+      if (rawItemsToCopy.length > 0) {
+        setReelTitle(`Copy: ${reelToCopy.title}`);
+        setActiveTab('new');
+        
+        const processCopy = async () => {
+          const pathsToFetch = rawItemsToCopy.map(item => item.preview_gcs_path).filter(path => path && !signedUrls[path]);
+          
+          let newUrls = {};
+          if (pathsToFetch.length > 0) {
+            newUrls = await getSignedUrls(pathsToFetch);
+            setSignedUrls(prev => ({ ...prev, ...newUrls }));
+          }
+          
+          const finalItemsWithUrls = rawItemsToCopy.map(item => ({
+            ...item,
+            previewUrl: newUrls[item.preview_gcs_path] || signedUrls[item.preview_gcs_path] || null
+          }));
+          
+          setReelItems(finalItemsWithUrls);
+        };
+
+        processCopy();
+        navigate(location.pathname, { replace: true, state: {} });
+      } else {
+        console.warn("Could not find media items to copy from the provided IDs.");
+        navigate(location.pathname, { replace: true, state: {} });
+      }
+    }
+  }, [location.state, items, navigate]); // Залежність від `items` гарантує, що ми маємо дані для пошуку
+
+
+  const allItemsWithUrls = useMemo(() => items.map(item => ({ ...item, previewUrl: signedUrls[item.preview_gcs_path] || null })), [items, signedUrls]);
+
+  const filteredItems = useMemo(() => {
+    let processItems = [...items];
     if (sortConfig.key) {
-      sortableItems.sort((a, b) => {
+      processItems.sort((a, b) => {
         const valA = a[sortConfig.key] || ''; const valB = b[sortConfig.key] || '';
         if (valA < valB) return sortConfig.direction === 'ascending' ? -1 : 1;
         if (valA > valB) return sortConfig.direction === 'ascending' ? 1 : -1;
         return 0;
       });
     }
-    return sortableItems;
-  }, [publishedItems, sortConfig]);
-
-  const filteredItems = useMemo(() => {
-    if (!searchTerm) return sortedItems;
-    const term = searchTerm.toLowerCase();
-    return sortedItems.filter(item => Object.values(item).some(value => String(value).toLowerCase().includes(term)));
-  }, [sortedItems, searchTerm]);
+    if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        processItems = processItems.filter(item => Object.values(item).some(value => String(value).toLowerCase().includes(term)));
+    }
+    return processItems;
+  }, [items, sortConfig, searchTerm]);
 
   const currentItems = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
@@ -517,14 +369,14 @@ const { data, error } = await supabase
   }, [filteredItems, currentPage]);
 
   useEffect(() => {
-    const fetchAndCacheUrls = async () => {
-      const pathsToFetch = currentItems.flatMap(item => [item.preview_gcs_path, item.video_gcs_path]).filter(path => path);
-      const uniquePaths = [...new Set(pathsToFetch)];
-      if (uniquePaths.length === 0) return;
-      const urlsMap = await getSignedUrls(uniquePaths);
-      setSignedUrls(prevUrls => ({ ...prevUrls, ...urlsMap }));
+    const fetchUrlsForCurrentPage = async () => {
+      const paths = currentItems.flatMap(i => [i.preview_gcs_path, i.video_gcs_path]).filter(p => p && !signedUrls[p]);
+      if (paths.length > 0) {
+        const urlsMap = await getSignedUrls(paths);
+        setSignedUrls(prev => ({ ...prev, ...urlsMap }));
+      }
     };
-    if (currentItems.length > 0) { fetchAndCacheUrls(); }
+    if (currentItems.length > 0) fetchUrlsForCurrentPage();
   }, [currentItems]);
 
   useEffect(() => {
@@ -537,63 +389,31 @@ const { data, error } = await supabase
 
   const handleSort = (key) => setSortConfig(prev => ({ key, direction: prev.key === key && prev.direction === 'ascending' ? 'descending' : 'ascending' }));
   const handleSelectAll = (e) => setSelectedItems(e.target.checked ? new Set(currentItems.map(item => item.id)) : new Set());
-  const handleRowCheck = (itemId) => setSelectedItems(prev => { const newSet = new Set(prev); newSet.has(itemId) ? newSet.delete(itemId) : newSet.add(itemId); return newSet; });
-  const handleDragStart = (e, item) => { const itemsToDrag = selectedItems.has(item.id) ? Array.from(selectedItems) : [item.id]; e.dataTransfer.setData('application/json', JSON.stringify(itemsToDrag)); };
-  const formatDateTime = (dateString) => new Date(dateString).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
-  const handleDoubleClick = (item) => { const videoUrl = item.video_gcs_path ? signedUrls[item.video_gcs_path] : null; if (videoUrl) setModalVideoUrl(videoUrl); };
-
-  const handleToggleDropdown = (e, itemId) => {
-    e.stopPropagation();
-    setActiveDropdown(prev => (prev?.id === itemId ? null : { id: itemId, target: e.currentTarget }));
-  };
+  const handleRowCheck = (id) => setSelectedItems(prev => { const newSet = new Set(prev); newSet.has(id) ? newSet.delete(id) : newSet.add(id); return newSet; });
+  const handleDragStart = (e, item) => { const ids = selectedItems.has(item.id) ? [...selectedItems] : [item.id]; e.dataTransfer.setData('application/json', JSON.stringify(ids)); };
+  const formatDateTime = (date) => new Date(date).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
+  const handleEditItem = (id) => navigate((location.pathname.startsWith('/adminpanel') ? '/adminpanel' : '/userpanel') + `/upload-media/${id}`);
   
-  const handleOpenDeleteModal = (item) => {
-    setItemToDelete(item);
-    setActiveDropdown(null);
-  };
-
-  const handleCloseDeleteModal = () => {
-    setItemToDelete(null);
-  };
-
-  const handleEditItem = (itemId) => {
-    const basePath = location.pathname.startsWith('/adminpanel') ? '/adminpanel' : '/userpanel';
-    navigate(`${basePath}/upload-media/${itemId}`);
-  };
-
   const handleConfirmDelete = async () => {
     if (!itemToDelete) return;
-    const response = await fetch(`http://localhost:3001/media-items/${itemToDelete.id}`, { method: 'DELETE' });
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.details || 'Failed to delete item.');
-    }
-    setItems(prevItems => prevItems.filter(item => item.id !== itemToDelete.id));
+    const res = await fetch(`http://localhost:3001/media-items/${itemToDelete.id}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error(await res.text());
+    setItems(prev => prev.filter(item => item.id !== itemToDelete.id));
   };
-
-
+  
   if (loading) return <div className="p-8 text-center text-slate-500">Loading library... ⏳</div>;
   if (error) return <div className="p-8 text-center text-red-500">Error: {error}</div>;
-
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
 
   return (
     <>
       <VideoModal videoUrl={modalVideoUrl} onClose={() => setModalVideoUrl(null)} />
-      <ConfirmationModal
-        isOpen={!!itemToDelete}
-        onClose={handleCloseDeleteModal}
-        onConfirm={handleConfirmDelete}
-        itemTitle={itemToDelete?.title}
-      />
-
+      <ConfirmationModal isOpen={!!itemToDelete} onClose={() => setItemToDelete(null)} onConfirm={handleConfirmDelete} itemTitle={itemToDelete?.title} />
       <div className="flex items-start gap-8 p-6 min-h-screen">
         <div className="flex-1">
           <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
             <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">Media Library</h1>
-            <div className="w-full sm:w-72">
-              <input type="text" placeholder="Search library..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm"/>
-            </div>
+            <div className="w-full sm:w-72"><input type="text" placeholder="Search library..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm"/></div>
           </div>
           <div className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden">
             <div className="overflow-x-auto">
@@ -610,67 +430,25 @@ const { data, error } = await supabase
                     <th className="p-4 w-16 text-right"></th>
                   </tr>
                 </thead>
-                <tbody className="text-slate-800 dark:text-slate-200 text-xs">
-                    {currentItems.map((item, index) => {
-                        const addedBy = item.user_profiles ? `${item.user_profiles.first_name || ''} ${item.user_profiles.last_name || ''}`.trim() : 'System';
-                        const previewUrl = item.preview_gcs_path ? signedUrls[item.preview_gcs_path] : null;
-                        const isLastItemOnPage = index === currentItems.length - 1;
-
-                        return (
-                        <tr key={item.id} draggable="true" onDragStart={(e) => handleDragStart(e, item)} className={`border-b border-slate-100 dark:border-slate-800 transition-colors cursor-pointer ${selectedItems.has(item.id) ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`} onClick={() => handleRowCheck(item.id)}>
-                            <td className="p-4 align-top pt-6">
-                            <input type="checkbox" checked={selectedItems.has(item.id)} onChange={(e) => { e.stopPropagation(); handleRowCheck(item.id); }} onClick={(e) => e.stopPropagation()} className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-blue-600 cursor-pointer" />
-                            </td>
-                            <td className="p-4 align-top">
-                            <div className="flex items-start gap-4">
-                                <div className="w-16 h-10 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">
-                                    {previewUrl ? <img src={previewUrl} alt="preview" className="w-full h-full object-cover rounded-md" /> : <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800"><ImageIcon className="w-5 h-5 text-slate-400" /></div>}
-                                </div>
-                                <div className='min-w-0'>
-                                    <div className="text-blue-600 dark:text-blue-400 text-[10px] font-medium uppercase">{item.client}</div>
-                                    <div className="font-semibold text-slate-900 dark:text-slate-50 whitespace-normal break-words">{item.title}</div>
-                                </div>
-                            </div>
-                            </td>
-                            <td className="p-4 align-top truncate">{item.artists}</td>
-                            <td className="p-4 align-top truncate">{item.client}</td>
-                            <td className="p-4 align-top truncate">{item.categories}</td>
-                            <td className="p-4 align-top truncate">{addedBy}</td>
-                            <td className="p-4 align-top text-slate-500 dark:text-slate-400">{formatDateTime(item.created_at)}</td>
-                            <td className="p-4 align-top text-right relative">
-                            <button onClick={(e) => handleToggleDropdown(e, item.id)} className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700">
-                                <Settings className="h-4 w-4 text-slate-500" />
-                            </button>
-                            {activeDropdown?.id === item.id && (
-                                <ItemActionsDropdown 
-                                onClose={() => setActiveDropdown(null)} 
-                                onOpenDeleteModal={() => handleOpenDeleteModal(item)}
-                                onEdit={() => handleEditItem(item.id)}
-                                isLastItem={isLastItemOnPage}
-                                />
-                            )}
-                            </td>
-                        </tr>
-                        );
-                    })}
-                </tbody>
+                <tbody className="text-slate-800 dark:text-slate-200 text-xs">{currentItems.map((item, index) => { const addedBy = item.user_profiles ? `${item.user_profiles.first_name || ''} ${item.user_profiles.last_name || ''}`.trim() : 'System'; const previewUrl = item.preview_gcs_path ? signedUrls[item.preview_gcs_path] : null; const isLastItemOnPage = index === currentItems.length - 1; return (<tr key={item.id} draggable="true" onDragStart={(e) => handleDragStart(e, item)} className={`border-b border-slate-100 dark:border-slate-800 transition-colors cursor-pointer ${selectedItems.has(item.id) ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`} onClick={() => handleRowCheck(item.id)}><td className="p-4 align-top pt-6"><input type="checkbox" checked={selectedItems.has(item.id)} onChange={(e) => { e.stopPropagation(); handleRowCheck(item.id); }} onClick={(e) => e.stopPropagation()} className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-blue-600 cursor-pointer" /></td><td className="p-4 align-top"><div className="flex items-start gap-4"><div className="w-16 h-10 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">{previewUrl ? <img src={previewUrl} alt="preview" className="w-full h-full object-cover rounded-md" /> : <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800"><ImageIcon className="w-5 h-5 text-slate-400" /></div>}</div><div className='min-w-0'><div className="text-blue-600 dark:text-blue-400 text-[10px] font-medium uppercase">{item.client}</div><div className="font-semibold text-slate-900 dark:text-slate-50 whitespace-normal break-words">{item.title}</div></div></div></td><td className="p-4 align-top truncate">{item.artists}</td><td className="p-4 align-top truncate">{item.client}</td><td className="p-4 align-top truncate">{item.categories}</td><td className="p-4 align-top truncate">{addedBy}</td><td className="p-4 align-top text-slate-500 dark:text-slate-400">{formatDateTime(item.created_at)}</td><td className="p-4 align-top text-right relative"><button onClick={(e) => { e.stopPropagation(); setActiveDropdown(prev => (prev?.id === item.id ? null : { id: item.id })); }} className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><Settings className="h-4 w-4 text-slate-500" /></button>{activeDropdown?.id === item.id && (<ItemActionsDropdown onClose={() => setActiveDropdown(null)} onOpenDeleteModal={() => { setItemToDelete(item); setActiveDropdown(null); }} onEdit={() => handleEditItem(item.id)} isLastItem={isLastItemOnPage} />)}</td></tr>);})}</tbody>
               </table>
             </div>
-            {totalPages > 1 && (
-              <div className="p-4 flex items-center justify-between text-sm text-slate-600 dark:text-slate-400">
-                <div>Page {currentPage} of {totalPages}</div>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1.5 border rounded-md disabled:opacity-50 border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"><ChevronLeft size={16} /></button>
-                  <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1.5 border rounded-md disabled:opacity-50 border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"><ChevronRight size={16} /></button>
-                </div>
-              </div>
-            )}
+            {totalPages > 1 && (<div className="p-4 flex items-center justify-between text-sm text-slate-600 dark:text-slate-400"><p>Page {currentPage} of {totalPages}</p><div className="flex items-center gap-2"><button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1.5 border rounded-md disabled:opacity-50 border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"><ChevronLeft size={16} /></button><button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1.5 border rounded-md disabled:opacity-50 border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"><ChevronRight size={16} /></button></div></div>)}
           </div>
         </div>
-        <ReelCreatorSidebar allItems={allItemsWithUrls} />
+        <ReelCreatorSidebar 
+          allItems={allItemsWithUrls} 
+          activeTab={activeTab} 
+          setActiveTab={setActiveTab} 
+          reelItems={reelItems} 
+          setReelItems={setReelItems} 
+          reelTitle={reelTitle} 
+          setReelTitle={setReelTitle} 
+        />
       </div>
     </>
   );
 };
 
 export default Library;
+

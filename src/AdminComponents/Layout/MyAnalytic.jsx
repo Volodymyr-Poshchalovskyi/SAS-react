@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Eye,
   Clock,
@@ -15,8 +16,36 @@ import {
   CheckCircle,
   User,
   Calendar,
+  Settings,
+  Copy,
+  Power,
+  PowerOff,
 } from 'lucide-react';
-import { getSignedUrls } from '../../lib/gcsUrlCache';
+
+// =======================
+// HELPER FUNCTIONS
+// =======================
+
+const getSignedUrls = async (gcsPaths) => {
+  const uniquePaths = [...new Set(gcsPaths.filter(path => path))];
+  if (uniquePaths.length === 0) {
+      return {};
+  }
+  try {
+      const response = await fetch('http://localhost:3001/generate-read-urls', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gcsPaths: uniquePaths }),
+      });
+      if (!response.ok) {
+          throw new Error(`Server responded with ${response.status}`);
+      }
+      return await response.json();
+  } catch (error) {
+      console.error('Error fetching signed URLs:', error);
+      return {};
+  }
+};
 
 // =======================
 // UTILITY COMPONENTS
@@ -57,7 +86,7 @@ const SortableHeader = ({ children, sortKey, sortConfig, onSort, className = '' 
 // ConfirmationModal Component
 // ===========================================
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
-  const [status, setStatus] = useState('idle'); // 'idle', 'deleting', 'success', 'error'
+  const [status, setStatus] = useState('idle');
 
   useEffect(() => {
     if (isOpen) {
@@ -128,11 +157,45 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
   );
 };
 
+// ===========================================
+// КОМПОНЕНТ: Випадаюче меню дій
+// ===========================================
+const ReelActionsDropdown = ({ reel, onCopy, onDelete, onToggleStatus, onClose, isLastItem }) => {
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [onClose]);
+
+  const positionClass = isLastItem ? 'bottom-8' : 'top-8';
+
+  return (
+    <div ref={dropdownRef} className={`absolute right-4 ${positionClass} z-20 w-48 bg-white dark:bg-slate-800 rounded-md shadow-lg border border-slate-200 dark:border-slate-700`}>
+      <ul className="py-1 text-sm text-slate-700 dark:text-slate-200">
+        <li><button onClick={() => { onCopy(reel); onClose(); }} className="w-full flex items-center px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700"><Copy className="mr-3 h-4 w-4" /><span>Make a Copy</span></button></li>
+        <li><button onClick={() => { onToggleStatus(reel.id, reel.status); onClose(); }} className="w-full flex items-center px-4 py-2 hover:bg-slate-100 dark:hover:bg-slate-700">
+          {reel.status === 'Active' ? <PowerOff className="mr-3 h-4 w-4 text-yellow-500" /> : <Power className="mr-3 h-4 w-4 text-green-500" />}
+          <span>{reel.status === 'Active' ? 'Deactivate' : 'Activate'}</span>
+        </button></li>
+        <li><div className="my-1 h-px bg-slate-100 dark:bg-slate-700"></div></li>
+        <li><button onClick={() => { onDelete(reel); onClose(); }} className="w-full flex items-center px-4 py-2 text-red-600 dark:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-700"><Trash2 className="mr-3 h-4 w-4" /><span>Delete</span></button></li>
+      </ul>
+    </div>
+  );
+};
+
 
 // =======================
 // MAIN COMPONENT: MyAnalytics
 // =======================
 const MyAnalytics = () => {
+  const navigate = useNavigate();
   const [reelsData, setReelsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -140,6 +203,7 @@ const MyAnalytics = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [signedUrls, setSignedUrls] = useState({});
   const [reelToDelete, setReelToDelete] = useState(null);
+  const [activeDropdown, setActiveDropdown] = useState(null);
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -184,25 +248,23 @@ const MyAnalytics = () => {
     setReelsData(currentData => currentData.filter(r => r.id !== reelToDelete.id));
   };
 
+  const handleCopy = (reel) => {
+    // ✨ ЗМІНА: Передаємо весь об'єкт рілса на сторінку бібліотеки
+    navigate('/adminpanel/library', { state: { reelToCopy: reel } });
+  };
 
   const sortedData = useMemo(() => {
     let sortableItems = [...reelsData];
     if (sortConfig.key) {
       sortableItems.sort((a, b) => {
-        let aValue, bValue;
-
+        let aValue = a[sortConfig.key] ?? 0;
+        let bValue = b[sortConfig.key] ?? 0;
         if (sortConfig.key === 'created_by') {
           aValue = `${a.user_profiles?.first_name || ''} ${a.user_profiles?.last_name || ''}`.trim();
           bValue = `${b.user_profiles?.first_name || ''} ${b.user_profiles?.last_name || ''}`.trim();
-        } else {
-          aValue = a[sortConfig.key] ?? 0; 
-          bValue = b[sortConfig.key] ?? 0;
         }
-
         if (typeof aValue === 'string' && typeof bValue === 'string') {
-          return sortConfig.direction === 'ascending'
-            ? aValue.localeCompare(bValue)
-            : bValue.localeCompare(aValue);
+          return sortConfig.direction === 'ascending' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
         }
         if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
         if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
@@ -217,13 +279,8 @@ const MyAnalytics = () => {
     const term = searchTerm.toLowerCase();
     return sortedData.filter((item) => {
       const createdByName = `${item.user_profiles?.first_name || ''} ${item.user_profiles?.last_name || ''}`.trim().toLowerCase();
-      const createdAtDateTime = item.created_at 
-        ? new Date(item.created_at).toLocaleString('uk-UA', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) 
-        : '';
-      return item.title.toLowerCase().includes(term) ||
-             item.short_link.toLowerCase().includes(term) ||
-             createdAtDateTime.includes(term) ||
-             createdByName.includes(term);
+      const createdAtDateTime = item.created_at ? new Date(item.created_at).toLocaleString('uk-UA', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+      return item.title.toLowerCase().includes(term) || item.short_link.toLowerCase().includes(term) || createdAtDateTime.includes(term) || createdByName.includes(term);
     });
   }, [sortedData, searchTerm]);
 
@@ -235,9 +292,10 @@ const MyAnalytics = () => {
   useEffect(() => {
     const fetchAndCacheUrls = async () => {
       const pathsToFetch = currentData.map(item => item.preview_gcs_path).filter(path => path);
-      if (pathsToFetch.length === 0) return;
-      const urlsMap = await getSignedUrls(pathsToFetch);
-      setSignedUrls(prevUrls => ({ ...prevUrls, ...urlsMap }));
+      if (pathsToFetch.length > 0) {
+        const urlsMap = await getSignedUrls(pathsToFetch);
+        setSignedUrls(prevUrls => ({ ...prevUrls, ...urlsMap }));
+      }
     };
     if (currentData.length > 0) {
       fetchAndCacheUrls();
@@ -254,13 +312,7 @@ const MyAnalytics = () => {
 
   return (
     <>
-      <ConfirmationModal
-        isOpen={!!reelToDelete}
-        onClose={() => setReelToDelete(null)}
-        onConfirm={handleConfirmDelete}
-        itemTitle={reelToDelete?.title}
-      />
-
+      <ConfirmationModal isOpen={!!reelToDelete} onClose={() => setReelToDelete(null)} onConfirm={handleConfirmDelete} itemTitle={reelToDelete?.title} />
       <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">Analytics</h1>
@@ -268,7 +320,6 @@ const MyAnalytics = () => {
             <input type="text" placeholder="Search analytics..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={inputClasses} />
           </div>
         </div>
-
         <div className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -286,94 +337,29 @@ const MyAnalytics = () => {
                 </tr>
               </thead>
               <tbody className="text-slate-800 dark:text-slate-200 divide-y divide-slate-100 dark:divide-slate-800">
-                {currentData.map((reel) => {
+                {currentData.map((reel, index) => {
                   const previewUrl = reel.preview_gcs_path ? signedUrls[reel.preview_gcs_path] : null;
                   const completionRate = Math.round(reel.completion_rate || 0);
                   const createdBy = reel.user_profiles ? `${reel.user_profiles.first_name || ''} ${reel.user_profiles.last_name || ''}`.trim() : 'N/A';
-                  const createdAtDateTime = reel.created_at 
-                    ? new Date(reel.created_at).toLocaleString('uk-UA', {
-                        year: 'numeric', 
-                        month: '2-digit', 
-                        day: '2-digit', 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })
-                    : 'N/A';
+                  const createdAtDateTime = reel.created_at ? new Date(reel.created_at).toLocaleString('uk-UA', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'N/A';
+                  const isLastItem = index === currentData.length - 1;
 
                   return (
                     <tr key={reel.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                      <td className="p-4 text-left">
-                        <div className="flex items-center gap-4">
-                          <div className="w-20 h-12 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
-                            {previewUrl ? <img src={previewUrl} alt={reel.title} className="w-full h-full object-cover rounded-md" /> : <ImageIcon className="w-6 h-6 text-slate-400" />}
-                          </div>
-                          <span className="font-medium text-slate-900 dark:text-slate-50">
-                            <Highlight text={reel.title} highlight={searchTerm} />
-                          </span>
-                        </div>
-                      </td>
+                      <td className="p-4 text-left"><div className="flex items-center gap-4"><div className="w-20 h-12 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">{previewUrl ? <img src={previewUrl} alt={reel.title} className="w-full h-full object-cover rounded-md" /> : <ImageIcon className="w-6 h-6 text-slate-400" />}</div><span className="font-medium text-slate-900 dark:text-slate-50"><Highlight text={reel.title} highlight={searchTerm} /></span></div></td>
+                      <td className="p-4 text-center"><div className="flex items-center justify-center gap-2 text-slate-600 dark:text-slate-400"><Eye className="h-4 w-4" /><span className="font-medium text-slate-800 dark:text-slate-200">{formatNumber(reel.total_views || 0)}</span></div></td>
+                      <td className="p-4 text-center"><div className="flex flex-col items-center justify-center gap-1.5"><span className="font-semibold text-slate-900 dark:text-slate-50">{completionRate}%</span><div className="w-24 bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 overflow-hidden"><div className="bg-slate-900 dark:bg-slate-400 h-1.5" style={{ width: `${completionRate}%` }}></div></div><span className="text-xs text-slate-500 dark:text-slate-400">{formatNumber(reel.completed_views || 0)} to end</span></div></td>
+                      <td className="p-4 text-center"><div className="flex items-center justify-center gap-2 text-slate-600 dark:text-slate-400"><Clock className="h-4 w-4" /><span className="font-medium text-slate-800 dark:text-slate-200">{Math.round(reel.avg_watch_duration || 0)}s</span></div></td>
+                      <td className="p-4 text-left"><div className="flex items-center gap-2 text-slate-600 dark:text-slate-400"><User className="h-4 w-4" /><span><Highlight text={createdBy === '' ? 'N/A' : createdBy} highlight={searchTerm} /></span></div></td>
+                      <td className="p-4 text-left"><div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 whitespace-nowrap"><Calendar className="h-4 w-4" /><span><Highlight text={createdAtDateTime} highlight={searchTerm} /></span></div></td>
+                      <td className="p-4 text-center"><span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${reel.status === 'Active' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'}`}>{reel.status}</span></td>
+                      <td className="p-4 text-center"><a href={`/reel/${reel.short_link}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 text-blue-500 hover:text-blue-600 dark:text-blue-400 hover:underline"><Highlight text={reel.short_link} highlight={searchTerm} /><Link className="h-3 w-3" /></a></td>
                       <td className="p-4 text-center">
-                        <div className="flex items-center justify-center gap-2 text-slate-600 dark:text-slate-400">
-                          <Eye className="h-4 w-4" />
-                          <span className="font-medium text-slate-800 dark:text-slate-200">
-                            {formatNumber(reel.total_views || 0)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="p-4 text-center">
-                        <div className="flex flex-col items-center justify-center gap-1.5">
-                          <span className="font-semibold text-slate-900 dark:text-slate-50">{completionRate}%</span>
-                          <div className="w-24 bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 overflow-hidden">
-                            <div className="bg-slate-900 dark:bg-slate-400 h-1.5" style={{ width: `${completionRate}%` }}></div>
-                          </div>
-                          <span className="text-xs text-slate-500 dark:text-slate-400">
-                            {formatNumber(reel.completed_views || 0)} to end
-                          </span>
-                        </div>
-                      </td>
-                      <td className="p-4 text-center">
-                        <div className="flex items-center justify-center gap-2 text-slate-600 dark:text-slate-400">
-                          <Clock className="h-4 w-4" />
-                          <span className="font-medium text-slate-800 dark:text-slate-200">
-                            {Math.round(reel.avg_watch_duration || 0)}s
-                          </span>
-                        </div>
-                      </td>
-                      <td className="p-4 text-left">
-                         <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-                            <User className="h-4 w-4" />
-                            <span>
-                               <Highlight text={createdBy === '' ? 'N/A' : createdBy} highlight={searchTerm} />
-                            </span>
-                         </div>
-                      </td>
-                      <td className="p-4 text-left">
-                         <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 whitespace-nowrap">
-                            <Calendar className="h-4 w-4" />
-                            <span>
-                               <Highlight text={createdAtDateTime} highlight={searchTerm} />
-                            </span>
-                         </div>
-                      </td>
-                      <td className="p-4 text-center">
-                        <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${reel.status === 'Active' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'}`}>
-                          {reel.status}
-                        </span>
-                      </td>
-                      <td className="p-4 text-center">
-                        <a href={`/reel/${reel.short_link}`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 text-blue-500 hover:text-blue-600 dark:text-blue-400 hover:underline">
-                           <Highlight text={reel.short_link} highlight={searchTerm} />
-                          <Link className="h-3 w-3" />
-                        </a>
-                      </td>
-                      <td className="p-4 text-center">
-                         <div className="flex items-center justify-center gap-2">
-                           <button onClick={() => handleToggleStatus(reel.id, reel.status)} className={`px-3 py-1.5 text-xs font-medium rounded-md border transition-colors whitespace-nowrap ${ reel.status === 'Active' ? 'border-yellow-500/50 text-yellow-600 hover:bg-yellow-50 dark:text-yellow-400 dark:hover:bg-yellow-500/10' : 'border-green-500/50 text-green-600 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-500/10' }`}>
-                               {reel.status === 'Active' ? 'Deactivate' : 'Activate'}
-                           </button>
-                           <button onClick={() => setReelToDelete(reel)} className="p-2 rounded-md hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 transition-colors">
-                               <Trash2 className="h-4 w-4" />
-                           </button>
+                         <div className="relative flex items-center justify-center">
+                            <button onClick={(e) => { e.stopPropagation(); setActiveDropdown(prev => prev === reel.id ? null : reel.id); }} className="p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700"><Settings className="h-4 w-4 text-slate-500" /></button>
+                            {activeDropdown === reel.id && (
+                                <ReelActionsDropdown reel={reel} onCopy={handleCopy} onDelete={setReelToDelete} onToggleStatus={handleToggleStatus} onClose={() => setActiveDropdown(null)} isLastItem={isLastItem} />
+                            )}
                          </div>
                       </td>
                     </tr>
@@ -398,3 +384,4 @@ const MyAnalytics = () => {
 };
 
 export default MyAnalytics;
+
