@@ -1,5 +1,3 @@
-// server.js
-
 // 1. Імпортуємо бібліотеки
 const express = require('express');
 const cors = require('cors');
@@ -315,19 +313,36 @@ app.post('/reels', async (req, res) => {
 
 app.get('/reels', async (req, res) => {
   try {
-    // ✨ ЗМІНА: Оновлюємо запит, щоб отримувати пов'язані дані з таблиці 'profiles'
     const { data: reels, error: reelsError } = await supabase
       .from('reels')
-      .select('*, user_profiles(first_name, last_name)') // Припускаємо, що FK-зв'язок називається 'profiles'
+      .select('*, user_profiles(first_name, last_name)')
       .order('created_at', { ascending: false });
       
     if (reelsError) throw reelsError;
 
-    const { data: allLinks, error: linksError } = await supabase.from('reel_media_items').select('reel_id, media_item_id, display_order, media_items(preview_gcs_path)');
+    const { data: allLinks, error: linksError } = await supabase
+        .from('reel_media_items')
+        .select('reel_id, media_item_id, display_order, media_items(preview_gcs_path)');
     if (linksError) throw linksError;
 
-    const { data: allViews, error: viewsError } = await supabase.from('reel_views').select('reel_id, session_id, event_type, media_item_id, duration_seconds');
+    const { data: allViews, error: viewsError } = await supabase.from('reel_views').select('reel_id, session_id, event_type');
     if (viewsError) throw viewsError;
+
+    // Групуємо ID медіа-елементів за ID рілса
+    const mediaIdsByReel = allLinks.reduce((acc, link) => {
+      if (!acc[link.reel_id]) {
+        acc[link.reel_id] = [];
+      }
+      acc[link.reel_id].push({ id: link.media_item_id, order: link.display_order });
+      return acc;
+    }, {});
+    
+    // Сортуємо ID медіа-елементів відповідно до їх порядку
+    for (const reelId in mediaIdsByReel) {
+      mediaIdsByReel[reelId].sort((a, b) => a.order - b.order);
+      // Залишаємо тільки ID
+      mediaIdsByReel[reelId] = mediaIdsByReel[reelId].map(item => item.id);
+    }
 
     const previewPathByReelId = allLinks
       .sort((a, b) => a.display_order - b.display_order)
@@ -339,28 +354,32 @@ app.get('/reels', async (req, res) => {
     }, {});
 
     const viewsByReel = allViews.reduce((acc, view) => {
-        if (!acc[view.reel_id]) acc[view.reel_id] = [];
-        acc[view.reel_id].push(view);
+        if (!acc[view.reel_id]) acc[view.reel_id] = new Set();
+        acc[view.reel_id].add(view.session_id);
+        return acc;
+    }, {});
+
+    const completionByReel = allViews.reduce((acc, view) => {
+        if(view.event_type === 'completion'){
+            if (!acc[view.reel_id]) acc[view.reel_id] = 0;
+            acc[view.reel_id]++;
+        }
         return acc;
     }, {});
 
     const analyticsData = reels.map(reel => {
-        const reelViews = viewsByReel[reel.id] || [];
-        const sessions = new Set(reelViews.map(v => v.session_id));
-        const total_views = sessions.size;
-        const completionEvents = reelViews.filter(v => v.event_type === 'completion');
-        const completed_views = completionEvents.length; 
+        const total_views = viewsByReel[reel.id] ? viewsByReel[reel.id].size : 0;
+        const completed_views = completionByReel[reel.id] || 0;
         const completion_rate = total_views > 0 ? (completed_views / total_views) * 100 : 0;
-        const totalDuration = completionEvents.reduce((sum, v) => sum + (v.duration_seconds || 0), 0);
-        const avg_watch_duration = completed_views > 0 ? totalDuration / completed_views : 0;
         
         return {
-            ...reel, // ✨ Тепер 'reel' містить об'єкт 'profiles'
+            ...reel,
+            media_item_ids: mediaIdsByReel[reel.id] || [],
             preview_gcs_path: previewPathByReelId[reel.id] || null,
             total_views,
             completed_views,
             completion_rate,
-            avg_watch_duration,
+            avg_watch_duration: 0, // Placeholder, as duration is not logged in this simplified version
         };
     });
 
@@ -390,6 +409,7 @@ app.delete('/reels/:id', async (req, res) => {
   const { id } = req.params;
   try {
     await supabase.from('reel_media_items').delete().eq('reel_id', id);
+    await supabase.from('reel_views').delete().eq('reel_id', id);
     await supabase.from('reels').delete().eq('id', id);
     res.status(200).json({ message: 'Reel deleted successfully.' });
   } catch (error) {
@@ -419,7 +439,6 @@ app.get('/reels/public/:short_link', async (req, res) => {
             .filter(Boolean);
 
         const readOptions = { version: 'v4', action: 'read', expires: Date.now() + 20 * 60 * 1000 };
-        // ✨ 1. Визначаємо шлях до стандартного фото режисера
         const defaultDirectorImagePath = 'back-end/artists/director.jpg';
 
         const mediaItemsWithUrls = await Promise.all(sortedMediaItems.map(async (item) => {
@@ -449,8 +468,6 @@ app.get('/reels/public/:short_link', async (req, res) => {
                 enrichedArtists = await Promise.all(artistNames.map(async name => {
                     const record = artistMap[name];
                     let photoUrl = null;
-
-                    // ✨ 2. Визначаємо, який шлях використовувати: фото артиста чи стандартний
                     const path_to_sign = (record && record.photo_gcs_path) 
                         ? record.photo_gcs_path 
                         : defaultDirectorImagePath;
@@ -459,7 +476,6 @@ app.get('/reels/public/:short_link', async (req, res) => {
                         [photoUrl] = await bucket.file(path_to_sign).getSignedUrl(readOptions);
                     } catch (e) {
                          console.error(`Failed to sign URL for artist photo: ${path_to_sign}`, e.message);
-                         // Якщо сталася помилка (напр. файл не знайдено), спробуємо ще раз зі стандартним
                          if (path_to_sign !== defaultDirectorImagePath) {
                              try {
                                  [photoUrl] = await bucket.file(defaultDirectorImagePath).getSignedUrl(readOptions);

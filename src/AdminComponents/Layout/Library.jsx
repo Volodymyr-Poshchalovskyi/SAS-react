@@ -1,4 +1,3 @@
-// src/AdminComponents/Layout/Library.jsx
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   ChevronLeft,
@@ -15,13 +14,14 @@ import {
   Edit,
   Loader2,
   CheckCircle,
+  Copy,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getSignedUrls } from '../../lib/gcsUrlCache'; 
 
 // =======================
-// КОМПОНЕНТ: Модальне вікно для відео (без змін)
+// КОМПОНЕНТ: Модальне вікно для відео
 // =======================
 const VideoModal = ({ videoUrl, onClose }) => {
   if (!videoUrl) return null;
@@ -36,7 +36,7 @@ const VideoModal = ({ videoUrl, onClose }) => {
 };
 
 // =======================
-// КОМПОНЕНТ: SortableHeader (без змін)
+// КОМПОНЕНТ: SortableHeader
 // =======================
 const SortableHeader = ({ children, sortKey, sortConfig, onSort, className = '' }) => {
   const isActive = sortConfig.key === sortKey;
@@ -54,7 +54,7 @@ const SortableHeader = ({ children, sortKey, sortConfig, onSort, className = '' 
 };
 
 // ======================================================
-// ✨ КОМПОНЕНТ: Модальне вікно статусу (НОВИЙ)
+// КОМПОНЕНТ: Модальне вікно статусу
 // ======================================================
 const CreationStatusModal = ({ isOpen, onClose, status, title, message }) => {
   useEffect(() => {
@@ -112,17 +112,119 @@ const CreationStatusModal = ({ isOpen, onClose, status, title, message }) => {
   );
 };
 
+// ======================================================
+// КОМПОНЕНТ: Список існуючих рілсів
+// ======================================================
+const ExistingReelsList = ({ reels, onCopy, signedUrls, isLoading }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredReels = useMemo(() => {
+    if (!searchTerm) return reels;
+    return reels.filter(reel => 
+      reel.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (reel.user_profiles?.first_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (reel.user_profiles?.last_name || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [reels, searchTerm]);
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="mb-4">
+        <input
+          type="text"
+          placeholder="Search existing reels..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 dark:border-slate-700 dark:text-slate-50"
+        />
+      </div>
+      <div className="flex-1 space-y-2 overflow-y-auto max-h-[calc(100vh-250px)] pr-2">
+        {isLoading ? (
+          <div className="flex items-center justify-center h-full text-slate-500">
+            <Loader2 className="animate-spin mr-2" /> Loading...
+          </div>
+        ) : filteredReels.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-center text-slate-500">
+            <p>No reels found.</p>
+          </div>
+        ) : (
+          filteredReels.map(reel => {
+            const previewUrl = reel.preview_gcs_path ? signedUrls[reel.preview_gcs_path] : null;
+            return (
+                <div key={reel.id} className="group flex items-center justify-between gap-3 p-2 rounded-md bg-white dark:bg-slate-800/50">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-14 h-9 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">
+                            {previewUrl ? <img src={previewUrl} alt={reel.title} className="w-full h-full object-cover rounded-md" /> : <ImageIcon className="w-5 h-5 text-slate-400" />}
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{reel.title}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                                By {reel.user_profiles?.first_name || 'N/A'} | {reel.total_views || 0} visits
+                            </p>
+                        </div>
+                    </div>
+                    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => onCopy(reel)} title="Make a copy" className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700">
+                        <Copy className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                        </button>
+                    </div>
+                </div>
+            );
+        })
+        )}
+      </div>
+    </div>
+  );
+};
+
 
 // ======================================================
-// ✨ КОМПОНЕНТ: ReelCreatorSidebar (ОНОВЛЕНО)
+// КОМПОНЕНТ: ReelCreatorSidebar
 // ======================================================
 const ReelCreatorSidebar = ({ allItems }) => {
+  const [activeTab, setActiveTab] = useState('new');
   const [reelItems, setReelItems] = useState([]);
   const [reelTitle, setReelTitle] = useState(`Draft: Showreel (${new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })})`);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
-  
-  // ✨ Стан для керування модальним вікном (замість isCreating)
   const [modalState, setModalState] = useState({ isOpen: false, status: 'idle', title: '', message: '' });
+  
+  const [existingReels, setExistingReels] = useState([]);
+  const [isLoadingReels, setIsLoadingReels] = useState(false);
+  const [signedUrls, setSignedUrls] = useState({});
+
+  useEffect(() => {
+    const fetchExistingReels = async () => {
+      if (activeTab === 'existing' && existingReels.length === 0) {
+        setIsLoadingReels(true);
+        try {
+          const response = await fetch('http://localhost:3001/reels');
+          if (!response.ok) throw new Error('Failed to fetch reels');
+          const data = await response.json();
+          setExistingReels(data);
+        } catch (error) {
+          console.error("Error fetching existing reels:", error);
+        } finally {
+          setIsLoadingReels(false);
+        }
+      }
+    };
+    fetchExistingReels();
+  }, [activeTab]);
+
+  useEffect(() => {
+    const fetchAndCacheUrls = async () => {
+      const pathsToFetch = existingReels.map(item => item.preview_gcs_path).filter(path => path && !signedUrls[path]);
+      if (pathsToFetch.length === 0) return;
+      const uniquePaths = [...new Set(pathsToFetch)];
+      const urlsMap = await getSignedUrls(uniquePaths);
+      setSignedUrls(prevUrls => ({ ...prevUrls, ...urlsMap }));
+    };
+
+    if (existingReels.length > 0) {
+      fetchAndCacheUrls();
+    }
+  }, [existingReels]);
+
 
   const handleDragOver = (e) => { e.preventDefault(); setIsDraggingOver(true); };
   const handleDragLeave = () => setIsDraggingOver(false);
@@ -134,7 +236,6 @@ const ReelCreatorSidebar = ({ allItems }) => {
   };
   const handleRemoveItem = (itemIdToRemove) => setReelItems(prevItems => prevItems.filter(item => item.id !== itemIdToRemove));
   
-  // ✨ Оновлена логіка створення
   const handleCreateReel = async () => {
     if (reelItems.length === 0 || !reelTitle.trim()) return;
     setModalState({ isOpen: true, status: 'creating', title: '', message: '' });
@@ -155,6 +256,7 @@ const ReelCreatorSidebar = ({ allItems }) => {
       }
       
       const newReel = await response.json();
+      setExistingReels(prev => [newReel, ...prev]);
       setModalState({ 
         isOpen: true, 
         status: 'success', 
@@ -173,7 +275,17 @@ const ReelCreatorSidebar = ({ allItems }) => {
     }
   };
 
-  // ✨ Функція для закриття модалки та скидання стану
+  const handleCopyReel = (reelToCopy) => {
+    const itemIds = reelToCopy.media_item_ids || [];
+    const itemsToCopy = allItems.filter(item => itemIds.includes(item.id));
+    // Зберігаємо порядок, який прийшов з бекенду
+    const orderedItems = itemIds.map(id => itemsToCopy.find(item => item.id === id)).filter(Boolean);
+
+    setReelItems(orderedItems);
+    setReelTitle(`Copy: ${reelToCopy.title}`);
+    setActiveTab('new');
+  };
+
   const handleCloseModal = () => {
     if (modalState.status === 'success') {
       setReelItems([]);
@@ -181,7 +293,12 @@ const ReelCreatorSidebar = ({ allItems }) => {
     }
     setModalState({ isOpen: false, status: 'idle', title: '', message: '' });
   };
-
+  
+  const TabButton = ({ tabName, label, activeTab, setActiveTab }) => (
+    <button onClick={() => setActiveTab(tabName)} className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors w-1/2 ${activeTab === tabName ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800'}`}>
+      {label}
+    </button>
+  );
 
   return (
     <>
@@ -193,41 +310,45 @@ const ReelCreatorSidebar = ({ allItems }) => {
         message={modalState.message}
       />
       <div className="w-96 shrink-0 space-y-4">
-        <h2 className="text-xl font-bold text-slate-900 dark:text-slate-50">New Reel</h2>
+        <div className="p-1 bg-slate-100 dark:bg-slate-900 rounded-lg flex items-center">
+          <TabButton tabName="new" label="New Reel" activeTab={activeTab} setActiveTab={setActiveTab} />
+          <TabButton tabName="existing" label="Existing Reels" activeTab={activeTab} setActiveTab={setActiveTab} />
+        </div>
         <div onDragOver={handleDragOver} onDrop={handleDrop} onDragLeave={handleDragLeave} className={`flex flex-col p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 transition-all duration-300 min-h-[400px] ${isDraggingOver ? 'border-2 border-blue-500 ring-4 ring-blue-500/20' : 'border border-slate-200 dark:border-slate-800'}`}>
-          {reelItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center text-center py-16 pointer-events-none h-full">
-              <Layers className="h-12 w-12 text-slate-400 dark:text-slate-500 mb-4" /><h3 className="font-semibold text-slate-800 dark:text-slate-200">Drag work here</h3><p className="text-sm text-slate-500 dark:text-slate-400 mt-1">TO CREATE A REEL</p>
-            </div>
-          ) : (
-            <div className="flex flex-col h-full">
-              <div className="mb-4">
-                <label htmlFor="reel-title" className="text-xs font-medium text-slate-500 dark:text-slate-400">TITLE</label>
-                <input id="reel-title" type="text" value={reelTitle} onChange={(e) => setReelTitle(e.target.value)} className="mt-1 block w-full bg-transparent text-sm text-slate-900 dark:text-slate-50 font-semibold border-none p-0 focus:ring-0" />
+          {activeTab === 'new' ? (
+            reelItems.length === 0 ? (
+              <div className="flex flex-col items-center justify-center text-center py-16 pointer-events-none h-full">
+                <Layers className="h-12 w-12 text-slate-400 dark:text-slate-500 mb-4" /><h3 className="font-semibold text-slate-800 dark:text-slate-200">Drag work here</h3><p className="text-sm text-slate-500 dark:text-slate-400 mt-1">TO CREATE A REEL</p>
               </div>
-              <div className="flex-1 space-y-2 overflow-y-auto max-h-[calc(100vh-300px)] pr-2">
-                {reelItems.map(item => (
-                  <div key={item.id} className="group flex items-center justify-between gap-3 p-2 rounded-md bg-white dark:bg-slate-800/50">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-14 h-9 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">
-                        {item.previewUrl ? <img src={item.previewUrl} alt={item.title} className="w-full h-full object-cover rounded-md" /> : <ImageIcon className="w-5 h-5 text-slate-400" />}
+            ) : (
+              <div className="flex flex-col h-full">
+                <div className="mb-4">
+                  <label htmlFor="reel-title" className="text-xs font-medium text-slate-500 dark:text-slate-400">TITLE</label>
+                  <input id="reel-title" type="text" value={reelTitle} onChange={(e) => setReelTitle(e.target.value)} className="mt-1 block w-full bg-transparent text-sm text-slate-900 dark:text-slate-50 font-semibold border-none p-0 focus:ring-0" />
+                </div>
+                <div className="flex-1 space-y-2 overflow-y-auto max-h-[calc(100vh-350px)] pr-2">
+                  {reelItems.map(item => (
+                    <div key={item.id} className="group flex items-center justify-between gap-3 p-2 rounded-md bg-white dark:bg-slate-800/50">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-14 h-9 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">{item.previewUrl ? <img src={item.previewUrl} alt={item.title} className="w-full h-full object-cover rounded-md" /> : <ImageIcon className="w-5 h-5 text-slate-400" />}</div>
+                        <div className="min-w-0"><p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{item.title}</p><p className="text-xs text-slate-500 dark:text-slate-400 truncate">{item.subtitle || 'No subtitle'}</p></div>
                       </div>
-                      <div className="min-w-0"><p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{item.title}</p><p className="text-xs text-slate-500 dark:text-slate-400 truncate">{item.subtitle || 'No subtitle'}</p></div>
+                      <button onClick={() => handleRemoveItem(item.id)} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><X className="h-4 w-4 text-slate-500 dark:text-slate-400" /></button>
                     </div>
-                    <button onClick={() => handleRemoveItem(item.id)} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><X className="h-4 w-4 text-slate-500 dark:text-slate-400" /></button>
-                  </div>
-                ))}
+                  ))}
+                </div>
+                <div className="mt-auto pt-4">
+                  <button onClick={handleCreateReel} disabled={modalState.status === 'creating'} className="w-full px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center justify-center">{modalState.status === 'creating' ? <><Loader2 className="animate-spin h-5 w-5 mr-2" />Creating...</> : 'Deliver'}</button>
+                </div>
               </div>
-              <div className="mt-auto pt-4">
-                <button 
-                  onClick={handleCreateReel} 
-                  disabled={modalState.status === 'creating'} 
-                  className="w-full px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:bg-slate-400 disabled:cursor-not-allowed flex items-center justify-center"
-                >
-                  {modalState.status === 'creating' ? <><Loader2 className="animate-spin h-5 w-5 mr-2" />Creating...</> : 'Deliver'}
-                </button>
-              </div>
-            </div>
+            )
+          ) : (
+            <ExistingReelsList
+              reels={existingReels}
+              signedUrls={signedUrls}
+              isLoading={isLoadingReels}
+              onCopy={handleCopyReel}
+            />
           )}
         </div>
       </div>
@@ -236,10 +357,10 @@ const ReelCreatorSidebar = ({ allItems }) => {
 };
 
 // =======================
-// КОМПОНЕНТИ ДЛЯ ВИДАЛЕННЯ (без змін)
+// КОМПОНЕНТИ ДЛЯ ВИДАЛЕННЯ
 // =======================
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
-  const [status, setStatus] = useState('idle'); // 'idle', 'deleting', 'success', 'error'
+  const [status, setStatus] = useState('idle');
 
   useEffect(() => {
     if (isOpen) {
@@ -318,7 +439,6 @@ const ItemActionsDropdown = ({ onOpenDeleteModal, onClose, onEdit, isLastItem })
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose]);
 
-  // ✨ FIX: Позиція тепер залежить від того, чи є це останній елемент.
   const positionClass = isLastItem ? 'bottom-8' : 'top-8';
 
   return (
@@ -333,7 +453,7 @@ const ItemActionsDropdown = ({ onOpenDeleteModal, onClose, onEdit, isLastItem })
 
 
 // =======================
-// ОСНОВНИЙ КОМПОНЕНТ Library (без змін)
+// ОСНОВНИЙ КОМПОНЕНТ Library
 // =======================
 const Library = () => {
   const navigate = useNavigate();
@@ -491,52 +611,49 @@ const { data, error } = await supabase
                   </tr>
                 </thead>
                 <tbody className="text-slate-800 dark:text-slate-200 text-xs">
-  {currentItems.map((item, index) => { // Додаємо 'index'
-    const addedBy = item.user_profiles ? `${item.user_profiles.first_name || ''} ${item.user_profiles.last_name || ''}`.trim() : 'System';
-    const previewUrl = item.preview_gcs_path ? signedUrls[item.preview_gcs_path] : null;
-    
-    // ✨ FIX: Визначаємо, чи є цей елемент останнім у списку
-    const isLastItemOnPage = index === currentItems.length - 1;
+                    {currentItems.map((item, index) => {
+                        const addedBy = item.user_profiles ? `${item.user_profiles.first_name || ''} ${item.user_profiles.last_name || ''}`.trim() : 'System';
+                        const previewUrl = item.preview_gcs_path ? signedUrls[item.preview_gcs_path] : null;
+                        const isLastItemOnPage = index === currentItems.length - 1;
 
-    return (
-      <tr key={item.id} draggable="true" onDragStart={(e) => handleDragStart(e, item)} className={`border-b border-slate-100 dark:border-slate-800 transition-colors cursor-pointer ${selectedItems.has(item.id) ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`} onClick={() => handleRowCheck(item.id)}>
-        <td className="p-4 align-top pt-6">
-           <input type="checkbox" checked={selectedItems.has(item.id)} onChange={(e) => { e.stopPropagation(); handleRowCheck(item.id); }} onClick={(e) => e.stopPropagation()} className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-blue-600 cursor-pointer" />
-        </td>
-        <td className="p-4 align-top">
-          <div className="flex items-start gap-4">
-            <div className="w-16 h-10 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">
-                {previewUrl ? <img src={previewUrl} alt="preview" className="w-full h-full object-cover rounded-md" /> : <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800"><ImageIcon className="w-5 h-5 text-slate-400" /></div>}
-            </div>
-            <div className='min-w-0'>
-                <div className="text-blue-600 dark:text-blue-400 text-[10px] font-medium uppercase">{item.client}</div>
-                <div className="font-semibold text-slate-900 dark:text-slate-50 whitespace-normal break-words">{item.title}</div>
-            </div>
-          </div>
-        </td>
-        <td className="p-4 align-top truncate">{item.artists}</td>
-        <td className="p-4 align-top truncate">{item.client}</td>
-        <td className="p-4 align-top truncate">{item.categories}</td>
-        <td className="p-4 align-top truncate">{addedBy}</td>
-        <td className="p-4 align-top text-slate-500 dark:text-slate-400">{formatDateTime(item.created_at)}</td>
-        <td className="p-4 align-top text-right relative">
-          <button onClick={(e) => handleToggleDropdown(e, item.id)} className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700">
-            <Settings className="h-4 w-4 text-slate-500" />
-          </button>
-          {activeDropdown?.id === item.id && (
-            <ItemActionsDropdown 
-              onClose={() => setActiveDropdown(null)} 
-              onOpenDeleteModal={() => handleOpenDeleteModal(item)}
-              onEdit={() => handleEditItem(item.id)}
-              // ✨ FIX: Передаємо новий проп сюди
-              isLastItem={isLastItemOnPage}
-            />
-          )}
-        </td>
-      </tr>
-    );
-  })}
-</tbody>
+                        return (
+                        <tr key={item.id} draggable="true" onDragStart={(e) => handleDragStart(e, item)} className={`border-b border-slate-100 dark:border-slate-800 transition-colors cursor-pointer ${selectedItems.has(item.id) ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`} onClick={() => handleRowCheck(item.id)}>
+                            <td className="p-4 align-top pt-6">
+                            <input type="checkbox" checked={selectedItems.has(item.id)} onChange={(e) => { e.stopPropagation(); handleRowCheck(item.id); }} onClick={(e) => e.stopPropagation()} className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-blue-600 cursor-pointer" />
+                            </td>
+                            <td className="p-4 align-top">
+                            <div className="flex items-start gap-4">
+                                <div className="w-16 h-10 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">
+                                    {previewUrl ? <img src={previewUrl} alt="preview" className="w-full h-full object-cover rounded-md" /> : <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800"><ImageIcon className="w-5 h-5 text-slate-400" /></div>}
+                                </div>
+                                <div className='min-w-0'>
+                                    <div className="text-blue-600 dark:text-blue-400 text-[10px] font-medium uppercase">{item.client}</div>
+                                    <div className="font-semibold text-slate-900 dark:text-slate-50 whitespace-normal break-words">{item.title}</div>
+                                </div>
+                            </div>
+                            </td>
+                            <td className="p-4 align-top truncate">{item.artists}</td>
+                            <td className="p-4 align-top truncate">{item.client}</td>
+                            <td className="p-4 align-top truncate">{item.categories}</td>
+                            <td className="p-4 align-top truncate">{addedBy}</td>
+                            <td className="p-4 align-top text-slate-500 dark:text-slate-400">{formatDateTime(item.created_at)}</td>
+                            <td className="p-4 align-top text-right relative">
+                            <button onClick={(e) => handleToggleDropdown(e, item.id)} className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700">
+                                <Settings className="h-4 w-4 text-slate-500" />
+                            </button>
+                            {activeDropdown?.id === item.id && (
+                                <ItemActionsDropdown 
+                                onClose={() => setActiveDropdown(null)} 
+                                onOpenDeleteModal={() => handleOpenDeleteModal(item)}
+                                onEdit={() => handleEditItem(item.id)}
+                                isLastItem={isLastItemOnPage}
+                                />
+                            )}
+                            </td>
+                        </tr>
+                        );
+                    })}
+                </tbody>
               </table>
             </div>
             {totalPages > 1 && (

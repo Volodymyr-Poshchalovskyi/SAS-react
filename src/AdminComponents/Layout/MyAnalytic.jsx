@@ -1,5 +1,3 @@
-// src/AdminComponents/Layout/MyAnalytics.jsx
-
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Eye,
@@ -24,8 +22,8 @@ import { getSignedUrls } from '../../lib/gcsUrlCache';
 // UTILITY COMPONENTS
 // =======================
 const Highlight = ({ text, highlight }) => {
-  if (!highlight?.trim()) return <span>{text}</span>;
-  const regex = new RegExp(`(${highlight})`, 'gi');
+  if (!highlight?.trim() || !text) return <span>{text}</span>;
+  const regex = new RegExp(`(${highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
   const parts = String(text).split(regex);
   return (
     <span>
@@ -56,7 +54,7 @@ const SortableHeader = ({ children, sortKey, sortConfig, onSort, className = '' 
 };
 
 // ===========================================
-// ConfirmationModal Component (без змін)
+// ConfirmationModal Component
 // ===========================================
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
   const [status, setStatus] = useState('idle'); // 'idle', 'deleting', 'success', 'error'
@@ -219,7 +217,6 @@ const MyAnalytics = () => {
     const term = searchTerm.toLowerCase();
     return sortedData.filter((item) => {
       const createdByName = `${item.user_profiles?.first_name || ''} ${item.user_profiles?.last_name || ''}`.trim().toLowerCase();
-      // ✨ ЗМІНА: Оновлено пошук, щоб він включав час
       const createdAtDateTime = item.created_at 
         ? new Date(item.created_at).toLocaleString('uk-UA', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) 
         : '';
@@ -277,7 +274,6 @@ const MyAnalytics = () => {
             <table className="w-full text-sm">
               <thead className="text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900">
                 <tr className="border-b border-slate-200 dark:border-slate-800">
-                  {/* ✨ ЗМІНА: Оновлено ширину колонок */}
                   <SortableHeader sortKey="title" sortConfig={sortConfig} onSort={handleSort} className="w-[23%]">Reel</SortableHeader>
                   <SortableHeader sortKey="total_views" sortConfig={sortConfig} onSort={handleSort} className="w-[8%] text-center">Views</SortableHeader>
                   <SortableHeader sortKey="completion_rate" sortConfig={sortConfig} onSort={handleSort} className="w-[12%] text-center">Completion</SortableHeader>
@@ -294,9 +290,8 @@ const MyAnalytics = () => {
                   const previewUrl = reel.preview_gcs_path ? signedUrls[reel.preview_gcs_path] : null;
                   const completionRate = Math.round(reel.completion_rate || 0);
                   const createdBy = reel.user_profiles ? `${reel.user_profiles.first_name || ''} ${reel.user_profiles.last_name || ''}`.trim() : 'N/A';
-                  // ✨ ЗМІНА: Форматування дати включає тепер годину та хвилину
                   const createdAtDateTime = reel.created_at 
-                    ? new Date(reel.created_at).toLocaleString('uk-UA', { // Використовуємо локаль 'uk-UA' для формату ДД.ММ.РРРР, ГГ:ХХ
+                    ? new Date(reel.created_at).toLocaleString('uk-UA', {
                         year: 'numeric', 
                         month: '2-digit', 
                         day: '2-digit', 
@@ -388,8 +383,12 @@ const MyAnalytics = () => {
             </table>
           </div>
           {totalPages > 1 && (
-            <div className="p-4 flex items-center justify-between text-sm border-t border-slate-200 dark:border-slate-800">
-                {/* Pagination */}
+            <div className="p-4 flex items-center justify-between text-sm text-slate-600 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800">
+                <div>Page {currentPage} of {totalPages}</div>
+                 <div className="flex items-center gap-2">
+                   <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1.5 border rounded-md disabled:opacity-50 border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"><ChevronLeft size={16} /></button>
+                   <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1.5 border rounded-md disabled:opacity-50 border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"><ChevronRight size={16} /></button>
+                 </div>
             </div>
           )}
         </div>
