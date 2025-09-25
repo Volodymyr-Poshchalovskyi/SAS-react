@@ -1,3 +1,4 @@
+// src/AdminComponents/Layout/Library.jsx
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   ChevronLeft,
@@ -12,10 +13,12 @@ import {
   Trash2,
   AlertTriangle,
   Edit,
+  Loader2, // ✨ ДОДАНО
+  CheckCircle, // ✨ ДОДАНО
 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { getSignedUrls } from '../../lib/gcsUrlCache'; // <-- ІМПОРТУЄМО КЕШ-СЕРВІС
+import { getSignedUrls } from '../../lib/gcsUrlCache'; 
 
 // =======================
 // КОМПОНЕНТ: Модальне вікно для відео (без змін)
@@ -123,41 +126,78 @@ const ReelCreatorSidebar = ({ allItems }) => {
 };
 
 // =======================
-// КОМПОНЕНТИ ДЛЯ ВИДАЛЕННЯ (без змін)
+// ✨ КОМПОНЕНТИ ДЛЯ ВИДАЛЕННЯ (ОНОВЛЕНО)
 // =======================
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
+  const [status, setStatus] = useState('idle'); // 'idle', 'deleting', 'success', 'error'
+
+  useEffect(() => {
+    if (isOpen) {
+      setStatus('idle');
+    }
+  }, [isOpen]);
+
+  const handleConfirmClick = async () => {
+    setStatus('deleting');
+    try {
+      await onConfirm();
+      setStatus('success');
+      setTimeout(() => {
+        onClose();
+      }, 2000);
+    } catch (error) {
+      console.error("Deletion failed:", error);
+      setStatus('error');
+    }
+  };
+
   if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start">
-          <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/50 sm:mx-0 sm:h-10 sm:w-10">
-            <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" aria-hidden="true" />
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50" onClick={status === 'idle' ? onClose : undefined}>
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-md transition-all" onClick={(e) => e.stopPropagation()}>
+        {status === 'success' ? (
+          <div className="text-center py-4">
+            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-slate-900 dark:text-slate-50">Deleted Successfully</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+              Item "<strong className="text-slate-700 dark:text-slate-200">{itemTitle}</strong>" was deleted.
+            </p>
           </div>
-          <div className="ml-4 text-left">
-            <h3 className="text-lg leading-6 font-medium text-slate-900 dark:text-slate-50">Delete Media Item</h3>
-            <div className="mt-2">
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                Are you sure you want to delete <strong className="text-slate-700 dark:text-slate-200">{itemTitle}</strong>? This will permanently remove the item and its associated files from the database and storage. This action cannot be undone.
-              </p>
+        ) : (
+          <>
+            <div className="flex items-start">
+              <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/50 sm:mx-0 sm:h-10 sm:w-10">
+                <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" aria-hidden="true" />
+              </div>
+              <div className="ml-4 text-left">
+                <h3 className="text-lg leading-6 font-medium text-slate-900 dark:text-slate-50">Delete Media Item</h3>
+                <div className="mt-2">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Are you sure you want to delete <strong className="text-slate-700 dark:text-slate-200">{itemTitle}</strong>? This action cannot be undone.
+                  </p>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
-        <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse gap-3">
-          <button type="button" onClick={onConfirm} className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none sm:w-auto sm:text-sm">
-            Delete
-          </button>
-          <button type="button" onClick={onClose} className="mt-3 w-full inline-flex justify-center rounded-md border border-slate-300 dark:border-slate-600 shadow-sm px-4 py-2 bg-white dark:bg-slate-700 text-base font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 focus:outline-none sm:mt-0 sm:w-auto sm:text-sm">
-            Cancel
-          </button>
-        </div>
+            <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse gap-3">
+              <button type="button" onClick={handleConfirmClick} disabled={status === 'deleting'} className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none sm:w-auto sm:text-sm disabled:bg-red-400 disabled:cursor-not-allowed">
+                {status === 'deleting' ? <Loader2 className="animate-spin h-5 w-5" /> : 'Delete'}
+              </button>
+              <button type="button" onClick={onClose} disabled={status === 'deleting'} className="mt-3 w-full inline-flex justify-center rounded-md border border-slate-300 dark:border-slate-600 shadow-sm px-4 py-2 bg-white dark:bg-slate-700 text-base font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 focus:outline-none sm:mt-0 sm:w-auto sm:text-sm disabled:opacity-50">
+                Cancel
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
 };
 
-const ItemActionsDropdown = ({ onOpenDeleteModal, onClose, onEdit }) => {
+
+const ItemActionsDropdown = ({ onOpenDeleteModal, onClose, onEdit, triggerElement }) => {
   const dropdownRef = useRef(null);
+  const [positionClass, setPositionClass] = useState('top-8');
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -169,21 +209,25 @@ const ItemActionsDropdown = ({ onOpenDeleteModal, onClose, onEdit }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose]);
 
+  useEffect(() => {
+    if (triggerElement) {
+      const triggerRect = triggerElement.getBoundingClientRect();
+      const dropdownHeight = 80; // Approximate height of the dropdown
+      const spaceBelow = window.innerHeight - triggerRect.bottom;
+
+      if (spaceBelow < dropdownHeight && triggerRect.top > dropdownHeight) {
+        setPositionClass('bottom-8'); // Open upwards
+      } else {
+        setPositionClass('top-8'); // Open downwards
+      }
+    }
+  }, [triggerElement]);
+
   return (
-    <div ref={dropdownRef} className="absolute right-4 top-10 z-20 w-48 bg-white dark:bg-slate-800 rounded-md shadow-lg border border-slate-200 dark:border-slate-700">
+    <div ref={dropdownRef} className={`absolute right-4 ${positionClass} z-20 w-48 bg-white dark:bg-slate-800 rounded-md shadow-lg border border-slate-200 dark:border-slate-700`}>
       <ul className="py-1">
-        <li>
-          <button onClick={onEdit} className="w-full flex items-center px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700">
-            <Edit className="mr-3 h-4 w-4" />
-            <span>Edit</span>
-          </button>
-        </li>
-        <li>
-          <button onClick={onOpenDeleteModal} className="w-full flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-700">
-            <Trash2 className="mr-3 h-4 w-4" />
-            <span>Delete</span>
-          </button>
-        </li>
+        <li><button onClick={onEdit} className="w-full flex items-center px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"><Edit className="mr-3 h-4 w-4" /><span>Edit</span></button></li>
+        <li><button onClick={onOpenDeleteModal} className="w-full flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-700"><Trash2 className="mr-3 h-4 w-4" /><span>Delete</span></button></li>
       </ul>
     </div>
   );
@@ -252,27 +296,15 @@ const Library = () => {
     return filteredItems.slice(start, start + itemsPerPage);
   }, [filteredItems, currentPage]);
 
-  // ОНОВЛЕНИЙ useEffect ДЛЯ ОТРИМАННЯ URL-адрес
   useEffect(() => {
     const fetchAndCacheUrls = async () => {
-      const pathsToFetch = currentItems
-        .flatMap(item => [item.preview_gcs_path, item.video_gcs_path])
-        .filter(path => path);
-      
+      const pathsToFetch = currentItems.flatMap(item => [item.preview_gcs_path, item.video_gcs_path]).filter(path => path);
       const uniquePaths = [...new Set(pathsToFetch)];
-      
       if (uniquePaths.length === 0) return;
-
-      // Викликаємо наш кеш-сервіс
       const urlsMap = await getSignedUrls(uniquePaths);
-
-      // Оновлюємо локальний стан, щоб компонент перерендерився
       setSignedUrls(prevUrls => ({ ...prevUrls, ...urlsMap }));
     };
-
-    if (currentItems.length > 0) {
-      fetchAndCacheUrls();
-    }
+    if (currentItems.length > 0) { fetchAndCacheUrls(); }
   }, [currentItems]);
 
   useEffect(() => {
@@ -292,7 +324,7 @@ const Library = () => {
 
   const handleToggleDropdown = (e, itemId) => {
     e.stopPropagation();
-    setActiveDropdown(prev => (prev === itemId ? null : itemId));
+    setActiveDropdown(prev => (prev?.id === itemId ? null : { id: itemId, target: e.currentTarget }));
   };
   
   const handleOpenDeleteModal = (item) => {
@@ -311,20 +343,12 @@ const Library = () => {
 
   const handleConfirmDelete = async () => {
     if (!itemToDelete) return;
-    try {
-      const response = await fetch(`http://localhost:3001/media-items/${itemToDelete.id}`, { method: 'DELETE' });
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.details || 'Failed to delete item.');
-      }
-      setItems(prevItems => prevItems.filter(item => item.id !== itemToDelete.id));
-      alert(`Item "${itemToDelete.title}" was successfully deleted.`);
-    } catch (err) {
-      console.error('Error deleting item:', err);
-      alert(`Error: ${err.message}`);
-    } finally {
-      handleCloseDeleteModal();
+    const response = await fetch(`http://localhost:3001/media-items/${itemToDelete.id}`, { method: 'DELETE' });
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.details || 'Failed to delete item.');
     }
+    setItems(prevItems => prevItems.filter(item => item.id !== itemToDelete.id));
   };
 
 
@@ -372,9 +396,21 @@ const Library = () => {
                     const previewUrl = item.preview_gcs_path ? signedUrls[item.preview_gcs_path] : null;
 
                     return (
-                      <tr key={item.id} draggable="true" onDragStart={(e) => handleDragStart(e, item)} className={`border-b border-slate-100 dark:border-slate-800 transition-colors cursor-pointer ${selectedItems.has(item.id) ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`} onClick={() => handleRowCheck(item.id)} onDoubleClick={() => handleDoubleClick(item)}>
-                        <td className="p-4 align-top pt-6"><input type="checkbox" checked={selectedItems.has(item.id)} onChange={(e) => {e.stopPropagation(); handleRowCheck(item.id)}} className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-blue-600" /></td>
-                        <td className="p-4 align-top"><div className="flex items-start gap-4"><div className="w-16 h-10 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">{previewUrl ? <img src={previewUrl} alt="preview" className="w-full h-full object-cover rounded-md" /> : <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800"><ImageIcon className="w-5 h-5 text-slate-400" /></div>}</div><div><div className="text-blue-600 dark:text-blue-400 text-[10px] font-medium uppercase">{item.client}</div><div className="font-semibold text-slate-900 dark:text-slate-50 truncate">{item.title}</div></div></div></td>
+                      <tr key={item.id} draggable="true" onDragStart={(e) => handleDragStart(e, item)} className={`border-b border-slate-100 dark:border-slate-800 transition-colors cursor-pointer ${selectedItems.has(item.id) ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`} onClick={() => handleRowCheck(item.id)}>
+                        <td className="p-4 align-top pt-6">
+                           <input type="checkbox" checked={selectedItems.has(item.id)} onChange={(e) => { e.stopPropagation(); handleRowCheck(item.id); }} onClick={(e) => e.stopPropagation()} className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-blue-600 cursor-pointer" />
+                        </td>
+                        <td className="p-4 align-top">
+                          <div className="flex items-start gap-4">
+                            <div className="w-16 h-10 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">
+                                {previewUrl ? <img src={previewUrl} alt="preview" className="w-full h-full object-cover rounded-md" /> : <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800"><ImageIcon className="w-5 h-5 text-slate-400" /></div>}
+                            </div>
+                            <div className='min-w-0'>
+                                <div className="text-blue-600 dark:text-blue-400 text-[10px] font-medium uppercase">{item.client}</div>
+                                <div className="font-semibold text-slate-900 dark:text-slate-50 whitespace-normal break-words">{item.title}</div>
+                            </div>
+                          </div>
+                        </td>
                         <td className="p-4 align-top truncate">{item.artists}</td>
                         <td className="p-4 align-top truncate">{item.client}</td>
                         <td className="p-4 align-top truncate">{item.categories}</td>
@@ -384,8 +420,9 @@ const Library = () => {
                           <button onClick={(e) => handleToggleDropdown(e, item.id)} className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700">
                             <Settings className="h-4 w-4 text-slate-500" />
                           </button>
-                          {activeDropdown === item.id && (
+                          {activeDropdown?.id === item.id && (
                             <ItemActionsDropdown 
+                              triggerElement={activeDropdown.target}
                               onClose={() => setActiveDropdown(null)} 
                               onOpenDeleteModal={() => handleOpenDeleteModal(item)}
                               onEdit={() => handleEditItem(item.id)}
