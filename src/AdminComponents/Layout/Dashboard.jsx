@@ -5,6 +5,8 @@ import WeeklyViewsChart from './WeeklyViewsChart';
 import DateRangePicker from './DateRangePicker';
 import { formatDistanceToNow } from 'date-fns';
 import TrendingVideos from './TrendingVideos';
+// ✨ 1. Імпортуємо кешуючу функцію
+import { getSignedUrls } from '../../lib/gcsUrlCache'; // Шлях може потребувати корекції
 
 const cardClasses =
   'bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl';
@@ -30,21 +32,7 @@ const VideoCard = ({ title, imageUrl, badge, description, isLoading }) => (
   </div>
 );
 
-const fetchSignedUrls = async (gcsPaths) => {
-    if (!gcsPaths || gcsPaths.length === 0) return {};
-    try {
-        const response = await fetch('http://localhost:3001/generate-read-urls', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ gcsPaths }),
-        });
-        if (!response.ok) throw new Error('Failed to fetch signed URLs');
-        return await response.json();
-    } catch (err) {
-        console.error('Error fetching signed URLs:', err);
-        return {};
-    }
-};
+// ✨ 2. Локальна функція fetchSignedUrls видалена, оскільки ми використовуємо кешовану версію
 
 const ListItem = ({ imageUrl, title, subtitle, time, actionText, isLoading }) => (
     <div className="flex items-center space-x-4 py-3">
@@ -110,7 +98,8 @@ const Dashboard = () => {
             const activityPaths = activityData.map(a => a.preview_gcs_path).filter(Boolean);
             const allPaths = [...new Set([...trendingPaths, ...activityPaths])];
 
-            const urls = await fetchSignedUrls(allPaths);
+            // ✨ 3. Використовуємо getSignedUrls замість локальної функції
+            const urls = await getSignedUrls(allPaths);
             
             setTrendingVideos(trendingData.map(v => ({ ...v, imageUrl: urls[v.preview_gcs_path] })));
             setRecentActivity(activityData.map(a => ({ ...a, imageUrl: urls[a.preview_gcs_path] })));
