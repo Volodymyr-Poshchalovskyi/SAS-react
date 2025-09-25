@@ -5,7 +5,7 @@ import { useParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 
 // --- Static Assets ---
-import directorPhoto from '../assets/Photos/Director.jpg'; // Fallback
+
 
 // --- Компонент стрілки (без змін) ---
 const SliderArrow = ({ direction, onClick }) => (
@@ -217,7 +217,7 @@ export default function PublicReelPage() {
                     <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-start">
                         <div className="md:col-span-1">
                             <img
-                                src={mainArtist.photoUrl || directorPhoto} // Використовуємо фото з бази даних або fallback
+                                src={mainArtist.photoUrl || ''} // Використовуємо фото з бази даних або fallback
                                 alt={mainArtist.name}
                                 className="w-full h-auto object-cover"
                             />

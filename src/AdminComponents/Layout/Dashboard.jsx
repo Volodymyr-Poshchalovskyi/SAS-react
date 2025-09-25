@@ -5,12 +5,13 @@ import WeeklyViewsChart from './WeeklyViewsChart';
 import DateRangePicker from './DateRangePicker';
 import { formatDistanceToNow } from 'date-fns';
 import TrendingVideos from './TrendingVideos';
-// ✨ 1. Імпортуємо кешуючу функцію
-import { getSignedUrls } from '../../lib/gcsUrlCache'; // Шлях може потребувати корекції
+import TrendingDirectors from './TrendingDirectors';
+import { getSignedUrls } from '../../lib/gcsUrlCache';
 
 const cardClasses =
   'bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl';
 
+// ... (Компоненти VideoCard та ListItem залишаються без змін)
 const VideoCard = ({ title, imageUrl, badge, description, isLoading }) => (
   <div className={`${cardClasses} p-5`}>
     { isLoading ? (
@@ -31,9 +32,6 @@ const VideoCard = ({ title, imageUrl, badge, description, isLoading }) => (
     )}
   </div>
 );
-
-// ✨ 2. Локальна функція fetchSignedUrls видалена, оскільки ми використовуємо кешовану версію
-
 const ListItem = ({ imageUrl, title, subtitle, time, actionText, isLoading }) => (
     <div className="flex items-center space-x-4 py-3">
     { isLoading ? (
@@ -58,6 +56,7 @@ const ListItem = ({ imageUrl, title, subtitle, time, actionText, isLoading }) =>
     </div>
 );
 
+
 const Dashboard = () => {
   const today = new Date();
   const sevenDaysAgo = new Date();
@@ -70,12 +69,14 @@ const Dashboard = () => {
 
   const [chartData, setChartData] = useState([]);
   const [trendingVideos, setTrendingVideos] = useState([]);
+  const [trendingDirectors, setTrendingDirectors] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
         setIsLoading(true);
+        setTrendingDirectors([]);
         if (!dateRange.from || !dateRange.to) return;
 
         const startDateStr = dateRange.from.toISOString().split('T')[0];
@@ -84,24 +85,71 @@ const Dashboard = () => {
         try {
             const [chartRes, trendingRes, activityRes] = await Promise.all([
                 fetch(`http://localhost:3001/analytics/views-over-time?startDate=${startDateStr}&endDate=${endDateStr}`),
-                fetch(`http://localhost:3001/analytics/trending-media?startDate=${startDateStr}&endDate=${endDateStr}&limit=4`),
+                fetch(`http://localhost:3001/analytics/trending-media?startDate=${startDateStr}&endDate=${endDateStr}&limit=20`),
                 fetch(`http://localhost:3001/analytics/recent-activity?limit=5`)
             ]);
 
             const chartData = await chartRes.json();
             const trendingData = await trendingRes.json();
             const activityData = await activityRes.json();
-
-            setChartData(chartData);
             
+            const directorViews = {};
+            trendingData.forEach(video => {
+                if (video.artists) {
+                    const directorName = video.artists.split(',')[0].trim();
+                    if(directorName) {
+                        directorViews[directorName] = (directorViews[directorName] || 0) + video.views;
+                    }
+                }
+            });
+
+            const topDirectors = Object.entries(directorViews)
+                .sort(([, a], [, b]) => b - a)
+                .slice(0, 3)
+                .map(([name, totalViews]) => ({ name, totalViews }));
+
+            let directorDetails = [];
+            let directorPhotoPaths = [];
+            if (topDirectors.length > 0) {
+                const directorNames = topDirectors.map(d => d.name);
+                const detailsRes = await fetch('http://localhost:3001/artists/details-by-names', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ names: directorNames }),
+                });
+                directorDetails = await detailsRes.json();
+                directorPhotoPaths = directorDetails.map(d => d.photo_gcs_path).filter(Boolean);
+            }
+
+            // ✨ 1. Визначаємо шлях до стандартного фото
+            const defaultDirectorImagePath = 'back-end/artists/director.jpg';
+
             const trendingPaths = trendingData.map(v => v.preview_gcs_path).filter(Boolean);
             const activityPaths = activityData.map(a => a.preview_gcs_path).filter(Boolean);
-            const allPaths = [...new Set([...trendingPaths, ...activityPaths])];
 
-            // ✨ 3. Використовуємо getSignedUrls замість локальної функції
-            const urls = await getSignedUrls(allPaths);
+            // ✨ 2. Завжди додаємо стандартне фото в запит на підписання URL
+            const allPaths = [...new Set([...trendingPaths, ...activityPaths, ...directorPhotoPaths, defaultDirectorImagePath])];
             
-            setTrendingVideos(trendingData.map(v => ({ ...v, imageUrl: urls[v.preview_gcs_path] })));
+            const urls = await getSignedUrls(allPaths);
+
+            // ✨ 3. Отримуємо підписаний URL для стандартного фото
+            const fallbackDirectorUrl = urls[defaultDirectorImagePath];
+
+            const directorDetailsMap = directorDetails.reduce((acc, director) => {
+                const specificPhotoUrl = director.photo_gcs_path ? urls[director.photo_gcs_path] : null;
+                // Використовуємо фото режисера або стандартне, якщо його немає
+                acc[director.name] = { imageUrl: specificPhotoUrl || fallbackDirectorUrl };
+                return acc;
+            }, {});
+
+            setTrendingDirectors(topDirectors.map(director => ({
+                ...director,
+                // Додаткова перевірка, якщо режисер є у відео, але відсутній в таблиці artists
+                imageUrl: directorDetailsMap[director.name]?.imageUrl || fallbackDirectorUrl,
+            })));
+            
+            setChartData(chartData);
+            setTrendingVideos(trendingData.slice(0, 4).map(v => ({ ...v, imageUrl: urls[v.preview_gcs_path] })));
             setRecentActivity(activityData.map(a => ({ ...a, imageUrl: urls[a.preview_gcs_path] })));
 
         } catch (error) {
@@ -112,8 +160,6 @@ const Dashboard = () => {
     };
     fetchDashboardData();
   }, [dateRange]);
-
-  const trendingDirectorImage = 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80';
   
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
@@ -147,13 +193,7 @@ const Dashboard = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <TrendingVideos videos={trendingVideos} isLoading={isLoading} />
-            <VideoCard
-              title="TRENDING DIRECTOR OF THE WEEK"
-              imageUrl={trendingDirectorImage}
-              description="Alex Johnson's latest work garnered significant attention."
-              badge="RISING STAR"
-              isLoading={isLoading}
-            />
+            <TrendingDirectors directors={trendingDirectors} isLoading={isLoading} />
           </div>
 
         </div>

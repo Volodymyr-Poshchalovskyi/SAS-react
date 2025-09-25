@@ -44,7 +44,7 @@ function generateShortId(length = 5) {
 
 app.post('/generate-upload-url', async (req, res) => {
   try {
-    const { fileName, fileType, destination } = req.body; // ✨ ЗМІНА: Додано 'destination'
+    const { fileName, fileType, destination } = req.body;
     if (!fileName || !fileType) return res.status(400).json({ error: 'fileName and fileType are required.' });
 
     let destinationFolder;
@@ -93,8 +93,29 @@ app.post('/generate-read-urls', async (req, res) => {
 });
 
 // ========================================================================== //
-// ✨ НОВЕ: ЕНДПОІНТИ ДЛЯ АРТИСТІВ
+// ЕНДПОІНТИ ДЛЯ АРТИСТІВ
 // ========================================================================== //
+
+app.post('/artists/details-by-names', async (req, res) => {
+    const { names } = req.body;
+    if (!names || !Array.isArray(names) || names.length === 0) {
+        return res.status(400).json({ error: 'An array of names is required.' });
+    }
+
+    try {
+        const { data, error } = await supabase
+            .from('artists')
+            .select('name, photo_gcs_path')
+            .in('name', names);
+        
+        if (error) throw error;
+        res.status(200).json(data);
+    } catch (error) {
+        console.error('Error fetching artists by names:', error);
+        res.status(500).json({ error: 'Failed to fetch artist details.', details: error.message });
+    }
+});
+
 app.put('/artists/:id', async (req, res) => {
     const { id } = req.params;
     const { name, description, photo_gcs_path } = req.body;
@@ -115,7 +136,6 @@ app.put('/artists/:id', async (req, res) => {
             .single();
         if (updateError) throw updateError;
         
-        // Видаляємо старий файл, якщо він був і змінився
         if (currentItem.photo_gcs_path && currentItem.photo_gcs_path !== photo_gcs_path) {
             await bucket.file(currentItem.photo_gcs_path).delete().catch(err => console.error(`Failed to delete old artist photo ${currentItem.photo_gcs_path}:`, err.message));
         }
@@ -225,7 +245,7 @@ app.get('/analytics/trending-media', async (req, res) => {
 
         const { data: trendingItems, error: itemsError } = await supabase
             .from('reel_media_items')
-            .select(`reel_id, media_items (id, title, client, preview_gcs_path)`)
+            .select(`reel_id, media_items (id, title, client, preview_gcs_path, artists)`)
             .in('reel_id', topReelIds)
             .eq('display_order', 1);
 
@@ -236,6 +256,7 @@ app.get('/analytics/trending-media', async (req, res) => {
             title: item.media_items.title,
             client: item.media_items.client,
             preview_gcs_path: item.media_items.preview_gcs_path,
+            artists: item.media_items.artists, 
             views: countsByReel[item.reel_id]
         }));
         
@@ -393,6 +414,8 @@ app.get('/reels/public/:short_link', async (req, res) => {
             .filter(Boolean);
 
         const readOptions = { version: 'v4', action: 'read', expires: Date.now() + 20 * 60 * 1000 };
+        // ✨ 1. Визначаємо шлях до стандартного фото режисера
+        const defaultDirectorImagePath = 'back-end/artists/director.jpg';
 
         const mediaItemsWithUrls = await Promise.all(sortedMediaItems.map(async (item) => {
             let videoUrl = null, previewUrl = null;
@@ -403,7 +426,6 @@ app.get('/reels/public/:short_link', async (req, res) => {
                 console.error(`Failed to get signed URL for item ${item.id}:`, urlError.message);
             }
 
-            // ✨ ЗМІНА: Збагачуємо дані про артистів
             const artistNames = (item.artists || '').split(',').map(name => name.trim()).filter(Boolean);
             let enrichedArtists = [];
             if (artistNames.length > 0) {
@@ -421,17 +443,30 @@ app.get('/reels/public/:short_link', async (req, res) => {
 
                 enrichedArtists = await Promise.all(artistNames.map(async name => {
                     const record = artistMap[name];
-                    if (record) {
-                        let photoUrl = null;
-                        if (record.photo_gcs_path) {
+                    let photoUrl = null;
+
+                    // ✨ 2. Визначаємо, який шлях використовувати: фото артиста чи стандартний
+                    const path_to_sign = (record && record.photo_gcs_path) 
+                        ? record.photo_gcs_path 
+                        : defaultDirectorImagePath;
+
+                    try {
+                        [photoUrl] = await bucket.file(path_to_sign).getSignedUrl(readOptions);
+                    } catch (e) {
+                         console.error(`Failed to sign URL for artist photo: ${path_to_sign}`, e.message);
+                         // Якщо сталася помилка (напр. файл не знайдено), спробуємо ще раз зі стандартним
+                         if (path_to_sign !== defaultDirectorImagePath) {
                              try {
-                                [photoUrl] = await bucket.file(record.photo_gcs_path).getSignedUrl(readOptions);
-                            } catch (e) { console.error(`Failed to sign URL for artist photo ${record.photo_gcs_path}`); }
-                        }
-                        return { name: record.name, description: record.description, photoUrl };
+                                 [photoUrl] = await bucket.file(defaultDirectorImagePath).getSignedUrl(readOptions);
+                             } catch (e2) { console.error('Failed to sign fallback URL', e2.message); }
+                         }
                     }
-                    // Fallback для артистів, яких немає в базі
-                    return { name, description: null, photoUrl: null };
+                    
+                    return { 
+                        name: record ? record.name : name, 
+                        description: record ? record.description : null, 
+                        photoUrl 
+                    };
                 }));
             }
             
