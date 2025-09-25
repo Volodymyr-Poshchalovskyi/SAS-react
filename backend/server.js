@@ -150,7 +150,7 @@ app.post('/reels', async (req, res) => {
       .insert({
         title,
         short_link: shortLink,
-        status: 'Active', // ВИПРАВЛЕНО: рілс створюється одразу активним
+        status: 'Active',
         created_by_user_id: user_id,
       })
       .select()
@@ -187,18 +187,21 @@ app.get('/reels', async (req, res) => {
         short_link,
         status,
         reel_media_items (
+          display_order,
           media_items (
             preview_gcs_path
           )
         )
       `)
-      .eq('reel_media_items.display_order', 1)
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .order('display_order', { referencedTable: 'reel_media_items', ascending: true }); 
 
     if (error) throw error;
     
     const flattenedData = data.map(reel => {
-        const preview_path = reel.reel_media_items[0]?.media_items?.preview_gcs_path || null;
+        const firstItem = reel.reel_media_items[0];
+        const preview_path = firstItem?.media_items?.preview_gcs_path || null;
+        
         const { reel_media_items, ...rest } = reel;
         return {
             ...rest,
@@ -239,92 +242,193 @@ app.put('/reels/:id', async (req, res) => {
   }
 });
 
+// --- Видалення рілса ---
+app.delete('/reels/:id', async (req, res) => {
+  const { id } = req.params;
+  console.log(`Received request to DELETE reel with id: ${id}`);
+
+  try {
+    // Крок 1: Видалити всі пов'язані записи в таблиці `reel_media_items`
+    const { error: linksError } = await supabase
+      .from('reel_media_items')
+      .delete()
+      .eq('reel_id', id);
+
+    if (linksError) throw linksError;
+    console.log(`Deleted links for reel ${id} from reel_media_items.`);
+
+    // Крок 2: Видалити сам рілс з таблиці `reels`
+    const { error: reelError } = await supabase
+      .from('reels')
+      .delete()
+      .eq('id', id);
+
+    if (reelError) throw reelError;
+    console.log(`Deleted reel ${id} from reels table.`);
+
+    res.status(200).json({ message: 'Reel deleted successfully.' });
+
+  } catch (error) {
+    console.error(`Error deleting reel ${id}:`, error);
+    res.status(500).json({ error: 'Failed to delete reel.', details: error.message });
+  }
+});
+
 
 /* ========================================================================== */
-/* ПУБЛІЧНИЙ ЕНДПОІНТ ДЛЯ СТОРІНКИ РІЛСА (ПОВНІСТЮ ВИПРАВЛЕНО)              */
+/* ПУБЛІЧНИЙ ЕНДПОІНТ ДЛЯ СТОРІНКИ РІЛСА                                     */
 /* ========================================================================== */
 
 app.get('/reels/public/:short_link', async (req, res) => {
     const { short_link } = req.params;
 
     try {
-        // 1. Знаходимо рілс за посиланням та пов'язані медіа-елементи через проміжну таблицю
         const { data: reel, error: reelError } = await supabase
             .from('reels')
             .select(`
-                id, 
-                title, 
-                status, 
+                id, title, status, 
                 reel_media_items (
                     display_order,
-                    media_items (
-                        id, title, client, artists, categories, video_gcs_path, preview_gcs_path
-                    )
+                    media_items ( id, title, client, artists, categories, video_gcs_path, preview_gcs_path )
                 )
             `)
             .eq('short_link', short_link)
             .single();
 
         if (reelError || !reel) {
-            console.error(`Reel lookup failed for ${short_link}:`, reelError?.message);
-            throw new Error("Reel not found.");
+            return res.status(404).json({ error: 'Failed to fetch reel data.', details: "Reel not found." });
         }
-        if (reel.status !== 'Active') throw new Error("This reel is not active.");
+        if (reel.status !== 'Active') {
+            return res.status(403).json({ error: 'Failed to fetch reel data.', details: "This reel is not active." });
+        }
         
-        // 2. Обробляємо та сортуємо отримані медіа-елементи
-        const sortedMediaItems = (reel.reel_media_items || [])
-            .map(item => item.media_items) // Витягуємо вкладений об'єкт media_items
-            .filter(Boolean) // Видаляємо можливі null значення
-            .sort((a, b) => a.display_order - b.display_order); // Сортуємо за порядком
+        const sortedMediaItemsRelations = (reel.reel_media_items || []).sort(
+            (a, b) => a.display_order - b.display_order
+        );
+            
+        const sortedMediaItems = sortedMediaItemsRelations
+            .map(item => item.media_items)
+            .filter(Boolean);
 
         if (sortedMediaItems.length === 0) {
             console.warn(`Reel ${short_link} is active but has no media items.`);
         }
         
-        // 3. Генеруємо підписані URL для GCS
         const readOptions = {
-            version: 'v4',
-            action: 'read',
-            expires: Date.now() + 20 * 60 * 1000, // 20 хвилин
+            version: 'v4', action: 'read', expires: Date.now() + 20 * 60 * 1000, 
         };
 
         const mediaItemsWithUrls = await Promise.all(sortedMediaItems.map(async (item) => {
-            let videoUrl = null;
-            let previewUrl = null;
-
+            let videoUrl = null, previewUrl = null;
             try {
-                if(item.video_gcs_path) {
-                    const [signedVideoUrl] = await bucket.file(item.video_gcs_path).getSignedUrl(readOptions);
-                    videoUrl = signedVideoUrl;
-                }
-                if(item.preview_gcs_path) {
-                    const [signedPreviewUrl] = await bucket.file(item.preview_gcs_path).getSignedUrl(readOptions);
-                    previewUrl = signedPreviewUrl;
-                }
+                if(item.video_gcs_path) [videoUrl] = await bucket.file(item.video_gcs_path).getSignedUrl(readOptions);
+                if(item.preview_gcs_path) [previewUrl] = await bucket.file(item.preview_gcs_path).getSignedUrl(readOptions);
             } catch (urlError) {
-                console.error(`Failed to get signed URL for ${item.video_gcs_path || item.preview_gcs_path}:`, urlError.message);
+                console.error(`Failed to get signed URL for item ${item.id}:`, urlError.message);
             }
-            
-            return {
-                ...item,
-                videoUrl,
-                previewUrl: previewUrl || videoUrl, // Якщо немає прев'ю, використовуємо відео
-            };
+            return { ...item, videoUrl, previewUrl: previewUrl || videoUrl };
         }));
         
-        // 4. Формуємо фінальну відповідь
-        const publicData = {
-            reelTitle: reel.title,
-            mediaItems: mediaItemsWithUrls,
-        };
-
+        const publicData = { reelTitle: reel.title, mediaItems: mediaItemsWithUrls };
         res.status(200).json(publicData);
 
     } catch (error) {
         console.error(`Error fetching public reel data for ${short_link}:`, error.message);
-        const statusCode = error.message === "Reel not found." ? 404 : 500;
-        res.status(statusCode).json({ error: 'Failed to fetch reel data.', details: error.message });
+        res.status(500).json({ error: 'Failed to fetch reel data.', details: error.message });
     }
+});
+
+/* ========================================================================== */
+/* ЕНДПОІНТ ДЛЯ МЕДІА-АЙТЕМІВ                                                */
+/* ========================================================================== */
+
+// --- Видалення медіа-айтема з каскадним оновленням рілсів (ВИПРАВЛЕНО) ---
+app.delete('/media-items/:id', async (req, res) => {
+  const { id } = req.params;
+  console.log(`Received request to DELETE media item with id: ${id}`);
+
+  try {
+    const { data: item, error: fetchError } = await supabase
+      .from('media_items')
+      .select('video_gcs_path, preview_gcs_path')
+      .eq('id', id)
+      .single();
+
+    if (fetchError || !item) {
+      if (fetchError && fetchError.code === 'PGRST116') {
+        return res.status(200).json({ message: 'Item not found, assumed already deleted.' });
+      }
+      throw new Error(fetchError?.message || `Media item with id ${id} not found.`);
+    }
+
+    const { data: affectedReelLinks, error: linksError } = await supabase
+      .from('reel_media_items')
+      .select('reel_id')
+      .eq('media_item_id', id);
+    if (linksError) throw linksError;
+    const affectedReelIds = affectedReelLinks.map(link => link.reel_id);
+
+    // Першим кроком видаляємо зв'язки
+    const { error: deleteLinksError } = await supabase
+        .from('reel_media_items')
+        .delete()
+        .eq('media_item_id', id);
+    if (deleteLinksError) throw deleteLinksError;
+    console.log(`Removed links for item ${id} from reel_media_items table.`);
+
+    // Тепер перевіряємо, чи стали рілси порожніми
+    if (affectedReelIds.length > 0) {
+      console.log(`Item ${id} was part of reels: ${affectedReelIds.join(', ')}. Checking them for emptiness...`);
+
+      // ✨ ВИПРАВЛЕНА ЛОГІКА: без .groupBy()
+      // 1. Отримуємо список рілсів, в яких ЩЕ Є елементи
+      const { data: remainingLinks, error: checkError } = await supabase
+        .from('reel_media_items')
+        .select('reel_id')
+        .in('reel_id', affectedReelIds);
+      
+      if (checkError) throw checkError;
+      
+      // 2. Визначаємо, які рілси потрібно видалити
+      const reelsThatStillHaveItems = new Set((remainingLinks || []).map(link => link.reel_id));
+      const reelsToDeleteIds = affectedReelIds.filter(reelId => !reelsThatStillHaveItems.has(reelId));
+
+      // 3. Видаляємо порожні рілси
+      if (reelsToDeleteIds.length > 0) {
+        console.log(`The following reels are now empty and will be deleted: ${reelsToDeleteIds.join(', ')}`);
+        const { error: deleteReelsError } = await supabase
+          .from('reels')
+          .delete()
+          .in('id', reelsToDeleteIds);
+        if (deleteReelsError) throw deleteReelsError;
+      }
+    }
+
+    const pathsToDelete = [item.video_gcs_path, item.preview_gcs_path].filter(Boolean);
+    if (pathsToDelete.length > 0) {
+      console.log(`Deleting GCS files: ${pathsToDelete.join(', ')}`);
+      await Promise.all(
+        pathsToDelete.map(async (path) => {
+          try {
+            await bucket.file(path).delete();
+          } catch (gcsError) {
+            if (gcsError.code !== 404) console.error(`Failed to delete GCS file ${path}:`, gcsError.message);
+            else console.warn(`GCS file ${path} not found, skipping.`);
+          }
+        })
+      );
+    }
+
+    console.log(`Deleting Supabase record for item id: ${id}`);
+    const { error: deleteError } = await supabase.from('media_items').delete().eq('id', id);
+    if (deleteError) throw deleteError;
+
+    res.status(200).json({ message: 'Media item and related empty reels deleted successfully.' });
+
+  } catch (error) {
+    console.error(`Error deleting media item ${id}:`, error);
+    res.status(500).json({ error: 'Failed to delete media item.', details: error.message });
+  }
 });
 
 

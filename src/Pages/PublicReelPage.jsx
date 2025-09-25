@@ -63,8 +63,16 @@ export default function PublicReelPage() {
     if (error) {
         return <div className="h-screen w-full bg-white dark:bg-black flex items-center justify-center text-red-500 text-center p-8">Error: {error}</div>;
     }
-    if (!data) {
-        return null;
+
+    // ✨ --- НОВИЙ ЗАХИСНИЙ БЛОК --- ✨
+    // Перевіряємо, чи існують дані та чи є в них медіа-айтеми
+    if (!data || !data.mediaItems || data.mediaItems.length === 0) {
+        return (
+            <div className="h-screen w-full bg-white dark:bg-black flex flex-col items-center justify-center text-center p-8">
+                <h1 className="text-3xl font-bold text-black dark:text-white mb-4">Reel is Empty</h1>
+                <p className="text-slate-500 dark:text-slate-400">This reel does not contain any videos or may have been deleted.</p>
+            </div>
+        );
     }
     
     // --- Логіка слайдера ---
@@ -73,6 +81,11 @@ export default function PublicReelPage() {
     const prevSlide = () => setCurrentSlide((prev) => (prev === 0 ? data.mediaItems.length - 1 : prev - 1));
     
     const currentMediaItem = data.mediaItems[currentSlide];
+
+    // Додаткова перевірка на випадок асинхронних проблем
+    if (!currentMediaItem) {
+        return <div className="h-screen w-full bg-white dark:bg-black flex items-center justify-center text-black dark:text-white">Loading media...</div>;
+    }
 
     return (
       <div className="bg-white dark:bg-black text-black dark:text-white">
@@ -138,10 +151,10 @@ export default function PublicReelPage() {
         {/* 3. Director Bio Section (Заглушка, як ви просили) */}
         <section className="pt-10 pb-20 md:pt-16 md:pb-32 px-8 sm:px-12 lg:px-16 bg-white dark:bg-black">
           <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-start">
-              <div className="md:col-span-1">
+              <div className="md-col-span-1">
                   <img src={directorPhoto} alt="Director Name" className="w-full h-auto object-cover" />
               </div>
-              <div className="md:col-span-1 flex flex-col">
+              <div className="md-col-span-1 flex flex-col">
                   <h2 className="text-3xl md:text-4xl font-bold uppercase mb-6 font-montserrat">JESSY TERRERO</h2>
                   <p className="font-semibold text-base leading-[28.4px] tracking-[-0.09em] text-[#1D1D1D] dark:text-white/90">
                     Is a Dominican-American director, producer, and founder of the production company Cinema Giants. With a career spanning over two decades, he has become one of the most influential music video directors in Latin and American culture. Terrero has directed iconic music videos for global superstars...
