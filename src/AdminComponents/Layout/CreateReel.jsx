@@ -1,9 +1,61 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom'; // ✨ ЗМІНА: Додано useLocation
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { supabase } from '../../lib/supabaseClient';
 import { X, Trash2, Loader2 } from 'lucide-react';
+
+// ✨ ЗМІНА: Додано допоміжну функцію для стиснення зображень
+const compressImage = (file, maxSize = 800) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const { width, height } = img;
+        if (width <= maxSize && height <= maxSize) {
+          resolve(file); // Повертаємо оригінал, якщо він вже достатньо малий
+          return;
+        }
+
+        let newWidth, newHeight;
+        if (width > height) {
+          newWidth = maxSize;
+          newHeight = (height * maxSize) / width;
+        } else {
+          newHeight = maxSize;
+          newWidth = (width * maxSize) / height;
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = newWidth;
+        canvas.height = newHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, newWidth, newHeight);
+
+        canvas.toBlob(
+          (blob) => {
+            if (!blob) {
+              reject(new Error('Не вдалося створити blob з canvas.'));
+              return;
+            }
+            const compressedFile = new File([blob], `preview_${Date.now()}.jpg`, {
+              type: 'image/jpeg',
+              lastModified: Date.now(),
+            });
+            resolve(compressedFile);
+          },
+          'image/jpeg',
+          0.9 // Якість 90%
+        );
+      };
+      img.onerror = reject;
+    };
+    reader.onerror = reject;
+  });
+};
 
 // --- Іконки та базові компоненти (без змін) ---
 const UploadIcon = () => ( <svg className="w-12 h-12 text-slate-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16" > <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2" /> </svg> );
@@ -55,6 +107,17 @@ const ReelPartialForm = ({ reel, onUpdate, onFilesSelected }) => {
                     URL.revokeObjectURL(videoElement.src);
                 }
             };
+            
+            // ✨ ЗМІНА: Огортаємо логіку в async функцію для стиснення
+            const processAndSetPreview = async (capturedFile) => {
+                try {
+                    const compressedPreview = await compressImage(capturedFile);
+                    onUpdate(id, { customPreviewFile: compressedPreview });
+                } catch (error) {
+                    console.error("Failed to compress auto-generated preview:", error);
+                    onUpdate(id, { customPreviewFile: capturedFile }); // Fallback to uncompressed
+                }
+            };
 
             const onLoadedData = () => {
                 const canvas = document.createElement('canvas');
@@ -65,7 +128,7 @@ const ReelPartialForm = ({ reel, onUpdate, onFilesSelected }) => {
                 canvas.toBlob(blob => {
                     if (blob) {
                         const capturedFile = new File([blob], `preview_${Date.now()}.jpg`, { type: 'image/jpeg' });
-                        onUpdate(id, { customPreviewFile: capturedFile });
+                        processAndSetPreview(capturedFile); // ✨ ЗМІНА: Викликаємо нову функцію
                     }
                     cleanup();
                 }, 'image/jpeg', 0.95);
@@ -98,15 +161,23 @@ const ReelPartialForm = ({ reel, onUpdate, onFilesSelected }) => {
     const handleDrop = (e) => { e.preventDefault(); setIsDragging(false); onFilesSelected(e.dataTransfer.files, id); };
     const handleFileInputChange = (e) => { onFilesSelected(e.target.files, id); };
     const handleRemoveFile = () => onFilesSelected(null, id);
-
-    const handleCustomPreviewSelect = (e) => {
+    
+    // ✨ ЗМІНА: Робимо функцію асинхронною
+    const handleCustomPreviewSelect = async (e) => {
         const file = e.target.files[0];
         if (isImageFile(file)) {
-            onUpdate(id, { customPreviewFile: file });
+            try {
+                const compressedFile = await compressImage(file);
+                onUpdate(id, { customPreviewFile: compressedFile });
+            } catch (error) {
+                console.error("Failed to compress selected preview:", error);
+                onUpdate(id, { customPreviewFile: file }); // Fallback до нестиснутого
+            }
             setIsEditingPreview(false);
         }
     };
     
+    // ✨ ЗМІНА: Робимо функцію асинхронною
     const handleCaptureFrame = () => {
         const video = videoRef.current;
         if (!video) return;
@@ -115,10 +186,16 @@ const ReelPartialForm = ({ reel, onUpdate, onFilesSelected }) => {
         canvas.height = video.videoHeight;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob((blob) => {
+        canvas.toBlob(async (blob) => { // ✨ ЗМІНА: робимо callback асинхронним
             if (blob) {
                 const capturedFile = new File([blob], `preview_${Date.now()}.jpg`, { type: 'image/jpeg' });
-                onUpdate(id, { customPreviewFile: capturedFile });
+                try {
+                    const compressedFile = await compressImage(capturedFile);
+                    onUpdate(id, { customPreviewFile: compressedFile });
+                } catch (error) {
+                    console.error("Failed to compress captured frame:", error);
+                    onUpdate(id, { customPreviewFile: capturedFile }); // Fallback
+                }
                 setIsEditingPreview(false);
             }
         }, 'image/jpeg', 0.95);
@@ -197,7 +274,7 @@ const ReelPartialForm = ({ reel, onUpdate, onFilesSelected }) => {
 const CreateReel = () => {
   const { itemId } = useParams();
   const navigate = useNavigate();
-  const location = useLocation(); // ✨ ЗМІНА: Додано useLocation
+  const location = useLocation();
   const isEditMode = !!itemId;
 
   const createNewReelState = () => ({ id: Date.now() + Math.random(), title: '', selectedFile: null, customPreviewFile: null, mainPreviewUrl: null, customPreviewUrl: null, isRemovable: true });
@@ -364,7 +441,8 @@ const CreateReel = () => {
     });
   };
 
-  const handleFilesSelected = (files, reelId) => {
+  // ✨ ЗМІНА: Робимо функцію асинхронною
+  const handleFilesSelected = async (files, reelId) => {
     if (!files || files.length === 0) {
         handleUpdateReel(reelId, { selectedFile: null, customPreviewFile: null, mainPreviewUrl: null, customPreviewUrl: null });
         return;
@@ -375,37 +453,62 @@ const CreateReel = () => {
     const firstFile = validFiles[0];
     const otherFiles = validFiles.slice(1);
 
+    const isFirstFileImage = isImageFile(firstFile);
+    let compressedPreview = null;
+    if (isFirstFileImage) {
+        try {
+            compressedPreview = await compressImage(firstFile);
+        } catch (error) {
+            console.error("Failed to compress first file preview:", error);
+            compressedPreview = firstFile; // Fallback
+        }
+    }
+
     setReels(prev => prev.map(reel => {
         if (reel.id === reelId) {
             const fileNameWithoutExt = firstFile.name.substring(0, firstFile.name.lastIndexOf('.')) || firstFile.name;
             const fileUrl = URL.createObjectURL(firstFile);
-            const isImage = isImageFile(firstFile);
+            const customPreviewUrl = compressedPreview ? URL.createObjectURL(compressedPreview) : null;
             return {
                 ...reel,
                 title: isEditMode ? reel.title : fileNameWithoutExt,
                 selectedFile: firstFile,
-                customPreviewFile: isImage ? firstFile : null,
+                customPreviewFile: compressedPreview,
                 mainPreviewUrl: fileUrl,
-                customPreviewUrl: isImage ? fileUrl : null,
+                customPreviewUrl: customPreviewUrl,
             };
         }
         return reel;
     }));
 
     if (otherFiles.length > 0 && !isEditMode) {
-        const newReels = otherFiles.map(file => {
+        // ✨ ЗМІНА: Обробляємо кілька файлів з Promise.all
+        const newReelsPromises = otherFiles.map(async (file) => {
             const fileNameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
             const fileUrl = URL.createObjectURL(file);
             const isImage = isImageFile(file);
+            let customPreview = null;
+            if (isImage) {
+                try {
+                    customPreview = await compressImage(file);
+                } catch (error) {
+                    console.error("Failed to compress additional file preview:", error);
+                    customPreview = file; // Fallback
+                }
+            }
+            const customPreviewUrl = customPreview ? URL.createObjectURL(customPreview) : null;
+
             return {
                 ...createNewReelState(),
                 title: fileNameWithoutExt,
                 selectedFile: file,
-                customPreviewFile: isImage ? file : null,
+                customPreviewFile: customPreview,
                 mainPreviewUrl: fileUrl,
-                customPreviewUrl: isImage ? fileUrl : null,
+                customPreviewUrl: customPreviewUrl,
             };
         });
+
+        const newReels = await Promise.all(newReelsPromises);
         setReels(prev => [...prev, ...newReels]);
     }
   };
@@ -495,7 +598,6 @@ const CreateReel = () => {
             }
             setUploadMessage('✅ Success! Changes have been applied.');
             
-            // ✨ ЗМІНА: Визначаємо, куди повернутись
             const returnPath = location.pathname.startsWith('/adminpanel') ? '/adminpanel/library' : '/userpanel/library';
             setTimeout(() => navigate(returnPath), 2000);
 
