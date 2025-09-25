@@ -305,9 +305,8 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
 };
 
 
-const ItemActionsDropdown = ({ onOpenDeleteModal, onClose, onEdit, triggerElement }) => {
+const ItemActionsDropdown = ({ onOpenDeleteModal, onClose, onEdit, isLastItem }) => {
   const dropdownRef = useRef(null);
-  const [positionClass, setPositionClass] = useState('top-8');
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -319,19 +318,8 @@ const ItemActionsDropdown = ({ onOpenDeleteModal, onClose, onEdit, triggerElemen
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [onClose]);
 
-  useEffect(() => {
-    if (triggerElement) {
-      const triggerRect = triggerElement.getBoundingClientRect();
-      const dropdownHeight = 80; // Approximate height of the dropdown
-      const spaceBelow = window.innerHeight - triggerRect.bottom;
-
-      if (spaceBelow < dropdownHeight && triggerRect.top > dropdownHeight) {
-        setPositionClass('bottom-8'); // Open upwards
-      } else {
-        setPositionClass('top-8'); // Open downwards
-      }
-    }
-  }, [triggerElement]);
+  // ✨ FIX: Позиція тепер залежить від того, чи є це останній елемент.
+  const positionClass = isLastItem ? 'bottom-8' : 'top-8';
 
   return (
     <div ref={dropdownRef} className={`absolute right-4 ${positionClass} z-20 w-48 bg-white dark:bg-slate-800 rounded-md shadow-lg border border-slate-200 dark:border-slate-700`}>
@@ -503,48 +491,52 @@ const { data, error } = await supabase
                   </tr>
                 </thead>
                 <tbody className="text-slate-800 dark:text-slate-200 text-xs">
-                  {currentItems.map(item => {
-                    const addedBy = item.user_profiles ? `${item.user_profiles.first_name || ''} ${item.user_profiles.last_name || ''}`.trim() : 'System';
-                    const previewUrl = item.preview_gcs_path ? signedUrls[item.preview_gcs_path] : null;
+  {currentItems.map((item, index) => { // Додаємо 'index'
+    const addedBy = item.user_profiles ? `${item.user_profiles.first_name || ''} ${item.user_profiles.last_name || ''}`.trim() : 'System';
+    const previewUrl = item.preview_gcs_path ? signedUrls[item.preview_gcs_path] : null;
+    
+    // ✨ FIX: Визначаємо, чи є цей елемент останнім у списку
+    const isLastItemOnPage = index === currentItems.length - 1;
 
-                    return (
-                      <tr key={item.id} draggable="true" onDragStart={(e) => handleDragStart(e, item)} className={`border-b border-slate-100 dark:border-slate-800 transition-colors cursor-pointer ${selectedItems.has(item.id) ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`} onClick={() => handleRowCheck(item.id)}>
-                        <td className="p-4 align-top pt-6">
-                           <input type="checkbox" checked={selectedItems.has(item.id)} onChange={(e) => { e.stopPropagation(); handleRowCheck(item.id); }} onClick={(e) => e.stopPropagation()} className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-blue-600 cursor-pointer" />
-                        </td>
-                        <td className="p-4 align-top">
-                          <div className="flex items-start gap-4">
-                            <div className="w-16 h-10 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">
-                                {previewUrl ? <img src={previewUrl} alt="preview" className="w-full h-full object-cover rounded-md" /> : <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800"><ImageIcon className="w-5 h-5 text-slate-400" /></div>}
-                            </div>
-                            <div className='min-w-0'>
-                                <div className="text-blue-600 dark:text-blue-400 text-[10px] font-medium uppercase">{item.client}</div>
-                                <div className="font-semibold text-slate-900 dark:text-slate-50 whitespace-normal break-words">{item.title}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="p-4 align-top truncate">{item.artists}</td>
-                        <td className="p-4 align-top truncate">{item.client}</td>
-                        <td className="p-4 align-top truncate">{item.categories}</td>
-                        <td className="p-4 align-top truncate">{addedBy}</td>
-                        <td className="p-4 align-top text-slate-500 dark:text-slate-400">{formatDateTime(item.created_at)}</td>
-                        <td className="p-4 align-top text-right relative">
-                          <button onClick={(e) => handleToggleDropdown(e, item.id)} className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700">
-                            <Settings className="h-4 w-4 text-slate-500" />
-                          </button>
-                          {activeDropdown?.id === item.id && (
-                            <ItemActionsDropdown 
-                              triggerElement={activeDropdown.target}
-                              onClose={() => setActiveDropdown(null)} 
-                              onOpenDeleteModal={() => handleOpenDeleteModal(item)}
-                              onEdit={() => handleEditItem(item.id)}
-                            />
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
+    return (
+      <tr key={item.id} draggable="true" onDragStart={(e) => handleDragStart(e, item)} className={`border-b border-slate-100 dark:border-slate-800 transition-colors cursor-pointer ${selectedItems.has(item.id) ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`} onClick={() => handleRowCheck(item.id)}>
+        <td className="p-4 align-top pt-6">
+           <input type="checkbox" checked={selectedItems.has(item.id)} onChange={(e) => { e.stopPropagation(); handleRowCheck(item.id); }} onClick={(e) => e.stopPropagation()} className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-blue-600 cursor-pointer" />
+        </td>
+        <td className="p-4 align-top">
+          <div className="flex items-start gap-4">
+            <div className="w-16 h-10 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">
+                {previewUrl ? <img src={previewUrl} alt="preview" className="w-full h-full object-cover rounded-md" /> : <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800"><ImageIcon className="w-5 h-5 text-slate-400" /></div>}
+            </div>
+            <div className='min-w-0'>
+                <div className="text-blue-600 dark:text-blue-400 text-[10px] font-medium uppercase">{item.client}</div>
+                <div className="font-semibold text-slate-900 dark:text-slate-50 whitespace-normal break-words">{item.title}</div>
+            </div>
+          </div>
+        </td>
+        <td className="p-4 align-top truncate">{item.artists}</td>
+        <td className="p-4 align-top truncate">{item.client}</td>
+        <td className="p-4 align-top truncate">{item.categories}</td>
+        <td className="p-4 align-top truncate">{addedBy}</td>
+        <td className="p-4 align-top text-slate-500 dark:text-slate-400">{formatDateTime(item.created_at)}</td>
+        <td className="p-4 align-top text-right relative">
+          <button onClick={(e) => handleToggleDropdown(e, item.id)} className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700">
+            <Settings className="h-4 w-4 text-slate-500" />
+          </button>
+          {activeDropdown?.id === item.id && (
+            <ItemActionsDropdown 
+              onClose={() => setActiveDropdown(null)} 
+              onOpenDeleteModal={() => handleOpenDeleteModal(item)}
+              onEdit={() => handleEditItem(item.id)}
+              // ✨ FIX: Передаємо новий проп сюди
+              isLastItem={isLastItemOnPage}
+            />
+          )}
+        </td>
+      </tr>
+    );
+  })}
+</tbody>
               </table>
             </div>
             {totalPages > 1 && (
