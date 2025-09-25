@@ -328,19 +328,14 @@ app.get('/reels', async (req, res) => {
     const { data: allViews, error: viewsError } = await supabase.from('reel_views').select('reel_id, session_id, event_type');
     if (viewsError) throw viewsError;
 
-    // Групуємо ID медіа-елементів за ID рілса
     const mediaIdsByReel = allLinks.reduce((acc, link) => {
-      if (!acc[link.reel_id]) {
-        acc[link.reel_id] = [];
-      }
+      if (!acc[link.reel_id]) acc[link.reel_id] = [];
       acc[link.reel_id].push({ id: link.media_item_id, order: link.display_order });
       return acc;
     }, {});
     
-    // Сортуємо ID медіа-елементів відповідно до їх порядку
     for (const reelId in mediaIdsByReel) {
       mediaIdsByReel[reelId].sort((a, b) => a.order - b.order);
-      // Залишаємо тільки ID
       mediaIdsByReel[reelId] = mediaIdsByReel[reelId].map(item => item.id);
     }
 
@@ -379,7 +374,7 @@ app.get('/reels', async (req, res) => {
             total_views,
             completed_views,
             completion_rate,
-            avg_watch_duration: 0, // Placeholder, as duration is not logged in this simplified version
+            avg_watch_duration: 0, 
         };
     });
 
@@ -391,12 +386,28 @@ app.get('/reels', async (req, res) => {
   }
 });
 
+// ✨ ЗМІНА: Оновлено ендпоінт PUT /reels/:id
 app.put('/reels/:id', async (req, res) => {
   const { id } = req.params;
-  const { status } = req.body;
-  if (!status || !['Active', 'Inactive'].includes(status)) return res.status(400).json({ error: 'A valid status ("Active" or "Inactive") is required.' });
+  const { title, artists, status } = req.body;
+
   try {
-    const { data, error } = await supabase.from('reels').update({ status }).eq('id', id).select().single();
+    const updateData = {};
+    if (title !== undefined) updateData.title = title;
+    if (artists !== undefined) updateData.artists = artists;
+    if (status !== undefined) updateData.status = status;
+
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ details: 'No valid fields to update were provided.' });
+    }
+
+    const { data, error } = await supabase
+      .from('reels')
+      .update(updateData)
+      .eq('id', id)
+      .select('*, user_profiles(first_name, last_name)') // Повертаємо оновлені дані з профілем
+      .single();
+
     if (error) throw error;
     res.status(200).json(data);
   } catch (error) {
@@ -518,6 +529,26 @@ app.get('/media-items/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch media item.', details: error.message });
   }
 });
+
+app.get('/media-items', async (req, res) => {
+    const ids = req.query.id; // Отримуємо id як масив з query string
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: 'An array of media item IDs is required.' });
+    }
+    try {
+        const { data, error } = await supabase
+            .from('media_items')
+            .select('*')
+            .in('id', ids);
+
+        if (error) throw error;
+        res.status(200).json(data);
+    } catch (error) {
+        console.error('Error fetching media items by IDs:', error);
+        res.status(500).json({ error: 'Failed to fetch media items.', details: error.message });
+    }
+});
+
 
 app.put('/media-items/:id', async (req, res) => {
     const { id } = req.params;
