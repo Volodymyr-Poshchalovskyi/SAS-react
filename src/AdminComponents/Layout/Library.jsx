@@ -58,13 +58,13 @@ const SortableHeader = ({ children, sortKey, sortConfig, onSort, className = '' 
 };
 
 // ======================================================
-// ✨ КОМПОНЕНТ: ReelCreatorSidebar (ОНОВЛЕНО) ✨
+// КОМПОНЕНТ: ReelCreatorSidebar (без змін)
 // ======================================================
 const ReelCreatorSidebar = ({ allItems }) => {
   const [reelItems, setReelItems] = useState([]);
   const [reelTitle, setReelTitle] = useState(`Draft: Showreel (${new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })})`);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
-  const [isCreating, setIsCreating] = useState(false); // Стан для процесу створення
+  const [isCreating, setIsCreating] = useState(false);
 
   const handleDragOver = (e) => { e.preventDefault(); setIsDraggingOver(true); };
   const handleDragLeave = () => setIsDraggingOver(false);
@@ -74,13 +74,12 @@ const ReelCreatorSidebar = ({ allItems }) => {
     const draggedItemIds = JSON.parse(e.dataTransfer.getData("application/json"));
     const newItems = allItems
       .filter(item => draggedItemIds.includes(item.id))
-      .filter(item => !reelItems.some(reelItem => reelItem.id === item.id)); // Уникаємо дублікатів
+      .filter(item => !reelItems.some(reelItem => reelItem.id === item.id));
     if (newItems.length > 0) setReelItems(prevItems => [...prevItems, ...newItems]);
   };
   const handleTitleChange = (e) => setReelTitle(e.target.value);
   const handleRemoveItem = (itemIdToRemove) => setReelItems(prevItems => prevItems.filter(item => item.id !== itemIdToRemove));
 
-  // Нова функція для відправки даних на бекенд
   const handleCreateReel = async () => {
     if (reelItems.length === 0) {
       alert("Please add at least one media item to the reel.");
@@ -116,7 +115,6 @@ const ReelCreatorSidebar = ({ allItems }) => {
       const newReel = await response.json();
       alert(`✅ Reel "${newReel.title}" created successfully!`);
 
-      // Очищуємо форму
       setReelItems([]);
       setReelTitle(`Draft: Showreel (${new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })})`);
 
@@ -127,7 +125,6 @@ const ReelCreatorSidebar = ({ allItems }) => {
       setIsCreating(false);
     }
   };
-
 
   return (
     <div className="w-96 shrink-0 space-y-4">
@@ -168,7 +165,6 @@ const ReelCreatorSidebar = ({ allItems }) => {
               ))}
             </div>
             <div className="mt-auto pt-4">
-              {/* Змінено кнопку для виклику нової функції */}
               <button
                 onClick={handleCreateReel}
                 disabled={isCreating}
@@ -185,7 +181,7 @@ const ReelCreatorSidebar = ({ allItems }) => {
 };
 
 // =======================
-// ОСНОВНИЙ КОМПОНЕНТ Library (без змін)
+// ✨ ОСНОВНИЙ КОМПОНЕНТ Library (ОНОВЛЕНО) ✨
 // =======================
 const Library = () => {
   const [items, setItems] = useState([]);
@@ -226,19 +222,32 @@ const Library = () => {
     };
     fetchMediaItems();
   }, []);
+  
+  // 1. Фільтруємо за датою публікації
+  const publishedItems = useMemo(() => {
+    const now = new Date();
+    return items.filter(item => {
+      if (!item.publish_date) return false; // Або true, якщо елементи без дати треба показувати
+      return new Date(item.publish_date) <= now;
+    });
+  }, [items]);
 
+  // 2. Сортуємо відфільтровані елементи
   const sortedItems = useMemo(() => {
-    let sortableItems = [...items];
+    let sortableItems = [...publishedItems];
     if (sortConfig.key) {
       sortableItems.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'ascending' ? -1 : 1;
-        if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'ascending' ? 1 : -1;
+        const valA = a[sortConfig.key] || '';
+        const valB = b[sortConfig.key] || '';
+        if (valA < valB) return sortConfig.direction === 'ascending' ? -1 : 1;
+        if (valA > valB) return sortConfig.direction === 'ascending' ? 1 : -1;
         return 0;
       });
     }
     return sortableItems;
-  }, [items, sortConfig]);
+  }, [publishedItems, sortConfig]);
 
+  // 3. Застосовуємо пошук до відсортованих елементів
   const filteredItems = useMemo(() => {
     if (!searchTerm) return sortedItems;
     const term = searchTerm.toLowerCase();
@@ -249,6 +258,7 @@ const Library = () => {
     );
   }, [sortedItems, searchTerm]);
 
+  // 4. Розбиваємо на сторінки
   const currentItems = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     return filteredItems.slice(start, start + itemsPerPage);
@@ -362,18 +372,19 @@ const Library = () => {
           </div>
           <div className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden bg-white dark:bg-slate-900/70">
             <div className="overflow-x-auto">
-              <table className="w-full text-xs table-fixed">
-                <thead className="text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50">
+              <table className="w-full table-fixed">
+                <thead className="text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 text-[12px] uppercase">
                   <tr>
-                    <th className="p-4 w-12 text-left"><input type="checkbox" ref={headerCheckboxRef} onChange={handleSelectAll} className="h-4 w-4 accent-slate-900" /></th>
+                    <th className="p-4 w-12 text-left"><input type="checkbox" ref={headerCheckboxRef} onChange={handleSelectAll} className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-blue-600" /></th>
                     <SortableHeader sortKey="title" sortConfig={sortConfig} onSort={handleSort} className="w-[30%]">Title</SortableHeader>
-                    <SortableHeader sortKey="artists" sortConfig={sortConfig} onSort={handleSort} className="w-[13%]">Artists</SortableHeader>
-                    <SortableHeader sortKey="client" sortConfig={sortConfig} onSort={handleSort} className="w-[13%]">Client</SortableHeader>
-                    <SortableHeader sortKey="user_id" sortConfig={sortConfig} onSort={handleSort} className="w-[13%]">Added By</SortableHeader>
-                    <SortableHeader sortKey="created_at" sortConfig={sortConfig} onSort={handleSort} className="w-28">Created At</SortableHeader>
+                    <SortableHeader sortKey="artists" sortConfig={sortConfig} onSort={handleSort} className="w-[15%]">Artists</SortableHeader>
+                    <SortableHeader sortKey="client" sortConfig={sortConfig} onSort={handleSort} className="w-[15%]">Client</SortableHeader>
+                    <SortableHeader sortKey="categories" sortConfig={sortConfig} onSort={handleSort} className="w-[15%]">Categories</SortableHeader>
+                    <SortableHeader sortKey="user_id" sortConfig={sortConfig} onSort={handleSort} className="w-[15%]">Added By</SortableHeader>
+                    <SortableHeader sortKey="created_at" sortConfig={sortConfig} onSort={handleSort} className="w-36">Created At</SortableHeader>
                   </tr>
                 </thead>
-                <tbody className="text-slate-800 dark:text-slate-200">
+                <tbody className="text-slate-800 dark:text-slate-200 text-[13px]">
                   {currentItems.map(item => {
                     const addedBy = item.user_profiles ? `${item.user_profiles.first_name || ''} ${item.user_profiles.last_name || ''}`.trim() : 'System';
                     const previewUrl = item.preview_gcs_path ? signedUrls[item.preview_gcs_path] : null;
@@ -383,30 +394,33 @@ const Library = () => {
                         key={item.id}
                         draggable="true"
                         onDragStart={(e) => handleDragStart(e, item)}
-                        className={`border-b border-slate-100 dark:border-slate-800 transition-colors cursor-pointer ${selectedItems.has(item.id) ? 'bg-slate-100 dark:bg-slate-800' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
+                        className={`border-b border-slate-100 dark:border-slate-800 transition-colors cursor-pointer ${selectedItems.has(item.id) ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
                         onClick={() => handleRowCheck(item.id)}
                         onDoubleClick={() => handleDoubleClick(item)}
                       >
-                        <td className="p-4"><input type="checkbox" checked={selectedItems.has(item.id)} onChange={(e) => e.stopPropagation()} className="h-4 w-4 accent-slate-900" /></td>
-                        <td className="p-4 text-left">
-                          <div className="flex items-center gap-3">
-                            <div className="w-14 h-9 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">
+                        <td className="p-4 align-top pt-6"><input type="checkbox" checked={selectedItems.has(item.id)} onChange={(e) => e.stopPropagation()} className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-blue-600" /></td>
+                        <td className="p-4 align-top">
+                          <div className="flex items-start gap-4">
+                            <div className="w-16 h-10 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">
                               {previewUrl ? (
                                 <img src={previewUrl} alt="preview" className="w-full h-full object-cover rounded-md" />
                               ) : (
-                                <ImageIcon className="w-5 h-5 text-slate-400" />
+                                <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800">
+                                  <ImageIcon className="w-5 h-5 text-slate-400" />
+                                </div>
                               )}
                             </div>
                             <div>
-                              <div className="font-medium text-slate-900 dark:text-slate-50 truncate">{item.title}</div>
-                              <div className="text-slate-500 dark:text-slate-400 text-xs truncate">{item.subtitle || ''}</div>
+                              <div className="text-blue-600 dark:text-blue-400 text-[11px] font-medium uppercase">{item.client}</div>
+                              <div className="font-semibold text-slate-900 dark:text-slate-50 truncate">{item.title}</div>
                             </div>
                           </div>
                         </td>
-                        <td className="p-4 truncate">{item.artists}</td>
-                        <td className="p-4 truncate">{item.client}</td>
-                        <td className="p-4 truncate">{addedBy}</td>
-                        <td className="p-4">{formatDateTime(item.created_at)}</td>
+                        <td className="p-4 align-top truncate">{item.artists}</td>
+                        <td className="p-4 align-top truncate">{item.client}</td>
+                        <td className="p-4 align-top truncate">{item.categories}</td>
+                        <td className="p-4 align-top truncate">{addedBy}</td>
+                        <td className="p-4 align-top text-slate-500 dark:text-slate-400">{formatDateTime(item.created_at)}</td>
                       </tr>
                     );
                   })}
@@ -414,13 +428,13 @@ const Library = () => {
               </table>
             </div>
             {totalPages > 1 && (
-              <div className="p-4 flex items-center justify-between text-sm">
+              <div className="p-4 flex items-center justify-between text-sm text-slate-600 dark:text-slate-400">
                 <div>Page {currentPage} of {totalPages}</div>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1.5 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
+                  <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1.5 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800">
                     <ChevronLeft size={16} />
                   </button>
-                  <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1.5 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
+                  <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1.5 border rounded-md disabled:opacity-50 disabled:cursor-not-allowed border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800">
                     <ChevronRight size={16} />
                   </button>
                 </div>
@@ -435,3 +449,4 @@ const Library = () => {
 };
 
 export default Library;
+
