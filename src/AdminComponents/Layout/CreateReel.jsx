@@ -194,8 +194,23 @@ const ReelPartialForm = ({ reel, onUpdate, onFilesSelected }) => {
 // --- Основний компонент CreateReel ---
 const CreateReel = () => {
   const createNewReel = () => ({ id: Date.now() + Math.random(), title: '', selectedFile: null, customPreviewFile: null, mainPreviewUrl: null, customPreviewUrl: null });
+  
   const [reels, setReels] = useState([createNewReel()]);
-  const [commonFormData, setCommonFormData] = useState({ allowDownload: false, publicationDate: new Date(), publishOption: 'schedule', artist: [], client: [], description: '', featuredCelebrity: [], contentType: '', craft: '', categories: [], });
+  
+  const initialCommonFormData = {
+    allowDownload: false,
+    publicationDate: new Date(),
+    publishOption: 'now',
+    artist: [],
+    client: [],
+    description: '',
+    featuredCelebrity: [],
+    contentType: '',
+    craft: '',
+    categories: [],
+  };
+  const [commonFormData, setCommonFormData] = useState(initialCommonFormData);
+  
   const [artists, setArtists] = useState([]);
   const [clients, setClients] = useState([]);
   const [celebrities, setCelebrities] = useState([]);
@@ -207,6 +222,7 @@ const CreateReel = () => {
   const [uploadMessage, setUploadMessage] = useState('');
   
   useEffect(() => {
+    // Cleanup object URLs on component unmount
     return () => {
         reels.forEach(reel => {
             if (reel.mainPreviewUrl) URL.revokeObjectURL(reel.mainPreviewUrl);
@@ -217,7 +233,36 @@ const CreateReel = () => {
 
   useEffect(() => {
     const fetchOptions = async () => {
-      try { const [ artistsRes, clientsRes, celebritiesRes, contentTypesRes, categoriesRes, craftsRes ] = await Promise.all([ supabase.from('artists').select('id, name'), supabase.from('clients').select('id, name'), supabase.from('celebrities').select('id, name'), supabase.from('content_types').select('id, name'), supabase.from('categories').select('id, name'), supabase.from('crafts').select('id, name'), ]); if (artistsRes.error) throw artistsRes.error; if (clientsRes.error) throw clientsRes.error; if (celebritiesRes.error) throw celebritiesRes.error; if (contentTypesRes.error) throw contentTypesRes.error; if (categoriesRes.error) throw categoriesRes.error; if (craftsRes.error) throw craftsRes.error; setArtists(artistsRes.data); setClients(clientsRes.data); setCelebrities(celebritiesRes.data); setContentTypes(contentTypesRes.data); setCategories(categoriesRes.data); setCrafts(craftsRes.data); } catch (error) { console.error('Failed to fetch options from database:', error); } finally { setIsLoadingOptions(false); }
+      setIsLoadingOptions(true);
+      try {
+        const [ artistsRes, clientsRes, celebritiesRes, contentTypesRes, categoriesRes, craftsRes ] = await Promise.all([
+            supabase.from('artists').select('id, name'),
+            supabase.from('clients').select('id, name'),
+            supabase.from('celebrities').select('id, name'),
+            supabase.from('content_types').select('id, name'),
+            supabase.from('categories').select('id, name'),
+            supabase.from('crafts').select('id, name'),
+        ]);
+
+        if (artistsRes.error) throw artistsRes.error;
+        if (clientsRes.error) throw clientsRes.error;
+        if (celebritiesRes.error) throw celebritiesRes.error;
+        if (contentTypesRes.error) throw contentTypesRes.error;
+        if (categoriesRes.error) throw categoriesRes.error;
+        if (craftsRes.error) throw craftsRes.error;
+
+        setArtists(artistsRes.data);
+        setClients(clientsRes.data);
+        setCelebrities(celebritiesRes.data);
+        setContentTypes(contentTypesRes.data);
+        setCategories(categoriesRes.data);
+        setCrafts(craftsRes.data);
+      } catch (error) {
+        console.error('Failed to fetch options from database:', error);
+        // Тут можна додати обробку помилок, наприклад, показати повідомлення користувачу
+      } finally {
+        setIsLoadingOptions(false);
+      }
     };
     fetchOptions();
   }, []);
@@ -233,14 +278,19 @@ const CreateReel = () => {
   const handleUpdateReel = (idToUpdate, updatedFields) => {
     setReels(prevReels => {
         if (updatedFields.shouldRemove) {
-            if (prevReels.length <= 1) { alert("You cannot remove the last form."); return prevReels; }
+            if (prevReels.length <= 1) {
+                alert("You cannot remove the last form.");
+                return prevReels;
+            }
             return prevReels.filter(r => r.id !== idToUpdate);
         }
 
         return prevReels.map(reel => {
             if (reel.id === idToUpdate) {
                 const newReel = { ...reel, ...updatedFields };
+                // Handle custom preview URL generation
                 if (updatedFields.customPreviewFile) {
+                    // Revoke old URL if it exists and is not the same as the main one
                     if (reel.customPreviewUrl && reel.customPreviewUrl !== reel.mainPreviewUrl) {
                         URL.revokeObjectURL(reel.customPreviewUrl);
                     }
@@ -254,14 +304,18 @@ const CreateReel = () => {
   };
 
   const handleFilesSelected = (files, reelId) => {
-    if (!files) {
+    if (!files || files.length === 0) {
+        // Handle file removal
         handleUpdateReel(reelId, { title: '', selectedFile: null, customPreviewFile: null, mainPreviewUrl: null, customPreviewUrl: null });
         return;
     }
     const validFiles = Array.from(files).filter(f => isImageFile(f) || f.type.startsWith('video/'));
     if (validFiles.length === 0) return;
+
     const firstFile = validFiles[0];
     const otherFiles = validFiles.slice(1);
+
+    // Update the current reel with the first file
     setReels(prev => prev.map(reel => {
         if (reel.id === reelId) {
             const fileNameWithoutExt = firstFile.name.substring(0, firstFile.name.lastIndexOf('.')) || firstFile.name;
@@ -278,6 +332,8 @@ const CreateReel = () => {
         }
         return reel;
     }));
+
+    // Create new reels for any additional files
     if (otherFiles.length > 0) {
         const newReels = otherFiles.map(file => {
             const fileNameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
@@ -303,22 +359,27 @@ const CreateReel = () => {
   const uploadFileToGCS = async (file) => {
     if (!file) return null;
     setUploadMessage(`Getting upload URL for ${file.name}...`);
+    
     const response = await fetch('http://localhost:3001/generate-upload-url', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fileName: file.name, fileType: file.type }),
     });
+
     if (!response.ok) {
         const errorData = await response.json();
         throw new Error(`Failed to get signed URL: ${errorData.details || errorData.error}`);
     }
+
     const { signedUrl, gcsPath } = await response.json();
     setUploadMessage(`Uploading ${file.name}...`);
+    
     const uploadResponse = await fetch(signedUrl, {
       method: 'PUT',
       headers: { 'Content-Type': file.type },
       body: file,
     });
+
     if (!uploadResponse.ok) {
       const errorText = await uploadResponse.text();
       throw new Error(`Failed to upload to GCS: ${errorText}`);
@@ -328,11 +389,21 @@ const CreateReel = () => {
   
   const handleSubmit = async (event) => {
     event.preventDefault();
+    // Validation
     for (const reel of reels) {
-      if (!reel.title.trim()) { alert(`Please provide a title for Media #${reels.indexOf(reel) + 1}.`); return; }
-      if (!reel.selectedFile) { alert(`Please provide a content file for "${reel.title}".`); return; }
+      if (!reel.title.trim()) {
+        alert(`Please provide a title for Media #${reels.indexOf(reel) + 1}.`);
+        return;
+      }
+      if (!reel.selectedFile) {
+        alert(`Please provide a content file for "${reel.title}".`);
+        return;
+      }
     }
-    if (!commonFormData.craft) { alert('Please select a Craft.'); return; }
+    if (!commonFormData.craft) {
+      alert('Please select a Craft.');
+      return;
+    }
 
     setIsUploading(true);
     setUploadMessage('Starting upload process...');
@@ -342,12 +413,13 @@ const CreateReel = () => {
       if (!user) throw new Error("User not found.");
 
       const uploadPromises = reels.map(async (reel) => {
+        setUploadMessage(`Processing ${reel.title}...`);
         const content_gcs_path = await uploadFileToGCS(reel.selectedFile);
         const preview_gcs_path = reel.customPreviewFile ? await uploadFileToGCS(reel.customPreviewFile) : null;
         return { reelData: reel, content_gcs_path, preview_gcs_path };
       });
 
-      setUploadMessage('Uploading files...');
+      setUploadMessage('Uploading files to storage...');
       const uploadResults = await Promise.all(uploadPromises);
       
       const recordsToInsert = uploadResults.map(result => ({
@@ -356,23 +428,36 @@ const CreateReel = () => {
           artists: commonFormData.artist.join(', '),
           client: commonFormData.client.join(', '),
           categories: commonFormData.categories.join(', '),
-          publish_date: commonFormData.publishOption === 'now' ? new Date().toISOString() : commonFormData.publicationDate.toISOString(),
+          publish_date: commonFormData.publishOption === 'now' 
+              ? new Date().toISOString() 
+              : commonFormData.publicationDate.toISOString(),
           video_gcs_path: result.content_gcs_path,
           preview_gcs_path: result.preview_gcs_path,
+          
+          // --- Нові поля, що відправляються в БД ---
+          description: commonFormData.description,
+          featured_celebrity: commonFormData.featuredCelebrity.join(', '),
+          content_type: commonFormData.contentType,
+          craft: commonFormData.craft,
+          allow_download: commonFormData.allowDownload,
       }));
 
-      setUploadMessage('Saving metadata...');
+      setUploadMessage('Saving metadata to database...');
       const { error: insertError } = await supabase.from('media_items').insert(recordsToInsert);
-      if (insertError) throw new Error(`Database error: ${insertError.message}`);
+
+      if (insertError) {
+        throw new Error(`Database error: ${insertError.message}`);
+      }
 
       setUploadMessage('✅ Success! All media has been uploaded.');
       setReels([createNewReel()]);
-      setCommonFormData({ allowDownload: false, publicationDate: new Date(), publishOption: 'schedule', artist: [], client: [], description: '', featuredCelebrity: [], contentType: '', craft: '', categories: [], });
+      setCommonFormData(initialCommonFormData);
 
     } catch (err) {
       console.error('An error occurred during the upload process:', err);
       setUploadMessage(`❌ Error: ${err.message}`);
     } finally {
+      // Залишаємо повідомлення про статус на 5 секунд
       setTimeout(() => {
         setIsUploading(false);
         setUploadMessage('');
@@ -392,33 +477,69 @@ const CreateReel = () => {
             />
         </div>
       ))}
-      <div className="flex justify-center"> <button type="button" onClick={handleAddReel} className="px-6 py-2 border-2 border-dashed border-teal-500 text-teal-600 font-semibold rounded-lg hover:bg-teal-50 dark:hover:bg-slate-800 transition-colors" > + Add Another Media </button> </div>
+      <div className="flex justify-center">
+        <button type="button" onClick={handleAddReel} className="px-6 py-2 border-2 border-dashed border-teal-500 text-teal-600 font-semibold rounded-lg hover:bg-teal-50 dark:hover:bg-slate-800 transition-colors">
+            + Add Another Media
+        </button>
+      </div>
       <hr className="border-slate-300 dark:border-slate-700" />
+      
       <FormSection title="Common Content Data">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
            <div className="md:col-span-2">
             <FormField label="Publication Date" required>
                 <div className="flex items-center space-x-6 mb-3">
-                <div className="flex items-center"><input id="schedule" type="radio" name="publishOption" value="schedule" checked={!isSchedulingDisabled} onChange={(e) => handleCommonFormChange('publishOption', e.target.value)} className="h-4 w-4 border-slate-300 text-teal-600 focus:ring-teal-500" /><label htmlFor="schedule" className="ml-2 text-sm text-slate-700 dark:text-slate-300">Schedule</label></div>
-                <div className="flex items-center"><input id="publish-now" type="radio" name="publishOption" value="now" checked={isSchedulingDisabled} onChange={(e) => handleCommonFormChange('publishOption', e.target.value)} className="h-4 w-4 border-slate-300 text-teal-600 focus:ring-teal-500" /><label htmlFor="publish-now" className="ml-2 text-sm text-slate-700 dark:text-slate-300">Publish Now</label></div>
+                    <div className="flex items-center">
+                        <input id="schedule" type="radio" name="publishOption" value="schedule" checked={!isSchedulingDisabled} onChange={(e) => handleCommonFormChange('publishOption', e.target.value)} className="h-4 w-4 border-slate-300 text-teal-600 focus:ring-teal-500" />
+                        <label htmlFor="schedule" className="ml-2 text-sm text-slate-700 dark:text-slate-300">Schedule</label>
+                    </div>
+                    <div className="flex items-center">
+                        <input id="publish-now" type="radio" name="publishOption" value="now" checked={isSchedulingDisabled} onChange={(e) => handleCommonFormChange('publishOption', e.target.value)} className="h-4 w-4 border-slate-300 text-teal-600 focus:ring-teal-500" />
+                        <label htmlFor="publish-now" className="ml-2 text-sm text-slate-700 dark:text-slate-300">Publish Now</label>
+                    </div>
                 </div>
-                <div className="relative"><DatePicker selected={commonFormData.publicationDate} onChange={(date) => handleCommonFormChange('publicationDate', date)} disabled={isSchedulingDisabled} showTimeSelect dateFormat="MMMM d, yyyy h:mm aa" className={`${inputClasses} pl-10 w-full`} /><div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none"><CalendarIcon /></div></div>
+                <div className="relative">
+                    <DatePicker selected={commonFormData.publicationDate} onChange={(date) => handleCommonFormChange('publicationDate', date)} disabled={isSchedulingDisabled} showTimeSelect dateFormat="MMMM d, yyyy h:mm aa" className={`${inputClasses} pl-10 w-full`} />
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none"><CalendarIcon /></div>
+                </div>
             </FormField>
           </div>
           <MultiCreatableSelect label="Artist" options={artists} selectedOptions={commonFormData.artist} onChange={(newValue) => handleCommonFormChange('artist', newValue)} placeholder={isLoadingOptions ? 'Loading...' : 'Choose or type artist...'} required limit={10} />
           <MultiCreatableSelect label="Client" options={clients} selectedOptions={commonFormData.client} onChange={(newValue) => handleCommonFormChange('client', newValue)} placeholder={isLoadingOptions ? 'Loading...' : 'Choose or type client...'} limit={10} />
-          <div className="md:col-span-2"> <MultiCreatableSelect label="Featured Celebrity" options={celebrities} selectedOptions={commonFormData.featuredCelebrity} onChange={(newValue) => handleCommonFormChange('featuredCelebrity', newValue)} placeholder={isLoadingOptions ? 'Loading...' : 'Choose celebrity...'} limit={10} /> </div>
-          <div className="md:col-span-2"> <FormField label="Description"> <div className="relative w-full"> <textarea value={commonFormData.description} onChange={(e) => handleCommonFormChange('description', e.target.value)} maxLength="200" placeholder="Enter Clip Description..." className="flex min-h-[120px] w-full rounded-md border border-slate-300 bg-white dark:bg-slate-800 px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500 resize-none"></textarea> <div className="absolute bottom-2 right-2 text-xs text-slate-400"> {commonFormData.description.length} / 200 </div> </div> </FormField> </div>
-          <div className="flex items-center"> <input id="allow-download" type="checkbox" checked={commonFormData.allowDownload} onChange={(e) => handleCommonFormChange('allowDownload', e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500" /> <label htmlFor="allow-download" className="ml-3 text-sm font-medium text-slate-700 dark:text-slate-300">Allow download</label> </div>
+          <div className="md:col-span-2">
+            <MultiCreatableSelect label="Featured Celebrity" options={celebrities} selectedOptions={commonFormData.featuredCelebrity} onChange={(newValue) => handleCommonFormChange('featuredCelebrity', newValue)} placeholder={isLoadingOptions ? 'Loading...' : 'Choose celebrity...'} limit={10} />
+          </div>
+          <div className="md:col-span-2">
+            <FormField label="Description">
+                <div className="relative w-full">
+                    <textarea value={commonFormData.description} onChange={(e) => handleCommonFormChange('description', e.target.value)} maxLength="200" placeholder="Enter Clip Description..." className="flex min-h-[120px] w-full rounded-md border border-slate-300 bg-white dark:bg-slate-800 px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500 resize-none"></textarea>
+                    <div className="absolute bottom-2 right-2 text-xs text-slate-400">
+                        {commonFormData.description.length} / 200
+                    </div>
+                </div>
+            </FormField>
+          </div>
+          <div className="flex items-center">
+            <input id="allow-download" type="checkbox" checked={commonFormData.allowDownload} onChange={(e) => handleCommonFormChange('allowDownload', e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500" />
+            <label htmlFor="allow-download" className="ml-3 text-sm font-medium text-slate-700 dark:text-slate-300">Allow download</label>
+          </div>
         </div>
       </FormSection>
+
       <FormSection title="Common Meta Data" hasSeparator={false}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-           <div className="md:col-span-2"> <SingleSearchableSelect label="Content Type" options={contentTypes} value={commonFormData.contentType} onChange={(newValue) => handleCommonFormChange('contentType', newValue)} placeholder={isLoadingOptions ? 'Loading...' : 'Choose content type...'} /> </div>
-           <div className="md:col-span-2"> <SingleSearchableSelect label="Craft" options={crafts} value={commonFormData.craft} onChange={(newValue) => handleCommonFormChange('craft', newValue)} placeholder={isLoadingOptions ? 'Loading...' : 'Choose craft...'} required /> </div>
-           <div className="md:col-span-2"> <MultiSelectCategories label="Categories" options={categories} selectedOptions={commonFormData.categories} onChange={(newSelection) => handleCommonFormChange('categories', newSelection)} placeholder="Search and add categories..." limit={10} /> </div>
+           <div className="md:col-span-2">
+                <SingleSearchableSelect label="Content Type" options={contentTypes} value={commonFormData.contentType} onChange={(newValue) => handleCommonFormChange('contentType', newValue)} placeholder={isLoadingOptions ? 'Loading...' : 'Choose content type...'} />
+           </div>
+           <div className="md:col-span-2">
+                <SingleSearchableSelect label="Craft" options={crafts} value={commonFormData.craft} onChange={(newValue) => handleCommonFormChange('craft', newValue)} placeholder={isLoadingOptions ? 'Loading...' : 'Choose craft...'} required />
+           </div>
+           <div className="md:col-span-2">
+                <MultiSelectCategories label="Categories" options={categories} selectedOptions={commonFormData.categories} onChange={(newSelection) => handleCommonFormChange('categories', newSelection)} placeholder="Search and add categories..." limit={10} />
+           </div>
         </div>
       </FormSection>
+
       <div className="fixed bottom-6 right-6 z-50">
         <div className="relative">
           {isUploading && (
