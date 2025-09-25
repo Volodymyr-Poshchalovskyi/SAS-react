@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Eye,
   Clock,
@@ -110,10 +110,9 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
   );
 };
 
-// ✨ ОНОВЛЕНИЙ КОМПОНЕНТ: EditReelModal (без поля artists)
 const EditReelModal = ({ isOpen, onClose, reel, onSaveSuccess }) => {
   const [formData, setFormData] = useState({ title: '' });
-  const [status, setStatus] = useState('idle'); // 'idle', 'saving', 'error'
+  const [status, setStatus] = useState('idle');
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
@@ -222,6 +221,7 @@ const ReelActionsDropdown = ({ reel, onEdit, onCopy, onDelete, onToggleStatus, o
 // =======================
 const MyAnalytics = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [reelsData, setReelsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -231,7 +231,7 @@ const MyAnalytics = () => {
   const [reelToDelete, setReelToDelete] = useState(null);
   const [reelToEdit, setReelToEdit] = useState(null);
   const [activeDropdown, setActiveDropdown] = useState(null);
-  const [copiedLink, setCopiedLink] = useState(null); // ✨ State for copy feedback
+  const [copiedLink, setCopiedLink] = useState(null);
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -248,6 +248,17 @@ const MyAnalytics = () => {
     fetchReels();
   }, []);
   
+  useEffect(() => {
+    const reelIdToOpen = location.state?.openModalForReelId;
+    if (reelIdToOpen && !loading && reelsData.length > 0) {
+      const reel = reelsData.find(r => r.id === reelIdToOpen);
+      if (reel) {
+        setReelToEdit(reel);
+        navigate(location.pathname, { replace: true });
+      }
+    }
+  }, [location.state, reelsData, loading, navigate, location.pathname]);
+
   const handleToggleStatus = async (id, currentStatus) => {
     const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
     setReelsData(currentData => currentData.map(item => item.id === id ? { ...item, status: newStatus } : item));
@@ -281,12 +292,11 @@ const MyAnalytics = () => {
     setActiveDropdown(null);
   };
   
-  // ✨ Handler for copying link from table
   const handleCopyLink = (shortLink) => {
     const link = `${window.location.origin}/reel/${shortLink}`;
     navigator.clipboard.writeText(link).then(() => {
       setCopiedLink(shortLink);
-      setTimeout(() => setCopiedLink(null), 2000); // Reset icon after 2 seconds
+      setTimeout(() => setCopiedLink(null), 2000);
     });
   };
 
@@ -387,7 +397,6 @@ const MyAnalytics = () => {
                       <td className="p-4 text-left"><div className="flex items-center gap-2 text-slate-600 dark:text-slate-400"><User className="h-4 w-4" /><span><Highlight text={createdBy === '' ? 'N/A' : createdBy} highlight={searchTerm} /></span></div></td>
                       <td className="p-4 text-left"><div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 whitespace-nowrap"><Calendar className="h-4 w-4" /><span><Highlight text={createdAtDateTime} highlight={searchTerm} /></span></div></td>
                       <td className="p-4 text-center"><span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${reel.status === 'Active' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'}`}>{reel.status}</span></td>
-                      {/* ✨ ОНОВЛЕНА КОМІРКА З ПОСИЛАННЯМ І КНОПКОЮ КОПІЮВАННЯ */}
                       <td className="p-4 text-center">
                         <div className="flex items-center justify-center gap-2">
                            <a href={`/reel/${reel.short_link}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-blue-500 hover:text-blue-600 dark:text-blue-400 hover:underline">

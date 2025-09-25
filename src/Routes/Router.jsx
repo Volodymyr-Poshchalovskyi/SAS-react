@@ -76,7 +76,7 @@ export default function AppRouter() {
             <Route path="upload-media/:itemId" element={<CreateReel />} /> {/* ✨ ЗМІНА: Додано маршрут для редагування */}
             <Route path="library" element={<Library />} />
             <Route path="management" element={<ManagementPage />} />
-            <Route path="analytic" element={<MyAnalytic />} />
+            <Route path="analytics" element={<MyAnalytic />} />
           </Route>
 
           {/* Admin-only routes */}
@@ -88,7 +88,7 @@ export default function AppRouter() {
               <Route path="upload-media/:itemId" element={<CreateReel />} /> {/* ✨ ЗМІНА: Додано маршрут для редагування */}
               <Route path="library" element={<Library />} />
               <Route path="management" element={<ManagementPage />} />
-              <Route path="analytic" element={<MyAnalytic />} />
+              <Route path="analytics" element={<MyAnalytic />} />
               <Route path="metadata-management" element={<MetaDataManagement />} />
               <Route path="applications" element={<ApplicationsForAdmin />} />
               <Route path="user-management" element={<UserManagement />} />

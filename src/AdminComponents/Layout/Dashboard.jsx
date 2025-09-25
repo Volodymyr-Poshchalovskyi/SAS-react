@@ -1,6 +1,7 @@
 // src/AdminComponents/Layout/Dashboard.jsx
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom'; // 👈 1. Імпортуємо useNavigate
 import WeeklyViewsChart from './WeeklyViewsChart';
 import DateRangePicker from './DateRangePicker';
 import { formatDistanceToNow } from 'date-fns';
@@ -11,7 +12,6 @@ import { getSignedUrls } from '../../lib/gcsUrlCache';
 const cardClasses =
   'bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl';
 
-// ... (Компоненти VideoCard та ListItem залишаються без змін)
 const VideoCard = ({ title, imageUrl, badge, description, isLoading }) => (
   <div className={`${cardClasses} p-5`}>
     { isLoading ? (
@@ -32,7 +32,9 @@ const VideoCard = ({ title, imageUrl, badge, description, isLoading }) => (
     )}
   </div>
 );
-const ListItem = ({ imageUrl, title, subtitle, time, actionText, isLoading }) => (
+
+// 👇 2. Оновлюємо ListItem, щоб приймати onActionClick
+const ListItem = ({ imageUrl, title, subtitle, time, actionText, isLoading, onActionClick }) => (
     <div className="flex items-center space-x-4 py-3">
     { isLoading ? (
         <div className="animate-pulse flex items-center space-x-4 w-full">
@@ -50,7 +52,15 @@ const ListItem = ({ imageUrl, title, subtitle, time, actionText, isLoading }) =>
             <p className="text-xs text-slate-500 dark:text-slate-400 break-words whitespace-normal truncate">{subtitle}</p>
             <span className="text-xs text-slate-400 dark:text-slate-500">{time}</span>
         </div>
-        {actionText && <a href="#" className="flex-shrink-0 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:underline ml-auto">{actionText}</a>}
+        {/* 👇 3. Замінюємо <a> на <button> з onClick */}
+        {actionText && (
+          <button 
+            onClick={onActionClick} 
+            className="flex-shrink-0 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:underline ml-auto"
+          >
+            {actionText}
+          </button>
+        )}
     </>
     )}
     </div>
@@ -61,6 +71,8 @@ const Dashboard = () => {
   const today = new Date();
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(today.getDate() - 6);
+  
+  const navigate = useNavigate(); // 👈 4. Ініціалізуємо navigate
 
   const [dateRange, setDateRange] = useState({
     from: sevenDaysAgo,
@@ -72,6 +84,11 @@ const Dashboard = () => {
   const [trendingDirectors, setTrendingDirectors] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // 👇 5. Створюємо функцію-обробник для навігації
+  const handleShowreelClick = (reelId) => {
+    navigate('/adminpanel/analytics', { state: { openModalForReelId: reelId } });
+  };
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -121,30 +138,20 @@ const Dashboard = () => {
                 directorPhotoPaths = directorDetails.map(d => d.photo_gcs_path).filter(Boolean);
             }
 
-            // ✨ 1. Визначаємо шлях до стандартного фото
             const defaultDirectorImagePath = 'back-end/artists/director.jpg';
-
             const trendingPaths = trendingData.map(v => v.preview_gcs_path).filter(Boolean);
             const activityPaths = activityData.map(a => a.preview_gcs_path).filter(Boolean);
-
-            // ✨ 2. Завжди додаємо стандартне фото в запит на підписання URL
             const allPaths = [...new Set([...trendingPaths, ...activityPaths, ...directorPhotoPaths, defaultDirectorImagePath])];
-            
             const urls = await getSignedUrls(allPaths);
-
-            // ✨ 3. Отримуємо підписаний URL для стандартного фото
             const fallbackDirectorUrl = urls[defaultDirectorImagePath];
-
             const directorDetailsMap = directorDetails.reduce((acc, director) => {
                 const specificPhotoUrl = director.photo_gcs_path ? urls[director.photo_gcs_path] : null;
-                // Використовуємо фото режисера або стандартне, якщо його немає
                 acc[director.name] = { imageUrl: specificPhotoUrl || fallbackDirectorUrl };
                 return acc;
             }, {});
 
             setTrendingDirectors(topDirectors.map(director => ({
                 ...director,
-                // Додаткова перевірка, якщо режисер є у відео, але відсутній в таблиці artists
                 imageUrl: directorDetailsMap[director.name]?.imageUrl || fallbackDirectorUrl,
             })));
             
@@ -216,6 +223,7 @@ const Dashboard = () => {
                         subtitle={item.title}
                         time={formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
                         actionText="SHOWREEL"
+                        onActionClick={() => handleShowreelClick(item.id)} // 👈 6. Передаємо обробник у компонент
                         isLoading={false}
                       />
                     ))
