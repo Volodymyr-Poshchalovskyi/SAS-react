@@ -16,6 +16,7 @@ import {
   Loader2,
   CheckCircle,
   User,
+  Calendar,
 } from 'lucide-react';
 import { getSignedUrls } from '../../lib/gcsUrlCache';
 
@@ -55,7 +56,7 @@ const SortableHeader = ({ children, sortKey, sortConfig, onSort, className = '' 
 };
 
 // ===========================================
-// ✨ ЗМІНА: Додано відсутній компонент ConfirmationModal
+// ConfirmationModal Component (без змін)
 // ===========================================
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
   const [status, setStatus] = useState('idle'); // 'idle', 'deleting', 'success', 'error'
@@ -73,7 +74,7 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
       setStatus('success');
       setTimeout(() => {
         onClose();
-      }, 2000); // Auto-close after 2 seconds on success
+      }, 2000);
     } catch (error) {
       console.error("Deletion failed:", error);
       setStatus('error');
@@ -137,7 +138,7 @@ const MyAnalytics = () => {
   const [reelsData, setReelsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortConfig, setSortConfig] = useState({ key: 'total_views', direction: 'descending' });
+  const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'descending' });
   const [currentPage, setCurrentPage] = useState(1);
   const [signedUrls, setSignedUrls] = useState({});
   const [reelToDelete, setReelToDelete] = useState(null);
@@ -193,7 +194,6 @@ const MyAnalytics = () => {
         let aValue, bValue;
 
         if (sortConfig.key === 'created_by') {
-          // ✨ ЗМІНА: Оновлена логіка сортування для user_profiles
           aValue = `${a.user_profiles?.first_name || ''} ${a.user_profiles?.last_name || ''}`.trim();
           bValue = `${b.user_profiles?.first_name || ''} ${b.user_profiles?.last_name || ''}`.trim();
         } else {
@@ -218,10 +218,14 @@ const MyAnalytics = () => {
     if (!searchTerm) return sortedData;
     const term = searchTerm.toLowerCase();
     return sortedData.filter((item) => {
-      // ✨ ЗМІНА: Оновлена логіка пошуку для user_profiles
       const createdByName = `${item.user_profiles?.first_name || ''} ${item.user_profiles?.last_name || ''}`.trim().toLowerCase();
+      // ✨ ЗМІНА: Оновлено пошук, щоб він включав час
+      const createdAtDateTime = item.created_at 
+        ? new Date(item.created_at).toLocaleString('uk-UA', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) 
+        : '';
       return item.title.toLowerCase().includes(term) ||
              item.short_link.toLowerCase().includes(term) ||
+             createdAtDateTime.includes(term) ||
              createdByName.includes(term);
     });
   }, [sortedData, searchTerm]);
@@ -260,7 +264,7 @@ const MyAnalytics = () => {
         itemTitle={reelToDelete?.title}
       />
 
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">Analytics</h1>
           <div className="w-full sm:w-72">
@@ -273,11 +277,13 @@ const MyAnalytics = () => {
             <table className="w-full text-sm">
               <thead className="text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900">
                 <tr className="border-b border-slate-200 dark:border-slate-800">
-                  <SortableHeader sortKey="title" sortConfig={sortConfig} onSort={handleSort} className="w-[30%]">Reel</SortableHeader>
-                  <SortableHeader sortKey="total_views" sortConfig={sortConfig} onSort={handleSort} className="w-[10%] text-center">Views</SortableHeader>
-                  <SortableHeader sortKey="completion_rate" sortConfig={sortConfig} onSort={handleSort} className="w-[13%] text-center">Completion</SortableHeader>
-                  <SortableHeader sortKey="avg_watch_duration" sortConfig={sortConfig} onSort={handleSort} className="w-[10%] text-center">Avg. Time</SortableHeader>
+                  {/* ✨ ЗМІНА: Оновлено ширину колонок */}
+                  <SortableHeader sortKey="title" sortConfig={sortConfig} onSort={handleSort} className="w-[23%]">Reel</SortableHeader>
+                  <SortableHeader sortKey="total_views" sortConfig={sortConfig} onSort={handleSort} className="w-[8%] text-center">Views</SortableHeader>
+                  <SortableHeader sortKey="completion_rate" sortConfig={sortConfig} onSort={handleSort} className="w-[12%] text-center">Completion</SortableHeader>
+                  <SortableHeader sortKey="avg_watch_duration" sortConfig={sortConfig} onSort={handleSort} className="w-[8%] text-center">Avg. Time</SortableHeader>
                   <SortableHeader sortKey="created_by" sortConfig={sortConfig} onSort={handleSort} className="w-[12%]">Created By</SortableHeader>
+                  <SortableHeader sortKey="created_at" sortConfig={sortConfig} onSort={handleSort} className="w-[12%]">Created At</SortableHeader>
                   <SortableHeader sortKey="status" sortConfig={sortConfig} onSort={handleSort} className="w-[8%] text-center">Status</SortableHeader>
                   <th className="p-4 font-medium text-center w-[8%]">Link</th>
                   <th className="p-4 font-medium text-center w-[9%]">Actions</th>
@@ -287,8 +293,17 @@ const MyAnalytics = () => {
                 {currentData.map((reel) => {
                   const previewUrl = reel.preview_gcs_path ? signedUrls[reel.preview_gcs_path] : null;
                   const completionRate = Math.round(reel.completion_rate || 0);
-                  // ✨ ЗМІНА: Формуємо повне ім'я автора
                   const createdBy = reel.user_profiles ? `${reel.user_profiles.first_name || ''} ${reel.user_profiles.last_name || ''}`.trim() : 'N/A';
+                  // ✨ ЗМІНА: Форматування дати включає тепер годину та хвилину
+                  const createdAtDateTime = reel.created_at 
+                    ? new Date(reel.created_at).toLocaleString('uk-UA', { // Використовуємо локаль 'uk-UA' для формату ДД.ММ.РРРР, ГГ:ХХ
+                        year: 'numeric', 
+                        month: '2-digit', 
+                        day: '2-digit', 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })
+                    : 'N/A';
 
                   return (
                     <tr key={reel.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
@@ -334,6 +349,14 @@ const MyAnalytics = () => {
                             <User className="h-4 w-4" />
                             <span>
                                <Highlight text={createdBy === '' ? 'N/A' : createdBy} highlight={searchTerm} />
+                            </span>
+                         </div>
+                      </td>
+                      <td className="p-4 text-left">
+                         <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                            <Calendar className="h-4 w-4" />
+                            <span>
+                               <Highlight text={createdAtDateTime} highlight={searchTerm} />
                             </span>
                          </div>
                       </td>
