@@ -1,5 +1,3 @@
-// src/AdminComponents/Layout/MyAnalytics.jsx
-
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Eye,
@@ -14,6 +12,7 @@ import {
   Trash2,
   AlertTriangle,
 } from 'lucide-react';
+import { getSignedUrls } from '../../lib/gcsUrlCache'; // <-- ІМПОРТУЄМО КЕШ-СЕРВІС
 
 const Highlight = ({ text, highlight }) => {
   if (!highlight?.trim()) return <span>{text}</span>;
@@ -130,21 +129,15 @@ const MyAnalytics = () => {
     let sortableItems = [...reelsData];
     if (sortConfig.key) {
       sortableItems.sort((a, b) => {
-        // ВИПРАВЛЕННЯ: Отримуємо значення, замінюючи null/undefined на 0 або порожній рядок
         const aValue = a[sortConfig.key] ?? 0; 
         const bValue = b[sortConfig.key] ?? 0;
-
-        // Перевірка на рядок залишається, але тепер безпечніша
         if (typeof a[sortConfig.key] === 'string' || typeof b[sortConfig.key] === 'string') {
           return sortConfig.direction === 'ascending'
             ? String(aValue).localeCompare(String(bValue))
             : String(bValue).localeCompare(String(aValue));
         }
-        
-        // Порівняння чисел
         if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
         if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
-        
         return 0;
       });
     }
@@ -165,24 +158,28 @@ const MyAnalytics = () => {
     return filteredData.slice(start, start + itemsPerPage);
   }, [filteredData, currentPage]);
 
+  // ОНОВЛЕНИЙ useEffect ДЛЯ ОТРИМАННЯ URL-адрес
   useEffect(() => {
-    const fetchSignedUrls = async () => {
-      const pathsToFetch = currentData.map(item => item.preview_gcs_path).filter(path => path && !signedUrls[path]);
-      if (pathsToFetch.length === 0) return;
-      try {
-        const response = await fetch('http://localhost:3001/generate-read-urls', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ gcsPaths: [...new Set(pathsToFetch)] }),
-        });
-        const urlsMap = await response.json();
-        setSignedUrls(prevUrls => ({ ...prevUrls, ...urlsMap }));
-      } catch (err) {
-        console.error('Error fetching signed URLs:', err);
-      }
+    const fetchAndCacheUrls = async () => {
+      const pathsToFetch = currentData
+        .map(item => item.preview_gcs_path)
+        .filter(path => path);
+
+      const uniquePaths = [...new Set(pathsToFetch)];
+      
+      if (uniquePaths.length === 0) return;
+
+      // Викликаємо наш кеш-сервіс
+      const urlsMap = await getSignedUrls(uniquePaths);
+      
+      // Оновлюємо локальний стан для ре-рендерингу
+      setSignedUrls(prevUrls => ({ ...prevUrls, ...urlsMap }));
     };
-    if (currentData.length > 0) fetchSignedUrls();
-  }, [currentData, signedUrls]);
+
+    if (currentData.length > 0) {
+      fetchAndCacheUrls();
+    }
+  }, [currentData]);
 
   const handleSort = (key) => setSortConfig(prev => ({ key, direction: prev.key === key && prev.direction === 'ascending' ? 'descending' : 'ascending' }));
   const formatNumber = (num) => new Intl.NumberFormat('en-US').format(num);

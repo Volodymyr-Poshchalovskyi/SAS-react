@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { getSignedUrls } from '../../lib/gcsUrlCache'; // <-- ІМПОРТУЄМО КЕШ-СЕРВІС
 
 // =======================
 // КОМПОНЕНТ: Модальне вікно для відео (без змін)
@@ -122,11 +123,10 @@ const ReelCreatorSidebar = ({ allItems }) => {
 };
 
 // =======================
-// КОМПОНЕНТИ ДЛЯ ВИДАЛЕННЯ
+// КОМПОНЕНТИ ДЛЯ ВИДАЛЕННЯ (без змін)
 // =======================
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
   if (!isOpen) return null;
-
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50" onClick={onClose}>
       <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
@@ -252,23 +252,28 @@ const Library = () => {
     return filteredItems.slice(start, start + itemsPerPage);
   }, [filteredItems, currentPage]);
 
+  // ОНОВЛЕНИЙ useEffect ДЛЯ ОТРИМАННЯ URL-адрес
   useEffect(() => {
-    const fetchSignedUrls = async () => {
-      const pathsToFetch = currentItems.flatMap(item => [item.preview_gcs_path, item.video_gcs_path]).filter(path => path && !signedUrls[path]);
-      const uniquePathsToFetch = [...new Set(pathsToFetch)];
-      if (uniquePathsToFetch.length === 0) return;
-      try {
-        const response = await fetch('http://localhost:3001/generate-read-urls', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ gcsPaths: uniquePathsToFetch }),
-        });
-        if (!response.ok) throw new Error('Failed to fetch signed URLs');
-        const urlsMap = await response.json();
-        setSignedUrls(prevUrls => ({ ...prevUrls, ...urlsMap }));
-      } catch (err) { console.error('Error fetching signed URLs:', err); }
+    const fetchAndCacheUrls = async () => {
+      const pathsToFetch = currentItems
+        .flatMap(item => [item.preview_gcs_path, item.video_gcs_path])
+        .filter(path => path);
+      
+      const uniquePaths = [...new Set(pathsToFetch)];
+      
+      if (uniquePaths.length === 0) return;
+
+      // Викликаємо наш кеш-сервіс
+      const urlsMap = await getSignedUrls(uniquePaths);
+
+      // Оновлюємо локальний стан, щоб компонент перерендерився
+      setSignedUrls(prevUrls => ({ ...prevUrls, ...urlsMap }));
     };
-    if (currentItems.length > 0) fetchSignedUrls();
-  }, [currentItems, signedUrls]);
+
+    if (currentItems.length > 0) {
+      fetchAndCacheUrls();
+    }
+  }, [currentItems]);
 
   useEffect(() => {
     if (headerCheckboxRef.current) {
@@ -306,11 +311,8 @@ const Library = () => {
 
   const handleConfirmDelete = async () => {
     if (!itemToDelete) return;
-
     try {
-      const response = await fetch(`http://localhost:3001/media-items/${itemToDelete.id}`, {
-        method: 'DELETE',
-      });
+      const response = await fetch(`http://localhost:3001/media-items/${itemToDelete.id}`, { method: 'DELETE' });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.details || 'Failed to delete item.');
