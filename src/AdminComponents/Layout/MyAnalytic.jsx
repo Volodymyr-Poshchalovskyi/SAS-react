@@ -11,9 +11,14 @@ import {
   Image as ImageIcon,
   Trash2,
   AlertTriangle,
+  Loader2,      // ✨ ADDED
+  CheckCircle,  // ✨ ADDED
 } from 'lucide-react';
-import { getSignedUrls } from '../../lib/gcsUrlCache'; // <-- ІМПОРТУЄМО КЕШ-СЕРВІС
+import { getSignedUrls } from '../../lib/gcsUrlCache';
 
+// =======================
+// UTILITY COMPONENTS (No changes)
+// =======================
 const Highlight = ({ text, highlight }) => {
   if (!highlight?.trim()) return <span>{text}</span>;
   const regex = new RegExp(`(${highlight})`, 'gi');
@@ -25,9 +30,7 @@ const Highlight = ({ text, highlight }) => {
           <mark key={i} className="bg-yellow-200 dark:bg-yellow-600/40 text-black dark:text-white rounded px-0.5">
             {part}
           </mark>
-        ) : (
-          part
-        )
+        ) : ( part )
       )}
     </span>
   );
@@ -48,29 +51,86 @@ const SortableHeader = ({ children, sortKey, sortConfig, onSort, className = '' 
   );
 };
 
-const ConfirmationModal = ({ isOpen, onClose, onConfirm, title, children }) => {
+// ===========================================
+// ✨ CONFIRMATION MODAL (REPLACED & UPDATED)
+// ===========================================
+const ConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
+  const [status, setStatus] = useState('idle'); // 'idle', 'deleting', 'success', 'error'
+
+  useEffect(() => {
+    if (isOpen) {
+      setStatus('idle');
+    }
+  }, [isOpen]);
+
+  const handleConfirmClick = async () => {
+    setStatus('deleting');
+    try {
+      await onConfirm();
+      setStatus('success');
+      setTimeout(() => {
+        onClose();
+      }, 2000); // Auto-close after 2 seconds on success
+    } catch (error) {
+      console.error("Deletion failed:", error);
+      setStatus('error');
+      // Optional: auto-revert from error state after a few seconds
+      setTimeout(() => {
+        if (status === 'error') setStatus('idle');
+      }, 3000);
+    }
+  };
+
   if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={onClose}>
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-md" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start">
-          <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/50 sm:mx-0 sm:h-10 sm:w-10">
-            <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" aria-hidden="true" />
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50" onClick={status === 'idle' ? onClose : undefined}>
+      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-md transition-all" onClick={(e) => e.stopPropagation()}>
+        {status === 'success' ? (
+          <div className="text-center py-4">
+            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-slate-900 dark:text-slate-50">Deleted Successfully</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+              The showreel "<strong className="text-slate-700 dark:text-slate-200">{itemTitle}</strong>" was deleted.
+            </p>
           </div>
-          <div className="ml-4 text-left">
-            <h3 className="text-lg leading-6 font-medium text-slate-900 dark:text-slate-50">{title}</h3>
-            <div className="mt-2 text-sm text-slate-500 dark:text-slate-400">{children}</div>
-          </div>
-        </div>
-        <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse gap-3">
-          <button type="button" onClick={onConfirm} className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none sm:w-auto sm:text-sm">Delete</button>
-          <button type="button" onClick={onClose} className="mt-3 w-full inline-flex justify-center rounded-md border border-slate-300 dark:border-slate-600 shadow-sm px-4 py-2 bg-white dark:bg-slate-700 text-base font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 focus:outline-none sm:mt-0 sm:w-auto sm:text-sm">Cancel</button>
-        </div>
+        ) : (
+          <>
+            <div className="flex items-start">
+              <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/50 sm:mx-0 sm:h-10 sm:w-10">
+                <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" aria-hidden="true" />
+              </div>
+              <div className="ml-4 text-left">
+                <h3 className="text-lg leading-6 font-medium text-slate-900 dark:text-slate-50">Delete Showreel</h3>
+                <div className="mt-2">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    {status === 'error' 
+                      ? <span className="text-red-500">Failed to delete the showreel. Please try again.</span>
+                      : <>Are you sure you want to delete <strong className="text-slate-700 dark:text-slate-200">{itemTitle}</strong>? This action cannot be undone.</>
+                    }
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse gap-3">
+              <button type="button" onClick={handleConfirmClick} disabled={status === 'deleting'} className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none sm:w-auto sm:text-sm disabled:bg-red-400 disabled:cursor-not-allowed">
+                {status === 'deleting' ? <Loader2 className="animate-spin h-5 w-5" /> : 'Delete'}
+              </button>
+              <button type="button" onClick={onClose} disabled={status === 'deleting'} className="mt-3 w-full inline-flex justify-center rounded-md border border-slate-300 dark:border-slate-600 shadow-sm px-4 py-2 bg-white dark:bg-slate-700 text-base font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600 focus:outline-none sm:mt-0 sm:w-auto sm:text-sm disabled:opacity-50">
+                Cancel
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
 };
 
+
+// =======================
+// MAIN COMPONENT: MyAnalytics
+// =======================
 const MyAnalytics = () => {
   const [reelsData, setReelsData] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -112,18 +172,24 @@ const MyAnalytics = () => {
       setReelsData(currentData => currentData.map(item => item.id === id ? { ...item, status: currentStatus } : item));
     }
   };
-
+  
+  // ✨ DELETION HANDLER (UPDATED)
   const handleConfirmDelete = async () => {
     if (!reelToDelete) return;
-    try {
-      await fetch(`http://localhost:3001/reels/${reelToDelete.id}`, { method: 'DELETE' });
-      setReelsData(currentData => currentData.filter(r => r.id !== reelToDelete.id));
-    } catch (error) {
-      console.error("Deletion error:", error);
-    } finally {
-      setReelToDelete(null);
+
+    const response = await fetch(`http://localhost:3001/reels/${reelToDelete.id}`, {
+      method: 'DELETE',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({})); // Handle non-JSON responses
+      throw new Error(errorData.details || 'Failed to delete the showreel.');
     }
+
+    // Update local state upon successful deletion
+    setReelsData(currentData => currentData.filter(r => r.id !== reelToDelete.id));
   };
+
 
   const sortedData = useMemo(() => {
     let sortableItems = [...reelsData];
@@ -158,24 +224,14 @@ const MyAnalytics = () => {
     return filteredData.slice(start, start + itemsPerPage);
   }, [filteredData, currentPage]);
 
-  // ОНОВЛЕНИЙ useEffect ДЛЯ ОТРИМАННЯ URL-адрес
   useEffect(() => {
     const fetchAndCacheUrls = async () => {
-      const pathsToFetch = currentData
-        .map(item => item.preview_gcs_path)
-        .filter(path => path);
-
+      const pathsToFetch = currentData.map(item => item.preview_gcs_path).filter(path => path);
       const uniquePaths = [...new Set(pathsToFetch)];
-      
       if (uniquePaths.length === 0) return;
-
-      // Викликаємо наш кеш-сервіс
       const urlsMap = await getSignedUrls(uniquePaths);
-      
-      // Оновлюємо локальний стан для ре-рендерингу
       setSignedUrls(prevUrls => ({ ...prevUrls, ...urlsMap }));
     };
-
     if (currentData.length > 0) {
       fetchAndCacheUrls();
     }
@@ -191,10 +247,13 @@ const MyAnalytics = () => {
 
   return (
     <>
-      <ConfirmationModal isOpen={!!reelToDelete} onClose={() => setReelToDelete(null)} onConfirm={handleConfirmDelete} title="Delete Showreel">
-        Are you sure you want to delete the showreel{' '}
-        <strong className="text-slate-700 dark:text-slate-200">{reelToDelete?.title}</strong>? This action cannot be undone.
-      </ConfirmationModal>
+      {/* ✨ MODAL INVOCATION (UPDATED) */}
+      <ConfirmationModal
+        isOpen={!!reelToDelete}
+        onClose={() => setReelToDelete(null)}
+        onConfirm={handleConfirmDelete}
+        itemTitle={reelToDelete?.title}
+      />
 
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-6">
