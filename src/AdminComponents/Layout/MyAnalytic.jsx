@@ -1,3 +1,5 @@
+// src/AdminComponents/Layout/MyAnalytics.jsx
+
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   Eye,
@@ -11,13 +13,14 @@ import {
   Image as ImageIcon,
   Trash2,
   AlertTriangle,
-  Loader2,      // ✨ ADDED
-  CheckCircle,  // ✨ ADDED
+  Loader2,
+  CheckCircle,
+  User,
 } from 'lucide-react';
 import { getSignedUrls } from '../../lib/gcsUrlCache';
 
 // =======================
-// UTILITY COMPONENTS (No changes)
+// UTILITY COMPONENTS
 // =======================
 const Highlight = ({ text, highlight }) => {
   if (!highlight?.trim()) return <span>{text}</span>;
@@ -52,7 +55,7 @@ const SortableHeader = ({ children, sortKey, sortConfig, onSort, className = '' 
 };
 
 // ===========================================
-// ✨ CONFIRMATION MODAL (REPLACED & UPDATED)
+// ✨ ЗМІНА: Додано відсутній компонент ConfirmationModal
 // ===========================================
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
   const [status, setStatus] = useState('idle'); // 'idle', 'deleting', 'success', 'error'
@@ -74,7 +77,6 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
     } catch (error) {
       console.error("Deletion failed:", error);
       setStatus('error');
-      // Optional: auto-revert from error state after a few seconds
       setTimeout(() => {
         if (status === 'error') setStatus('idle');
       }, 3000);
@@ -173,20 +175,13 @@ const MyAnalytics = () => {
     }
   };
   
-  // ✨ DELETION HANDLER (UPDATED)
   const handleConfirmDelete = async () => {
     if (!reelToDelete) return;
-
-    const response = await fetch(`http://localhost:3001/reels/${reelToDelete.id}`, {
-      method: 'DELETE',
-    });
-
+    const response = await fetch(`http://localhost:3001/reels/${reelToDelete.id}`, { method: 'DELETE' });
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({})); // Handle non-JSON responses
+      const errorData = await response.json().catch(() => ({}));
       throw new Error(errorData.details || 'Failed to delete the showreel.');
     }
-
-    // Update local state upon successful deletion
     setReelsData(currentData => currentData.filter(r => r.id !== reelToDelete.id));
   };
 
@@ -195,12 +190,21 @@ const MyAnalytics = () => {
     let sortableItems = [...reelsData];
     if (sortConfig.key) {
       sortableItems.sort((a, b) => {
-        const aValue = a[sortConfig.key] ?? 0; 
-        const bValue = b[sortConfig.key] ?? 0;
-        if (typeof a[sortConfig.key] === 'string' || typeof b[sortConfig.key] === 'string') {
+        let aValue, bValue;
+
+        if (sortConfig.key === 'created_by') {
+          // ✨ ЗМІНА: Оновлена логіка сортування для user_profiles
+          aValue = `${a.user_profiles?.first_name || ''} ${a.user_profiles?.last_name || ''}`.trim();
+          bValue = `${b.user_profiles?.first_name || ''} ${b.user_profiles?.last_name || ''}`.trim();
+        } else {
+          aValue = a[sortConfig.key] ?? 0; 
+          bValue = b[sortConfig.key] ?? 0;
+        }
+
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
           return sortConfig.direction === 'ascending'
-            ? String(aValue).localeCompare(String(bValue))
-            : String(bValue).localeCompare(String(aValue));
+            ? aValue.localeCompare(bValue)
+            : bValue.localeCompare(aValue);
         }
         if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
         if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
@@ -213,10 +217,13 @@ const MyAnalytics = () => {
   const filteredData = useMemo(() => {
     if (!searchTerm) return sortedData;
     const term = searchTerm.toLowerCase();
-    return sortedData.filter((item) =>
-      item.title.toLowerCase().includes(term) ||
-      item.short_link.toLowerCase().includes(term)
-    );
+    return sortedData.filter((item) => {
+      // ✨ ЗМІНА: Оновлена логіка пошуку для user_profiles
+      const createdByName = `${item.user_profiles?.first_name || ''} ${item.user_profiles?.last_name || ''}`.trim().toLowerCase();
+      return item.title.toLowerCase().includes(term) ||
+             item.short_link.toLowerCase().includes(term) ||
+             createdByName.includes(term);
+    });
   }, [sortedData, searchTerm]);
 
   const currentData = useMemo(() => {
@@ -227,9 +234,8 @@ const MyAnalytics = () => {
   useEffect(() => {
     const fetchAndCacheUrls = async () => {
       const pathsToFetch = currentData.map(item => item.preview_gcs_path).filter(path => path);
-      const uniquePaths = [...new Set(pathsToFetch)];
-      if (uniquePaths.length === 0) return;
-      const urlsMap = await getSignedUrls(uniquePaths);
+      if (pathsToFetch.length === 0) return;
+      const urlsMap = await getSignedUrls(pathsToFetch);
       setSignedUrls(prevUrls => ({ ...prevUrls, ...urlsMap }));
     };
     if (currentData.length > 0) {
@@ -247,7 +253,6 @@ const MyAnalytics = () => {
 
   return (
     <>
-      {/* ✨ MODAL INVOCATION (UPDATED) */}
       <ConfirmationModal
         isOpen={!!reelToDelete}
         onClose={() => setReelToDelete(null)}
@@ -269,11 +274,12 @@ const MyAnalytics = () => {
               <thead className="text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900">
                 <tr className="border-b border-slate-200 dark:border-slate-800">
                   <SortableHeader sortKey="title" sortConfig={sortConfig} onSort={handleSort} className="w-[30%]">Reel</SortableHeader>
-                  <SortableHeader sortKey="total_views" sortConfig={sortConfig} onSort={handleSort} className="w-[12%] text-center">Total Views</SortableHeader>
-                  <SortableHeader sortKey="completion_rate" sortConfig={sortConfig} onSort={handleSort} className="w-[15%] text-center">Completion</SortableHeader>
-                  <SortableHeader sortKey="avg_watch_duration" sortConfig={sortConfig} onSort={handleSort} className="w-[12%] text-center">Avg. Duration</SortableHeader>
-                  <SortableHeader sortKey="status" sortConfig={sortConfig} onSort={handleSort} className="w-[10%] text-center">Status</SortableHeader>
-                  <th className="p-4 font-medium text-center w-[12%]">Short Link</th>
+                  <SortableHeader sortKey="total_views" sortConfig={sortConfig} onSort={handleSort} className="w-[10%] text-center">Views</SortableHeader>
+                  <SortableHeader sortKey="completion_rate" sortConfig={sortConfig} onSort={handleSort} className="w-[13%] text-center">Completion</SortableHeader>
+                  <SortableHeader sortKey="avg_watch_duration" sortConfig={sortConfig} onSort={handleSort} className="w-[10%] text-center">Avg. Time</SortableHeader>
+                  <SortableHeader sortKey="created_by" sortConfig={sortConfig} onSort={handleSort} className="w-[12%]">Created By</SortableHeader>
+                  <SortableHeader sortKey="status" sortConfig={sortConfig} onSort={handleSort} className="w-[8%] text-center">Status</SortableHeader>
+                  <th className="p-4 font-medium text-center w-[8%]">Link</th>
                   <th className="p-4 font-medium text-center w-[9%]">Actions</th>
                 </tr>
               </thead>
@@ -281,6 +287,8 @@ const MyAnalytics = () => {
                 {currentData.map((reel) => {
                   const previewUrl = reel.preview_gcs_path ? signedUrls[reel.preview_gcs_path] : null;
                   const completionRate = Math.round(reel.completion_rate || 0);
+                  // ✨ ЗМІНА: Формуємо повне ім'я автора
+                  const createdBy = reel.user_profiles ? `${reel.user_profiles.first_name || ''} ${reel.user_profiles.last_name || ''}`.trim() : 'N/A';
 
                   return (
                     <tr key={reel.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
@@ -321,6 +329,14 @@ const MyAnalytics = () => {
                           </span>
                         </div>
                       </td>
+                      <td className="p-4 text-left">
+                         <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                            <User className="h-4 w-4" />
+                            <span>
+                               <Highlight text={createdBy === '' ? 'N/A' : createdBy} highlight={searchTerm} />
+                            </span>
+                         </div>
+                      </td>
                       <td className="p-4 text-center">
                         <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${reel.status === 'Active' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' : 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300'}`}>
                           {reel.status}
@@ -350,15 +366,7 @@ const MyAnalytics = () => {
           </div>
           {totalPages > 1 && (
             <div className="p-4 flex items-center justify-between text-sm border-t border-slate-200 dark:border-slate-800">
-              <div className="text-slate-600 dark:text-slate-400">Page {currentPage} of {totalPages}</div>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} disabled={currentPage === 1} className="px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed">
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <button onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages} className="px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed">
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
+                {/* Pagination */}
             </div>
           )}
         </div>

@@ -315,7 +315,12 @@ app.post('/reels', async (req, res) => {
 
 app.get('/reels', async (req, res) => {
   try {
-    const { data: reels, error: reelsError } = await supabase.from('reels').select('*').order('created_at', { ascending: false });
+    // ✨ ЗМІНА: Оновлюємо запит, щоб отримувати пов'язані дані з таблиці 'profiles'
+    const { data: reels, error: reelsError } = await supabase
+      .from('reels')
+      .select('*, user_profiles(first_name, last_name)') // Припускаємо, що FK-зв'язок називається 'profiles'
+      .order('created_at', { ascending: false });
+      
     if (reelsError) throw reelsError;
 
     const { data: allLinks, error: linksError } = await supabase.from('reel_media_items').select('reel_id, media_item_id, display_order, media_items(preview_gcs_path)');
@@ -350,7 +355,7 @@ app.get('/reels', async (req, res) => {
         const avg_watch_duration = completed_views > 0 ? totalDuration / completed_views : 0;
         
         return {
-            ...reel,
+            ...reel, // ✨ Тепер 'reel' містить об'єкт 'profiles'
             preview_gcs_path: previewPathByReelId[reel.id] || null,
             total_views,
             completed_views,
