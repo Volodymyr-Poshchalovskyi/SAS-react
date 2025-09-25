@@ -46,7 +46,6 @@ function generateShortId(length = 5) {
 // 4. API-ЕНДПОІНТИ ДЛЯ GOOGLE CLOUD STORAGE
 // ========================================================================== //
 
-// Ендпоінт для генерації URL для ЗАВАНТАЖЕННЯ (write)
 app.post('/generate-upload-url', async (req, res) => {
   console.log('Received request to generate UPLOAD URL');
   try {
@@ -76,7 +75,6 @@ app.post('/generate-upload-url', async (req, res) => {
   }
 });
 
-// Ендпоінт для генерації URL для ЧИТАННЯ (read)
 app.post('/generate-read-urls', async (req, res) => {
   console.log('Received request to generate READ URLs');
   try {
@@ -127,7 +125,6 @@ app.post('/generate-read-urls', async (req, res) => {
 /* ЕНДПОІНТИ ДЛЯ РІЛСІВ (АДМІН ПАНЕЛЬ)                                       */
 /* ========================================================================== */
 
-// --- Створення нового рілса ---
 app.post('/reels', async (req, res) => {
   const { title, media_item_ids, user_id } = req.body;
 
@@ -175,7 +172,6 @@ app.post('/reels', async (req, res) => {
   }
 });
 
-// --- Отримання списку всіх рілсів для сторінки аналітики ---
 app.get('/reels', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -216,8 +212,6 @@ app.get('/reels', async (req, res) => {
   }
 });
 
-
-// --- Оновлення статусу рілса ---
 app.put('/reels/:id', async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
@@ -242,13 +236,11 @@ app.put('/reels/:id', async (req, res) => {
   }
 });
 
-// --- Видалення рілса ---
 app.delete('/reels/:id', async (req, res) => {
   const { id } = req.params;
   console.log(`Received request to DELETE reel with id: ${id}`);
 
   try {
-    // Крок 1: Видалити всі пов'язані записи в таблиці `reel_media_items`
     const { error: linksError } = await supabase
       .from('reel_media_items')
       .delete()
@@ -257,7 +249,6 @@ app.delete('/reels/:id', async (req, res) => {
     if (linksError) throw linksError;
     console.log(`Deleted links for reel ${id} from reel_media_items.`);
 
-    // Крок 2: Видалити сам рілс з таблиці `reels`
     const { error: reelError } = await supabase
       .from('reels')
       .delete()
@@ -339,10 +330,72 @@ app.get('/reels/public/:short_link', async (req, res) => {
 });
 
 /* ========================================================================== */
-/* ЕНДПОІНТ ДЛЯ МЕДІА-АЙТЕМІВ                                                */
+/* ЕНДПОІНТИ ДЛЯ МЕДІА-АЙТЕМІВ                                                */
 /* ========================================================================== */
 
-// --- Видалення медіа-айтема з каскадним оновленням рілсів (ВИПРАВЛЕНО) ---
+app.get('/media-items/:id', async (req, res) => {
+  const { id } = req.params;
+  console.log(`Received request to GET media item with id: ${id}`);
+  try {
+    const { data, error } = await supabase
+      .from('media_items')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) throw error;
+    if (!data) return res.status(404).json({ error: 'Media item not found.' });
+    
+    res.status(200).json(data);
+  } catch (error) {
+    console.error(`Error fetching media item ${id}:`, error);
+    res.status(500).json({ error: 'Failed to fetch media item.', details: error.message });
+  }
+});
+
+app.put('/media-items/:id', async (req, res) => {
+    const { id } = req.params;
+    const updatedData = req.body;
+    console.log(`Received request to UPDATE media item with id: ${id}`);
+
+    try {
+        const { data: currentItem, error: fetchError } = await supabase
+            .from('media_items')
+            .select('video_gcs_path, preview_gcs_path')
+            .eq('id', id)
+            .single();
+
+        if (fetchError) throw new Error('Could not fetch current item to compare files.');
+
+        const { error: updateError } = await supabase
+            .from('media_items')
+            .update(updatedData)
+            .eq('id', id);
+
+        if (updateError) throw updateError;
+        
+        const filesToDelete = [];
+        if (currentItem.video_gcs_path && currentItem.video_gcs_path !== updatedData.video_gcs_path) {
+            filesToDelete.push(currentItem.video_gcs_path);
+        }
+        if (currentItem.preview_gcs_path && currentItem.preview_gcs_path !== updatedData.preview_gcs_path) {
+            filesToDelete.push(currentItem.preview_gcs_path);
+        }
+
+        if (filesToDelete.length > 0) {
+            console.log(`Deleting old GCS files: ${filesToDelete.join(', ')}`);
+            await Promise.all(
+                filesToDelete.map(path => bucket.file(path).delete().catch(err => console.error(`Failed to delete old file ${path}:`, err.message)))
+            );
+        }
+
+        res.status(200).json({ message: 'Media item updated successfully.' });
+    } catch (error) {
+        console.error(`Error updating media item ${id}:`, error);
+        res.status(500).json({ error: 'Failed to update media item.', details: error.message });
+    }
+});
+
 app.delete('/media-items/:id', async (req, res) => {
   const { id } = req.params;
   console.log(`Received request to DELETE media item with id: ${id}`);
@@ -368,7 +421,6 @@ app.delete('/media-items/:id', async (req, res) => {
     if (linksError) throw linksError;
     const affectedReelIds = affectedReelLinks.map(link => link.reel_id);
 
-    // Першим кроком видаляємо зв'язки
     const { error: deleteLinksError } = await supabase
         .from('reel_media_items')
         .delete()
@@ -376,12 +428,9 @@ app.delete('/media-items/:id', async (req, res) => {
     if (deleteLinksError) throw deleteLinksError;
     console.log(`Removed links for item ${id} from reel_media_items table.`);
 
-    // Тепер перевіряємо, чи стали рілси порожніми
     if (affectedReelIds.length > 0) {
       console.log(`Item ${id} was part of reels: ${affectedReelIds.join(', ')}. Checking them for emptiness...`);
 
-      // ✨ ВИПРАВЛЕНА ЛОГІКА: без .groupBy()
-      // 1. Отримуємо список рілсів, в яких ЩЕ Є елементи
       const { data: remainingLinks, error: checkError } = await supabase
         .from('reel_media_items')
         .select('reel_id')
@@ -389,11 +438,9 @@ app.delete('/media-items/:id', async (req, res) => {
       
       if (checkError) throw checkError;
       
-      // 2. Визначаємо, які рілси потрібно видалити
       const reelsThatStillHaveItems = new Set((remainingLinks || []).map(link => link.reel_id));
       const reelsToDeleteIds = affectedReelIds.filter(reelId => !reelsThatStillHaveItems.has(reelId));
 
-      // 3. Видаляємо порожні рілси
       if (reelsToDeleteIds.length > 0) {
         console.log(`The following reels are now empty and will be deleted: ${reelsToDeleteIds.join(', ')}`);
         const { error: deleteReelsError } = await supabase

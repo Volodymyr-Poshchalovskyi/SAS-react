@@ -17,9 +17,8 @@ import Production from '../Pages/Production.jsx';
 import Studio from '../Pages/Studio.jsx';
 import Team from '../Pages/Team.jsx';
 import PrivacyPolicyPage from '../Pages/PrivacyPolicy.jsx';
-import PublicReelPage from '../Pages/PublicReelPage.jsx'; // Новий імпорт
+import PublicReelPage from '../Pages/PublicReelPage.jsx';
 import ProjectPage from '../Pages/ProjectPage.jsx';
-
 
 // Admin Pages
 import AdminPanel from '../AdminPages/AdminPanel.jsx';
@@ -41,13 +40,6 @@ import Logout from '../Pages/Logout.jsx';
 import ProtectedRoute from './ProtectedRoute.jsx';
 import AdminRoute from './AdminRoute.jsx';
 
-/**
- * AppRouter
- * Defines all application routes:
- * - Public routes (accessible by anyone)
- * - Protected routes (require authentication)
- * - Admin routes (require admin privileges)
- */
 export default function AppRouter() {
   return (
     <Routes>
@@ -58,7 +50,7 @@ export default function AppRouter() {
       {/* Public Routes with main site layout */}
       <Route element={<Layout />}>
         <Route path="/" element={<Main />} />
-        <Route path="/reel/:reelId" element={<PublicReelPage />} /> {/* Новий маршрут */}
+        <Route path="/reel/:reelId" element={<PublicReelPage />} />
         <Route path="/assignment" element={<Assignment />} />
         <Route path="/directors" element={<Directors />} />
         <Route path="/directors/:directorSlug" element={<DirectorPage />} />
@@ -81,6 +73,7 @@ export default function AppRouter() {
             <Route index element={<Dashboard />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="upload-media" element={<CreateReel />} />
+            <Route path="upload-media/:itemId" element={<CreateReel />} /> {/* ✨ ЗМІНА: Додано маршрут для редагування */}
             <Route path="library" element={<Library />} />
             <Route path="management" element={<ManagementPage />} />
             <Route path="analytic" element={<MyAnalytic />} />
@@ -92,6 +85,7 @@ export default function AppRouter() {
               <Route index element={<Dashboard />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="upload-media" element={<CreateReel />} />
+              <Route path="upload-media/:itemId" element={<CreateReel />} /> {/* ✨ ЗМІНА: Додано маршрут для редагування */}
               <Route path="library" element={<Library />} />
               <Route path="management" element={<ManagementPage />} />
               <Route path="analytic" element={<MyAnalytic />} />

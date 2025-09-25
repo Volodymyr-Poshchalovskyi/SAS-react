@@ -11,8 +11,10 @@ import {
   Settings,
   Trash2,
   AlertTriangle,
+  Edit,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 // =======================
 // КОМПОНЕНТ: Модальне вікно для відео (без змін)
@@ -154,7 +156,7 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
   );
 };
 
-const ItemActionsDropdown = ({ onOpenDeleteModal, onClose }) => {
+const ItemActionsDropdown = ({ onOpenDeleteModal, onClose, onEdit }) => {
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -171,6 +173,12 @@ const ItemActionsDropdown = ({ onOpenDeleteModal, onClose }) => {
     <div ref={dropdownRef} className="absolute right-4 top-10 z-20 w-48 bg-white dark:bg-slate-800 rounded-md shadow-lg border border-slate-200 dark:border-slate-700">
       <ul className="py-1">
         <li>
+          <button onClick={onEdit} className="w-full flex items-center px-4 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700">
+            <Edit className="mr-3 h-4 w-4" />
+            <span>Edit</span>
+          </button>
+        </li>
+        <li>
           <button onClick={onOpenDeleteModal} className="w-full flex items-center px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-700">
             <Trash2 className="mr-3 h-4 w-4" />
             <span>Delete</span>
@@ -186,6 +194,8 @@ const ItemActionsDropdown = ({ onOpenDeleteModal, onClose }) => {
 // ОСНОВНИЙ КОМПОНЕНТ Library
 // =======================
 const Library = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -258,7 +268,7 @@ const Library = () => {
       } catch (err) { console.error('Error fetching signed URLs:', err); }
     };
     if (currentItems.length > 0) fetchSignedUrls();
-  }, [currentItems, signedUrls]); // Додано signedUrls до залежностей
+  }, [currentItems, signedUrls]);
 
   useEffect(() => {
     if (headerCheckboxRef.current) {
@@ -287,6 +297,11 @@ const Library = () => {
 
   const handleCloseDeleteModal = () => {
     setItemToDelete(null);
+  };
+
+  const handleEditItem = (itemId) => {
+    const basePath = location.pathname.startsWith('/adminpanel') ? '/adminpanel' : '/userpanel';
+    navigate(`${basePath}/upload-media/${itemId}`);
   };
 
   const handleConfirmDelete = async () => {
@@ -371,6 +386,7 @@ const Library = () => {
                             <ItemActionsDropdown 
                               onClose={() => setActiveDropdown(null)} 
                               onOpenDeleteModal={() => handleOpenDeleteModal(item)}
+                              onEdit={() => handleEditItem(item.id)}
                             />
                           )}
                         </td>
