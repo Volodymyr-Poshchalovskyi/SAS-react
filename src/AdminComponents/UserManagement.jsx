@@ -1,10 +1,12 @@
+
 // src/AdminComponents/UserManagement.jsx
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
 
 // =======================
-// Modal Component
+// Modal Component (ВИПРАВЛЕНО)
 // =======================
 const Modal = ({
   isOpen,
@@ -15,84 +17,145 @@ const Modal = ({
   onConfirm,
   showCancelButton = true,
   confirmButtonClass,
+  successTitle = 'Success',
+  successMessage,
 }) => {
+  const [actionStatus, setActionStatus] = useState('idle');
+  const [errorMessage, setErrorMessage] = useState('');
+
   useEffect(() => {
     const handleEscape = (event) => {
-      if (event.key === 'Escape') {
+      // Дозволяємо закрити Escape тільки якщо дія не виконується
+      if (event.key === 'Escape' && actionStatus === 'idle') {
         onClose();
       }
     };
+    
+    // ✨ ВИПРАВЛЕННЯ: Скидаємо стан тільки при відкритті модального вікна.
+    // `actionStatus` прибрано з масиву залежностей, щоб уникнути циклічного скидання стану.
+    if (isOpen) {
+      setActionStatus('idle');
+      setErrorMessage('');
+    }
+
     document.addEventListener('keydown', handleEscape);
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [onClose]);
+  }, [isOpen, onClose]); // <-- Залежність `actionStatus` видалена
 
   if (!isOpen) return null;
 
+  const handleConfirmClick = async () => {
+    setActionStatus('processing');
+    setErrorMessage('');
+    try {
+      await onConfirm();
+      setActionStatus('success');
+      setTimeout(() => {
+        onClose();
+      }, 2000);
+    } catch (error) {
+      console.error('Modal confirmation error:', error);
+      setActionStatus('error');
+      setErrorMessage(error.message || 'An unexpected error occurred.');
+      setTimeout(() => setActionStatus('idle'), 3000);
+    }
+  };
+
   const baseButtonClasses =
-    'py-2 px-4 rounded-md text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900';
+    'inline-flex items-center justify-center py-2 px-4 rounded-md text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 disabled:opacity-60 disabled:cursor-not-allowed';
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-      onMouseDown={onClose}
+      onMouseDown={actionStatus === 'idle' ? onClose : undefined}
     >
       <div
         className="relative w-full max-w-md p-6 m-4 bg-white rounded-xl shadow-xl dark:bg-slate-900"
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between">
-          <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-50">
-            {title}
-          </h3>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-            aria-label="Close modal"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
+        {actionStatus === 'success' ? (
+          <div className="text-center py-4">
+            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-slate-900 dark:text-slate-50">
+              {successTitle}
+            </h3>
+            {successMessage && (
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+                {successMessage}
+              </p>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="flex items-start justify-between">
+              <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-50">
+                {title}
+              </h3>
+              <button
+                onClick={onClose}
+                disabled={actionStatus === 'processing'}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors disabled:opacity-50"
+                aria-label="Close modal"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
 
-        <div className="mt-4 text-slate-600 dark:text-slate-300">
-          {children}
-        </div>
+            <div className="mt-4 text-slate-600 dark:text-slate-300">
+              {children}
+            </div>
+            
+            {actionStatus === 'error' && (
+                <div className="mt-4 flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-md">
+                    <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+                    <span>{errorMessage}</span>
+                </div>
+            )}
 
-        <div className="mt-6 flex justify-end gap-3">
-          {showCancelButton && (
-            <button
-              onClick={onClose}
-              className={`${baseButtonClasses} border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800`}
-            >
-              Cancel
-            </button>
-          )}
-          <button
-            onClick={onConfirm}
-            className={`${baseButtonClasses} text-white ${
-              confirmButtonClass ||
-              'bg-indigo-600 hover:bg-indigo-700 focus-visible:ring-indigo-500'
-            }`}
-          >
-            {confirmText}
-          </button>
-        </div>
+            <div className="mt-6 flex justify-end gap-3">
+              {showCancelButton && (
+                <button
+                  onClick={onClose}
+                  disabled={actionStatus === 'processing'}
+                  className={`${baseButtonClasses} border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800`}
+                >
+                  Cancel
+                </button>
+              )}
+              <button
+                onClick={handleConfirmClick}
+                disabled={actionStatus === 'processing'}
+                className={`${baseButtonClasses} text-white ${
+                  confirmButtonClass ||
+                  'bg-indigo-600 hover:bg-indigo-700 focus-visible:ring-indigo-500'
+                }`}
+              >
+                {actionStatus === 'processing' && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
+                {confirmText}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
 };
+
 
 // =======================
 // Status Badge Component
@@ -105,13 +168,13 @@ const StatusBadge = ({ status }) => {
       'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
     deactivated:
       'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
-    pending: // <-- ADDED
+    pending:
       'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300',
   };
   const statusDotStyles = {
     active: 'bg-green-500',
     deactivated: 'bg-slate-500',
-    pending: 'bg-yellow-500', // <-- ADDED
+    pending: 'bg-yellow-500',
   };
   return (
     <span className={`${baseClasses} ${statusStyles[status] || ''}`}>
@@ -124,7 +187,7 @@ const StatusBadge = ({ status }) => {
 };
 
 // =======================
-// Highlight Component (for search matches)
+// Highlight Component
 // =======================
 const Highlight = ({ text, highlight }) => {
   if (!text) return null;
@@ -169,6 +232,8 @@ const UserManagement = () => {
     onConfirm: () => {},
     confirmButtonClass: '',
     showCancelButton: true,
+    successTitle: '',
+    successMessage: '',
   });
 
   const { getUsers, updateUserStatus } = useAuth();
@@ -202,7 +267,7 @@ const UserManagement = () => {
     fetchUsers();
   }, [fetchUsers]);
 
-  // ---------- Filtered Users (by search) ----------
+  // ---------- Filtered Users ----------
   const filteredUsers = useMemo(() => {
     if (!searchTerm) return users;
     const term = searchTerm.toLowerCase();
@@ -232,21 +297,12 @@ const UserManagement = () => {
             user.id === id ? { ...user, state: newStatus } : user
           )
         );
-        closeModal();
       } catch (err) {
-        setModalConfig({
-          isOpen: true,
-          title: 'Error',
-          message: `Failed to ${action} user: ${err.message}`,
-          confirmText: 'OK',
-          onConfirm: closeModal,
-          showCancelButton: false,
-          confirmButtonClass:
-            'bg-red-600 hover:bg-red-700 focus-visible:ring-red-500',
-        });
+        console.error(`Failed to ${action} user:`, err);
+        throw err;
       }
     };
-
+    
     setModalConfig({
       isOpen: true,
       title: `Confirm ${action.charAt(0).toUpperCase() + action.slice(1)}`,
@@ -257,6 +313,8 @@ const UserManagement = () => {
       confirmButtonClass: isDeactivation
         ? 'bg-red-600 hover:bg-red-700 focus-visible:ring-red-500'
         : 'bg-green-600 hover:bg-green-700 focus-visible:ring-green-500',
+      successTitle: `User ${action}d`,
+      successMessage: `User "${userToUpdate.firstName} ${userToUpdate.lastName}" has been successfully ${action}d.`
     });
   };
 
@@ -304,6 +362,8 @@ const UserManagement = () => {
         onConfirm={modalConfig.onConfirm}
         showCancelButton={modalConfig.showCancelButton}
         confirmButtonClass={modalConfig.confirmButtonClass}
+        successTitle={modalConfig.successTitle}
+        successMessage={modalConfig.successMessage}
       >
         <p>{modalConfig.message}</p>
       </Modal>
@@ -385,7 +445,6 @@ const UserManagement = () => {
                       {formatDate(user.registered_at)}
                     </td>
                     <td className="p-4 text-center">
-                      {/* ==================== MODIFIED LOGIC HERE ==================== */}
                       {user.state === 'active' ? (
                         <button
                           onClick={() =>
@@ -403,7 +462,6 @@ const UserManagement = () => {
                           Activate
                         </button>
                       ) : null}
-                      {/* ============================================================= */}
                     </td>
                   </tr>
                 ))}
