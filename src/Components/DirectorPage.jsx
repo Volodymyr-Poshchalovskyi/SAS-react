@@ -1,12 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
+// src/pages/DirectorPage.js
+
+import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { directorsData } from '../Data/DirectorsData';
 import VideoContainer from '../Components/VideoContainer';
-import VideoModal from '../Components/VideoModal'; // <-- 1. Імпортуємо новий компонент
+import VideoModal from '../Components/VideoModal';
 import Photo from '../assets/Photos/DirectorPhoto.png';
 
-// DirectorVideoBlock тепер приймає onExpand як пропс
-const DirectorVideoBlock = ({ video, onExpand }) => {
+// ✨ ЗМІНА: Компонент тепер приймає signedUrl як проп
+const DirectorVideoBlock = ({ video, signedUrl, onExpand }) => {
   const [shouldPlay, setShouldPlay] = useState(false);
   const videoRef = useRef(null);
 
@@ -18,27 +20,35 @@ const DirectorVideoBlock = ({ video, onExpand }) => {
       { threshold: 0.5 }
     );
 
-    if (videoRef.current) {
-      observer.observe(videoRef.current);
+    const currentRef = videoRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
     }
 
     return () => {
-      if (videoRef.current) {
-        observer.unobserve(videoRef.current);
+      if (currentRef) {
+        observer.unobserve(currentRef);
       }
     };
   }, []);
 
   return (
     <section ref={videoRef} className="relative w-full h-[75vh] bg-black">
-      <VideoContainer videoSrc={video.src} shouldPlay={shouldPlay} />
+      {/* ✨ ЗМІНА: Відображаємо відео, тільки якщо є signedUrl */}
+      {signedUrl ? (
+        <VideoContainer videoSrc={signedUrl} shouldPlay={shouldPlay} />
+      ) : (
+        // Можна додати індикатор завантаження
+        <div className="w-full h-full flex items-center justify-center text-white">Loading...</div>
+      )}
       <div className="absolute inset-0 z-10 flex items-end justify-center">
         <div className="text-center text-white pb-24">
           <p className="text-2xl mb-6 text-shadow">{video.title}</p>
           <button
-            onClick={() => onExpand(video)} // <-- 2. Викликаємо функцію при кліку
+            onClick={() => onExpand({ ...video, src: signedUrl })} // ✨ ЗМІНА: Передаємо підписаний URL в модалку
+            disabled={!signedUrl} // Блокуємо кнопку, поки URL не завантажено
             className="bg-white text-black py-4 px-6 text-xs font-semibold uppercase tracking-wider flex items-center gap-2
-                           transition-transform hover:scale-105"
+                       transition-transform hover:scale-105 disabled:opacity-50"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
               <path d="M8 5v14l11-7z" />
@@ -55,10 +65,42 @@ export default function DirectorPage() {
   const { directorSlug } = useParams();
   const director = directorsData.find((d) => d.slug === directorSlug);
 
-  // 3. Стан для модального вікна
   const [expandedVideo, setExpandedVideo] = useState(null);
+  
+  // ✨ КРОК 1: Стан для зберігання підписаних URL-адрес
+  const [videoUrls, setVideoUrls] = useState({});
 
-  // 4. Функції для керування модальним вікном
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  // ✨ КРОК 2: useEffect для завантаження URL-адрес
+  useEffect(() => {
+    const fetchVideoUrls = async () => {
+      if (!director) return;
+
+      // ✨ КРОК 3: Збираємо всі GCS шляхи для відео цього режисера
+      const gcsPaths = director.videos.map(video => video.src);
+
+      try {
+        const response = await fetch('http://localhost:3001/generate-read-urls', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gcsPaths }),
+        });
+        if (!response.ok) throw new Error('Failed to fetch video URLs');
+        
+        // ✨ КРОК 4: Зберігаємо отримані URL-и в стані
+        const urlsMap = await response.json();
+        setVideoUrls(urlsMap);
+      } catch (error) {
+        console.error('Error fetching director video URLs:', error);
+      }
+    };
+
+    fetchVideoUrls();
+  }, [director]); // Запускаємо ефект, коли `director` стає доступним
+
   const handleExpandVideo = (video) => {
     setExpandedVideo(video);
   };
@@ -104,17 +146,22 @@ export default function DirectorPage() {
       </section>
 
       <div className="bg-black">
-        {director.videos.map((video, index) => (
-          <DirectorVideoBlock
-            key={index}
-            video={video}
-            onExpand={handleExpandVideo} // <-- 5. Передаємо функцію в компонент
-          />
-        ))}
+        {director.videos.map((video, index) => {
+          // ✨ КРОК 5: Знаходимо підписаний URL для кожного відео
+          const signedUrl = videoUrls[video.src];
+          
+          return (
+            <DirectorVideoBlock
+              key={index}
+              video={video}
+              signedUrl={signedUrl} // Передаємо URL в компонент
+              onExpand={handleExpandVideo}
+            />
+          );
+        })}
       </div>
 
       <section className="w-full bg-white text-black py-16 md:py-24">
-        {/* ... решта вашого коду для біографії ... */}
         <div className="max-w-7xl mx-auto px-8 flex flex-col md:flex-row items-center justify-center gap-12 md:gap-24">
           <div className="w-full max-w-md md:w-[450px] flex-shrink-0">
             <img
@@ -134,7 +181,6 @@ export default function DirectorPage() {
         </div>
       </section>
 
-      {/* 6. Умовний рендер модального вікна */}
       {expandedVideo && (
         <VideoModal video={expandedVideo} onClose={handleCloseModal} />
       )}
