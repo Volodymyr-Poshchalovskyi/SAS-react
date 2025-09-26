@@ -33,7 +33,6 @@ export default function Header() {
   const { isPreloaderActive } = useAnimation();
   const location = useLocation();
 
-  // 👇 ЗМІНА ТУТ: Додано шлях '/privacy-policy'
   const isSpecialPage =
     location.pathname === '/' ||
     location.pathname.startsWith('/directors/') ||
@@ -106,19 +105,20 @@ export default function Header() {
                 aria-label="Login"
                 className="w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-200 text-black hover:bg-gray-100"
               >
+                {/* 👇 ОНОВЛЕНА ІКОНКА ТУТ 👇 */}
                 <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
                   viewBox="0 0 24 24"
-                  strokeWidth={1.5}
+                  fill="none"
                   stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                   className="w-6 h-6"
+                  aria-hidden="true"
+                  role="img"
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
-                  />
+                  <circle cx="12" cy="7" r="3" />
+                  <path d="M5 20a7 7 0 0 1 14 0" />
                 </svg>
               </Link>
             </motion.div>
