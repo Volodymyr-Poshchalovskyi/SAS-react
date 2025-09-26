@@ -22,10 +22,12 @@ const VideoContainer = ({ videoSrc, shouldPlay }) => {
       <video
         ref={videoRef}
         src={videoSrc}
+        type='video/quicktime'
         className="w-full h-full object-cover"
         muted
         loop
         playsInline
+        preload="metadata"
       />
     </div>
   );

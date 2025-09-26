@@ -1,18 +1,18 @@
-//src/Data/DirectorsData.js
+// src/Data/DirectorsData.js
 
-const placeholderVideo = '/video/SHOWREEL SINNERS AND SAINTS 2024_1.mp4';
+// Тепер цей файл містить шляхи до GCS, а не локальні файли
 const placeholderPhoto = '/images/director_placeholder.jpg';
 
+// Важливо: тут вказані шляхи до файлів *всередині* вашого GCS бакета.
 export const directorsData = [
   {
     id: 1,
     name: 'SUPERNOVA',
     slug: 'supernova',
     photoSrc: placeholderPhoto,
-    bio: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+    bio: 'Lorem ipsum dolor sit amet...',
     videos: [
-      { title: 'Project A', src: placeholderVideo },
-      { title: 'Project B', src: placeholderVideo },
+      { title: 'L\'Oréal - Dream or Reality', src: "front-end/01-Directors/01-SUPERNOVA/01. L'Oréal - Dream or Reality.mp4" },
     ],
   },
   {
@@ -20,10 +20,9 @@ export const directorsData = [
     name: 'CHRISTOPHER SIMS',
     slug: 'christopher-sims',
     photoSrc: placeholderPhoto,
-    bio: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+    bio: 'Lorem ipsum dolor sit amet...',
     videos: [
-      { title: 'Campaign X', src: placeholderVideo },
-      { title: 'Music Video Y', src: placeholderVideo },
+      { title: 'Nike - Hyperboot Launch', src: "front-end/01-Directors/02-CHRISTOPHER SIMS/1-nike_-_hyperboot_launch (1440p).mp4" },
     ],
   },
   {
@@ -31,18 +30,17 @@ export const directorsData = [
     name: 'ANTONY HOFFMAN',
     slug: 'antony-hoffman',
     photoSrc: placeholderPhoto,
-    bio: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-    videos: [{ title: 'Epic Commercial', src: placeholderVideo }],
+    bio: 'Lorem ipsum dolor sit amet...',
+    videos: [{ title: 'UAE - Guardians of a Nation', src: "front-end/01-Directors/03-ANTONY HOFFMAN/1-UAE - GAURDIANS OF A NATION.mov" }],
   },
   {
     id: 4,
     name: 'MATTIA BENETTI',
     slug: 'mattia-benetti',
     photoSrc: placeholderPhoto,
-    bio: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+    bio: 'Lorem ipsum dolor sit amet...',
     videos: [
-      { title: 'Fashion Film', src: placeholderVideo },
-      { title: 'Product Showcase', src: placeholderVideo },
+      { title: 'Zegna', src: "front-end/01-Directors/04-MATTIA BENETTI/1-zegnaaaaaa.mp4" },
     ],
   },
   {
@@ -50,18 +48,17 @@ export const directorsData = [
     name: 'ELI SVERDLOV',
     slug: 'eli-sverdlov',
     photoSrc: placeholderPhoto,
-    bio: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-    videos: [{ title: 'Action Sequence', src: placeholderVideo }],
+    bio: 'Lorem ipsum dolor sit amet...',
+    videos: [{ title: 'Skyworth - See The Wonder', src: "front-end/01-Directors/05-ELI SVERDLOV/1-Skyworth - W81 Pro - See The Wonder.mp4" }],
   },
   {
     id: 6,
     name: 'JESSY TERRERO',
     slug: 'jessy-terrero',
     photoSrc: placeholderPhoto,
-    bio: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+    bio: 'Lorem ipsum dolor sit amet...',
     videos: [
-      { title: 'Music Video', src: placeholderVideo },
-      { title: 'Ad Campaign', src: placeholderVideo },
+      { title: 'Smirnoff Karol G', src: "front-end/01-Directors/06-jessy terrero/1 - Smirnoff Karol G - Poco Pico.mp4" },
     ],
   },
   {
@@ -69,18 +66,17 @@ export const directorsData = [
     name: 'VIVIENNE AND TAMAS',
     slug: 'vivienne-and-tamas',
     photoSrc: placeholderPhoto,
-    bio: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-    videos: [{ title: 'Artistic Short', src: placeholderVideo }],
+    bio: 'Lorem ipsum dolor sit amet...',
+    videos: [{ title: 'Kerastase - Emily Ratajkowski', src: "front-end/01-Directors/07-VIVIENNE AND TAMAS/01. Kerastase - Chroma- Emily Ratajkowski.mp4" }],
   },
   {
     id: 8,
     name: 'LORENZO CISI',
     slug: 'lorenzo-cisi',
     photoSrc: placeholderPhoto,
-    bio: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+    bio: 'Lorem ipsum dolor sit amet...',
     videos: [
-      { title: 'Heartfelt Story', src: placeholderVideo },
-      { title: 'Lifestyle Ad', src: placeholderVideo },
+      { title: 'Q225 Summer', src: "front-end/01-Directors/08-LORENZO CISI/1 - Q225_SUMMER_LONGFORM_60s_16x9_v13b_ONLINE.mp4" },
     ],
   },
   {
@@ -88,18 +84,18 @@ export const directorsData = [
     name: 'REMY CAYUELA',
     slug: 'remy-cayuela',
     photoSrc: placeholderPhoto,
-    bio: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-    videos: [{ title: 'Comedy Sketch', src: placeholderVideo }],
+    bio: 'Lorem ipsum dolor sit amet...',
+    videos: [{ title: 'McDonalds - Raise Your Eyebrows', src: "front-end/01-Directors/09-REMY CAYUELA/1 - Mcdonalds - Raise Your Eyebrows.mp4" }],
   },
   {
     id: 10,
     name: 'BEEDY',
     slug: 'beedy',
     photoSrc: placeholderPhoto,
-    bio: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
+    bio: 'Lorem ipsum dolor sit amet...',
     videos: [
-      { title: 'Documentary Clip', src: placeholderVideo },
-      { title: 'Nature Film', src: placeholderVideo },
+      { title: 'SA 2025 Launch', src: "front-end/01-Directors/10-Beedy/AUSR4494H_SA_2025_LAUNCH_DAVIDANDDAVE__STREAMING_60.mov" },
+      { title: 'DunKings', src: "front-end/01-Directors/10-Beedy/DD_SB_60_DunKings_Sometimes_YouTube.mp4" } // Додав друге відео, хоча воно поки не використовується на цій сторінці
     ],
   },
   {
@@ -107,15 +103,15 @@ export const directorsData = [
     name: 'VICTOR HEINZ',
     slug: 'victor-heinz',
     photoSrc: placeholderPhoto,
-    bio: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-    videos: [{ title: 'Brand Film', src: placeholderVideo }],
+    bio: 'Lorem ipsum dolor sit amet...',
+    videos: [{ title: 'Karl Kani - Pattern of the Street', src: "front-end/01-Directors/11-VICTOR HEINZ/1 - viktor_heinz__karl_kani__pattern_of_the_street_-_director (1080p).mp4" }],
   },
   {
     id: 12,
     name: 'JEAN CLAUDE THIBAUT',
     slug: 'jean-claude-thibaut',
     photoSrc: placeholderPhoto,
-    bio: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.',
-    videos: [{ title: 'Luxury Brand Film', src: placeholderVideo }],
+    bio: 'Lorem ipsum dolor sit amet...',
+    videos: [{ title: 'Kilian - Old Fashioned', src: "front-end/01-Directors/12-JEAN CLAUDE THIBAUT/1 - Kilian - Old Fashioned.mp4" }],
   },
 ];
