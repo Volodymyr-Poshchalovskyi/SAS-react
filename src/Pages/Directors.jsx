@@ -19,42 +19,37 @@ const MotionLink = motion(Link);
 function Directors() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const { isPreloaderActive, setIsPreloaderActive } = useAnimation();
-  
-  // 1. Стан для зберігання підписаних URL-адрес
-  // Структура: { 'gcs/path/1': 'https://signed.url/1', 'gcs/path/2': '...' }
   const [videoUrls, setVideoUrls] = useState({});
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  // 2. Ефект для завантаження URL-адрес, коли прелоадер зникає
+  // ✨ ЗМІНА: Цей useEffect тепер завантажує дані відразу, не чекаючи прелоадер.
   useEffect(() => {
-    // Завантажуємо відео, тільки коли сторінка стає видимою
-    if (!isPreloaderActive && Object.keys(videoUrls).length === 0) {
-      const fetchVideoUrls = async () => {
-        // Збираємо всі GCS шляхи з даних
-        const gcsPaths = directorsData.map(director => director.videos[0].src);
+    const fetchVideoUrls = async () => {
+      // Збираємо всі GCS шляхи з даних
+      const gcsPaths = directorsData.map(director => director.videos[0].src);
+      
+      try {
+        const response = await fetch('http://localhost:3001/generate-read-urls', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gcsPaths }),
+        });
+        if (!response.ok) throw new Error('Failed to fetch video URLs');
         
-        try {
-          const response = await fetch('http://localhost:3001/generate-read-urls', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ gcsPaths }),
-          });
-          if (!response.ok) throw new Error('Failed to fetch video URLs');
-          
-          const urlsMap = await response.json();
-          setVideoUrls(urlsMap);
-        } catch (error) {
-          console.error('Error fetching director video URLs:', error);
-        }
-      };
+        const urlsMap = await response.json();
+        setVideoUrls(urlsMap);
+      } catch (error) {
+        console.error('Error fetching director video URLs:', error);
+      }
+    };
 
-      fetchVideoUrls();
-    }
-  }, [isPreloaderActive, videoUrls]); // Залежність від isPreloaderActive
+    fetchVideoUrls();
+  }, []); // <-- Пустий масив залежностей означає "виконати один раз при монтуванні"
 
+  // Інші useEffect залишаються без змін
   useEffect(() => {
     document.body.style.overflow = isPreloaderActive ? 'hidden' : '';
     return () => {
@@ -107,17 +102,15 @@ function Directors() {
       )}
 
       {directorsData.map((director, index) => {
-        // 3. Отримуємо GCS шлях та відповідний підписаний URL зі стану
         const gcsPath = director.videos[0].src;
         const signedUrl = videoUrls[gcsPath];
 
         return (
           <div
-            key={director.id} // Краще використовувати унікальний id як ключ
+            key={director.id}
             className="relative w-full h-screen snap-start"
           >
-            {/* 4. Передаємо підписаний URL в VideoContainer */}
-            {/* Відео буде відрендерено, тільки коли signedUrl стане доступним */}
+            {/* Тепер signedUrl буде готовий заздалегідь */}
             {signedUrl && (
               <VideoContainer
                 videoSrc={signedUrl}
