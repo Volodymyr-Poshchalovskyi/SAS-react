@@ -19,13 +19,6 @@ function Main() {
     ['AND', 'CINEMA', 'COLLIDE.'],
   ];
 
-  const subtitleLines = [
-    ['A', 'BOUTIQUE', 'CREATIVE', 'STUDIO'],
-    ['AND', 'PRODUCTION', 'COMPANY'],
-    ['CRAFTING', 'BOLD', 'CONTENT', 'WITH', 'THE'],
-    ["WORLD'S", 'MOST', 'EXCITING', 'TALENT.'],
-  ];
-
   const wordVariants = {
     hidden: { opacity: 0, y: 10 },
     visible: (i) => ({
@@ -37,8 +30,6 @@ function Main() {
       },
     }),
   };
-
-  const titleWordCount = titleLines.reduce((acc, line) => acc + line.length, 0);
 
   // 3. Ефект для завантаження підписаного URL для відео
   React.useEffect(() => {
@@ -106,9 +97,9 @@ function Main() {
         </div>
       )}
 
-      {/* Анімований текст (без змін) */}
-      <div className="absolute top-[140px] bottom-0 left-0 right-0 z-10 flex flex-col items-center justify-center text-center px-4">
-        <h1 className="text-[2.8rem] leading-[1.2] mb-12 font-semibold expanded-text tracking-wider">
+      {/* Анімований текст */}
+      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center px-4">
+        <h1 className="text-[2.8rem] leading-[1.2] font-semibold expanded-text tracking-wider">
           {titleLines.map((line, lineIndex) => {
             const baseIndex = titleLines
               .slice(0, lineIndex)
@@ -131,29 +122,6 @@ function Main() {
             );
           })}
         </h1>
-        <div className="text-[2rem] max-w-4xl leading-[1.2] font-medium expanded-subtitle tracking-wider">
-          {subtitleLines.map((line, lineIndex) => {
-            const baseIndex = subtitleLines
-              .slice(0, lineIndex)
-              .reduce((acc, l) => acc + l.length, 0);
-            return (
-              <div key={lineIndex} className="block mb-1">
-                {line.map((word, wordIndex) => (
-                  <motion.span
-                    key={word + wordIndex}
-                    custom={titleWordCount + baseIndex + wordIndex}
-                    initial="hidden"
-                    animate="visible"
-                    variants={wordVariants}
-                    className="inline-block mr-2"
-                  >
-                    {word}
-                  </motion.span>
-                ))}
-              </div>
-            );
-          })}
-        </div>
       </div>
     </div>
   );
