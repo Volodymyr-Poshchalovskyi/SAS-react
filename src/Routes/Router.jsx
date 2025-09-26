@@ -9,7 +9,7 @@ import Main from '../Pages/Main.jsx';
 import Login from '../Pages/Login.jsx';
 import Assignment from '../Pages/Assignment.jsx';
 import Directors from '../Pages/Directors.jsx';
-import DirectorPage from '../Components/DirectorPage.jsx';
+import DirectorPage from '../Components/DirectorPage.jsx'; // This component is now used for both Directors and Assignment
 import Feature from '../Pages/Feature.jsx';
 import Management from '../Pages/Management.jsx';
 import Originals from '../Pages/Originals.jsx';
@@ -18,10 +18,8 @@ import Team from '../Pages/Team.jsx';
 import PrivacyPolicyPage from '../Pages/PrivacyPolicy.jsx';
 import PublicReelPage from '../Pages/PublicReelPage.jsx';
 import ProjectPage from '../Pages/ProjectPage.jsx';
-// + НОВІ СТОРІНКИ
 import TableTopStudio from '../Pages/TableTopStudio.jsx';
 import PostProduction from '../Pages/PostProduction.jsx';
-
 
 // Admin Pages
 import AdminPanel from '../AdminPages/AdminPanel.jsx';
@@ -54,9 +52,16 @@ export default function AppRouter() {
       <Route element={<Layout />}>
         <Route path="/" element={<Main />} />
         <Route path="/reel/:reelId" element={<PublicReelPage />} />
+        
+        {/* Assignment Routes */}
         <Route path="/assignment" element={<Assignment />} />
+        {/* ✨ This route reuses DirectorPage for the assignment detail view */}
+        <Route path="/assignment/:directorSlug" element={<DirectorPage />} />
+
+        {/* Directors Routes */}
         <Route path="/directors" element={<Directors />} />
         <Route path="/directors/:directorSlug" element={<DirectorPage />} />
+        
         <Route path="/projects/:projectSlug" element={<ProjectPage />} />
         <Route path="/feature" element={<Feature />} />
         <Route path="/management" element={<Management />} />
@@ -65,8 +70,6 @@ export default function AppRouter() {
         <Route path="/about" element={<Team />} />
         <Route path="/login" element={<Login />} />
         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-
-        {/* ++ ДОДАНО НОВІ МАРШРУТИ ++ */}
         <Route path="/table-top-studio" element={<TableTopStudio />} />
         <Route path="/post-production" element={<PostProduction />} />
       </Route>

@@ -1,13 +1,17 @@
-// src/pages/DirectorPage.js
-
 import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+// ✨ Зміна тут: Додаємо useLocation для визначення маршруту
+import { useParams, Link, useLocation } from 'react-router-dom';
 import { directorsData } from '../Data/DirectorsData';
+// ✨ Зміна тут: Імпортуємо дані для Assignment
+import { assignmentData } from '../Data/AssignmentData';
 import VideoContainer from '../Components/VideoContainer';
 import VideoModal from '../Components/VideoModal';
 import Photo from '../assets/Photos/DirectorPhoto.png';
 
+// ... компонент DirectorVideoBlock залишається без змін
+
 const DirectorVideoBlock = ({ video, signedUrl, onExpand }) => {
+  // (No changes needed in this component)
   const [shouldPlay, setShouldPlay] = useState(false);
   const videoRef = useRef(null);
 
@@ -39,7 +43,6 @@ const DirectorVideoBlock = ({ video, signedUrl, onExpand }) => {
         <div className="w-full h-full flex items-center justify-center text-white">Loading...</div>
       )}
       <div className="absolute inset-0 z-10 flex items-end justify-center">
-        {/* ✨ Зміни тут: Використовуємо flexbox для незалежного центрування */}
         <div className="flex flex-col items-center text-white pb-24">
           <p className="text-2xl mb-6 text-shadow text-center">{video.title}</p>
           <button
@@ -59,9 +62,18 @@ const DirectorVideoBlock = ({ video, signedUrl, onExpand }) => {
   );
 };
 
+
 export default function DirectorPage() {
   const { directorSlug } = useParams();
-  const director = directorsData.find((d) => d.slug === directorSlug);
+  // ✨ Зміна тут: Використовуємо useLocation, щоб отримати поточний шлях
+  const location = useLocation();
+
+  // ✨ Зміна тут: Динамічно обираємо джерело даних на основі URL
+  const isAssignmentPage = location.pathname.startsWith('/assignment');
+  const dataSource = isAssignmentPage ? assignmentData : directorsData;
+  const backLink = isAssignmentPage ? '/assignment' : '/directors';
+  
+  const director = dataSource.find((d) => d.slug === directorSlug);
 
   const [expandedVideo, setExpandedVideo] = useState(null);
   const [videoUrls, setVideoUrls] = useState({});
@@ -105,16 +117,17 @@ export default function DirectorPage() {
   if (!director) {
     return (
       <div className="bg-black text-white min-h-screen flex items-center justify-center">
-        <h2 className="text-4xl font-chanel">Director Not Found</h2>
+        <h2 className="text-4xl font-chanel">Content Not Found</h2>
       </div>
     );
   }
 
   return (
     <div className="bg-white">
+      {/* ✨ Зміна тут: Кнопка "назад" тепер динамічна */}
       <section className="bg-white text-black h-[40vh] flex items-center justify-center relative pt-20 md:pt-28">
         <Link
-          to="/directors"
+          to={backLink}
           className="absolute left-8 md:left-20 top-1/2 -translate-y-1/2 flex items-center justify-center 
                    w-12 h-12 border-2 border-black text-black 
                    hover:bg-black hover:text-white transition-colors"

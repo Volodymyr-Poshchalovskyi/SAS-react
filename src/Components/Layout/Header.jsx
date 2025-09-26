@@ -36,6 +36,7 @@ export default function Header() {
   const isSpecialPage =
     location.pathname === '/' ||
     location.pathname.startsWith('/directors/') ||
+    location.pathname.startsWith('/assignment/') ||
     location.pathname === '/login' ||
     location.pathname === '/studio' ||
     location.pathname === '/table-top-studio' ||
