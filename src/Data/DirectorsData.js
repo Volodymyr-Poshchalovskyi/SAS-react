@@ -12,7 +12,7 @@ export const directorsData = [
     photoSrc: placeholderPhoto,
     bio: 'Lorem ipsum dolor sit amet...',
     videos: [
-      { title: 'L\'Oréal - Dream or Reality', src: "front-end/01-Directors/01-SUPERNOVA/01. L'Oréal - Dream or Reality.mp4" },
+      { title: 'L\'Oréal - Dream or Reality', src: "front-end/01-Directors/01-SUPERNOVA/1. L'Oréal - Dream or Reality.mp4" },
     ],
   },
   {
@@ -31,7 +31,7 @@ export const directorsData = [
     slug: 'antony-hoffman',
     photoSrc: placeholderPhoto,
     bio: 'Lorem ipsum dolor sit amet...',
-    videos: [{ title: 'UAE - Guardians of a Nation', src: "front-end/01-Directors/03-ANTONY HOFFMAN/2-TOYOTA Highlander 'Home Team'.mov" }],
+    videos: [{ title: 'UAE - Guardians of a Nation', src: "front-end/01-Directors/03-ANTONY HOFFMAN/1-Uae - Gaurdians Of A Nation.mp4" }],
   },
   {
     id: 4,
@@ -94,8 +94,8 @@ export const directorsData = [
     photoSrc: placeholderPhoto,
     bio: 'Lorem ipsum dolor sit amet...',
     videos: [
-      { title: 'SA 2025 Launch', src: "front-end/01-Directors/10-Beedy/The-Dunkalatte----She-Loves-That-Coffee-Milk----ft-Kristen-Wiig.mp4" },
-      { title: 'DunKings', src: "front-end/01-Directors/10-Beedy/The-Dunkalatte----She-Loves-That-Coffee-Milk----ft-Kristen-Wiig.mp4" } // Додав друге відео, хоча воно поки не використовується на цій сторінці
+      { title: 'SA 2025 Launch', src: "front-end/01-Directors/10-Beedy/1-DD_SB_60_DunKings_Sometimes_YouTube.mp4" },
+      
     ],
   },
   {
