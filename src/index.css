@@ -79,6 +79,8 @@ body {
   font-family: 'helvetica', Arial, sans-serif;
 }
 
+
+
 .scroll-snap-enabled {
   @apply snap-y snap-proximity;
 }
