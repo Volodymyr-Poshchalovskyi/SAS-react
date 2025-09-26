@@ -161,6 +161,11 @@ const ReelCreatorSidebar = ({ allItems, activeTab, setActiveTab, reelItems, setR
   const [existingReels, setExistingReels] = useState([]);
   const [isLoadingReels, setIsLoadingReels] = useState(false);
   const [signedSidebarUrls, setSignedSidebarUrls] = useState({});
+  
+  // ✨ useRef для відстеження індексу елемента, який перетягується
+  const draggedItemIndex = useRef(null);
+  // ✨ useRef для відстеження індексу елемента, над яким відбувається перетягування
+  const draggedOverItemIndex = useRef(null);
 
   useEffect(() => {
     const fetchExistingReels = async () => {
@@ -190,16 +195,64 @@ const ReelCreatorSidebar = ({ allItems, activeTab, setActiveTab, reelItems, setR
     if (existingReels.length > 0) fetchAndCacheUrls();
   }, [existingReels]);
 
-  const handleDragOver = (e) => { e.preventDefault(); setIsDraggingOver(true); };
-  const handleDragLeave = () => setIsDraggingOver(false);
-  const handleDrop = (e) => {
+  // Цей обробник залишається для перетягування з основної таблиці В СЕРЕДИНУ сайдбару
+  const handleDragOverContainer = (e) => { e.preventDefault(); setIsDraggingOver(true); };
+  const handleDragLeaveContainer = () => setIsDraggingOver(false);
+  const handleDropIntoContainer = (e) => {
     e.preventDefault(); setIsDraggingOver(false);
     const draggedItemIds = JSON.parse(e.dataTransfer.getData("application/json"));
     const newItems = allItems.filter(item => draggedItemIds.includes(item.id)).filter(item => !reelItems.some(reelItem => reelItem.id === item.id));
     if (newItems.length > 0) setReelItems(prev => [...prev, ...newItems]);
   };
+  
   const handleRemoveItem = (id) => setReelItems(prev => prev.filter(item => item.id !== id));
   
+  // ✨ Функції для обробки сортування елементів УСЕРЕДИНІ сайдбару
+  const handleSortDragStart = (e, index) => {
+    draggedItemIndex.current = index;
+    e.currentTarget.classList.add('opacity-50');
+  };
+
+  const handleSortDragEnter = (e, index) => {
+    draggedOverItemIndex.current = index;
+  };
+  
+  const handleSortDragEnd = (e) => {
+    e.currentTarget.classList.remove('opacity-50');
+    draggedItemIndex.current = null;
+    draggedOverItemIndex.current = null;
+    // Очистити візуальні індикатори з усіх елементів
+    document.querySelectorAll('.drag-sort-item').forEach(el => {
+        el.classList.remove('border-t-2', 'border-blue-500');
+    });
+  };
+
+  const handleSortDrop = (e) => {
+    e.preventDefault(); // Запобігаємо стандартній обробці
+    const fromIndex = draggedItemIndex.current;
+    const toIndex = draggedOverItemIndex.current;
+    
+    if (fromIndex === null || toIndex === null || fromIndex === toIndex) return;
+
+    const itemsCopy = [...reelItems];
+    const [reorderedItem] = itemsCopy.splice(fromIndex, 1);
+    itemsCopy.splice(toIndex, 0, reorderedItem);
+
+    setReelItems(itemsCopy);
+  };
+  
+  const handleSortDragOver = (e) => {
+      e.preventDefault(); // Це необхідно, щоб дозволити drop
+      // Додаємо візуальний індикатор
+      document.querySelectorAll('.drag-sort-item').forEach(el => {
+        el.classList.remove('border-t-2', 'border-blue-500');
+      });
+      if(e.currentTarget.dataset.index != draggedItemIndex.current) {
+        e.currentTarget.classList.add('border-t-2', 'border-blue-500');
+      }
+  };
+
+
   const handleCreateReel = async () => {
     if (reelItems.length === 0 || !reelTitle.trim()) return;
     setModalState({ isOpen: true, status: 'creating' });
@@ -235,7 +288,7 @@ const ReelCreatorSidebar = ({ allItems, activeTab, setActiveTab, reelItems, setR
   
   const TabButton = ({ name, label }) => (<button onClick={() => setActiveTab(name)} className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors w-1/2 ${activeTab === name ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800'}`}>{label}</button>);
 
-  return (<><CreationStatusModal {...modalState} onClose={handleCloseModal} /><div className="w-96 shrink-0 space-y-4"><div className="p-1 bg-slate-100 dark:bg-slate-900 rounded-lg flex items-center"><TabButton name="new" label="New Reel" /><TabButton name="existing" label="Existing Reels" /></div><div onDragOver={handleDragOver} onDrop={handleDrop} onDragLeave={handleDragLeave} className={`flex flex-col p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 transition-all duration-300 min-h-[400px] ${isDraggingOver ? 'border-2 border-blue-500 ring-4 ring-blue-500/20' : 'border border-slate-200 dark:border-slate-800'}`}>{activeTab === 'new' ? (reelItems.length === 0 ? <div className="flex flex-col items-center justify-center text-center py-16 pointer-events-none h-full"><Layers className="h-12 w-12 text-slate-400 dark:text-slate-500 mb-4" /><h3 className="font-semibold text-slate-800 dark:text-slate-200">Drag work here</h3><p className="text-sm text-slate-500 dark:text-slate-400 mt-1">TO CREATE A REEL</p></div> : <div className="flex flex-col h-full"><div className="mb-4"><label htmlFor="reel-title" className="text-xs font-medium text-slate-500 dark:text-slate-400">TITLE</label><input id="reel-title" type="text" value={reelTitle} onChange={(e) => setReelTitle(e.target.value)} className="mt-1 block w-full bg-transparent text-sm text-slate-900 dark:text-slate-50 font-semibold border-none p-0 focus:ring-0" /></div><div className="flex-1 space-y-2 overflow-y-auto max-h-[calc(100vh-350px)] pr-2">{reelItems.map(item => (<div key={item.id} className="group flex items-center justify-between gap-3 p-2 rounded-md bg-white dark:bg-slate-800/50"><div className="flex items-center gap-3 min-w-0"><div className="w-14 h-9 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">{item.previewUrl ? <img src={item.previewUrl} alt={item.title} className="w-full h-full object-cover rounded-md" /> : <ImageIcon className="w-5 h-5 text-slate-400" />}</div><div className="min-w-0"><p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{item.title}</p><p className="text-xs text-slate-500 dark:text-slate-400 truncate">{item.subtitle || 'No subtitle'}</p></div></div><button onClick={() => handleRemoveItem(item.id)} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><X className="h-4 w-4 text-slate-500 dark:text-slate-400" /></button></div>))}</div><div className="mt-auto pt-4"><button onClick={handleCreateReel} disabled={modalState.status === 'creating'} className="w-full px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-slate-400 flex items-center justify-center">{modalState.status === 'creating' ? <><Loader2 className="animate-spin h-5 w-5 mr-2" />Creating...</> : 'Deliver'}</button></div></div>) : (<ExistingReelsList reels={existingReels} signedUrls={signedSidebarUrls} isLoading={isLoadingReels} onCopy={handleCopyReel} />)}</div></div></>);
+  return (<><CreationStatusModal {...modalState} onClose={handleCloseModal} /><div className="w-96 shrink-0 space-y-4"><div className="p-1 bg-slate-100 dark:bg-slate-900 rounded-lg flex items-center"><TabButton name="new" label="New Reel" /><TabButton name="existing" label="Existing Reels" /></div><div onDragOver={handleDragOverContainer} onDrop={handleDropIntoContainer} onDragLeave={handleDragLeaveContainer} className={`flex flex-col p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 transition-all duration-300 min-h-[400px] ${isDraggingOver ? 'border-2 border-blue-500 ring-4 ring-blue-500/20' : 'border border-slate-200 dark:border-slate-800'}`}>{activeTab === 'new' ? (reelItems.length === 0 ? <div className="flex flex-col items-center justify-center text-center py-16 pointer-events-none h-full"><Layers className="h-12 w-12 text-slate-400 dark:text-slate-500 mb-4" /><h3 className="font-semibold text-slate-800 dark:text-slate-200">Drag work here</h3><p className="text-sm text-slate-500 dark:text-slate-400 mt-1">TO CREATE A REEL</p></div> : <div className="flex flex-col h-full"><div className="mb-4"><label htmlFor="reel-title" className="text-xs font-medium text-slate-500 dark:text-slate-400">TITLE</label><input id="reel-title" type="text" value={reelTitle} onChange={(e) => setReelTitle(e.target.value)} className="mt-1 block w-full bg-transparent text-sm text-slate-900 dark:text-slate-50 font-semibold border-none p-0 focus:ring-0" /></div><div className="flex-1 space-y-2 overflow-y-auto max-h-[calc(100vh-350px)] pr-2" onDrop={handleSortDrop} onDragOver={e => e.preventDefault()} /* ✨ Дозволяємо drop на контейнер списку */>{reelItems.map((item, index) => (<div key={item.id} draggable="true" onDragStart={(e) => handleSortDragStart(e, index)} onDragEnter={(e) => handleSortDragEnter(e, index)} onDragEnd={handleSortDragEnd} onDragOver={handleSortDragOver} data-index={index} /* ✨ Додаємо обробники для сортування */ className="drag-sort-item group flex items-center justify-between gap-3 p-2 rounded-md bg-white dark:bg-slate-800/50 cursor-grab active:cursor-grabbing transition-all /* ✨ Додаємо класи для UX */"><div className="flex items-center gap-3 min-w-0"><div className="w-14 h-9 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">{item.previewUrl ? <img src={item.previewUrl} alt={item.title} className="w-full h-full object-cover rounded-md" /> : <ImageIcon className="w-5 h-5 text-slate-400" />}</div><div className="min-w-0"><p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{item.title}</p><p className="text-xs text-slate-500 dark:text-slate-400 truncate">{item.subtitle || 'No subtitle'}</p></div></div><button onClick={() => handleRemoveItem(item.id)} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><X className="h-4 w-4 text-slate-500 dark:text-slate-400" /></button></div>))}</div><div className="mt-auto pt-4"><button onClick={handleCreateReel} disabled={modalState.status === 'creating'} className="w-full px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-slate-400 flex items-center justify-center">{modalState.status === 'creating' ? <><Loader2 className="animate-spin h-5 w-5 mr-2" />Creating...</> : 'Deliver'}</button></div></div>) : (<ExistingReelsList reels={existingReels} signedUrls={signedSidebarUrls} isLoading={isLoadingReels} onCopy={handleCopyReel} />)}</div></div></>);
 };
 
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
