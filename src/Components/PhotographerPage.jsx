@@ -1,12 +1,10 @@
 import React, { useLayoutEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-// ✨ Зміна тут: Імпортуємо дані фотографів
 import { photographersData } from '../Data/PhotographersData';
 
 export default function PhotographerPage() {
   const { photographerSlug } = useParams();
   
-  // ✨ Зміна тут: Шукаємо фотографа за slug
   const photographer = photographersData.find((p) => p.slug === photographerSlug);
 
   useLayoutEffect(() => {
@@ -23,57 +21,121 @@ export default function PhotographerPage() {
 
   return (
     <div className="bg-white">
-      {/* Секція 1: Заголовок з кнопкою "назад" (як у DirectorPage) */}
-      <section className="bg-white text-black h-[40vh] flex items-center justify-center relative pt-20 md:pt-28">
-        <Link
-          to="/photographers" // ✨ Зміна тут: Повертаємось на сторінку фотографів
-          className="absolute left-8 md:left-20 top-1/2 -translate-y-1/2 flex items-center justify-center 
-                     w-12 h-12 border-2 border-black text-black 
-                     hover:bg-black hover:text-white transition-colors"
-        >
-          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </Link>
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-chanel font-semibold uppercase text-center px-4">
-          {photographer.name}
-        </h1>
+      {/* Секція 1: Заголовок з кнопкою "назад" (без змін) */}
+      <section className="bg-white text-black h-[40vh] flex items-center justify-center pt-20 md:pt-28">
+        <div className="relative w-full flex items-center justify-center">
+          <div className="absolute left-0 h-full flex items-center pl-12 md:pl-32">
+            <Link
+              to="/photographers"
+              className="flex items-center justify-center 
+                         w-16 h-16 text-black rounded-full 
+                          transition-colors group" 
+            >
+              <svg 
+                  className="h-12 w-12 transition-colors "
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </Link>
+          </div>
+
+          <h1 className="text-[120px] font-chanel font-semibold uppercase text-center px-4 flex-grow">
+            {photographer.name}
+          </h1>
+        </div>
       </section>
 
-      {/* ✨ Зміна тут: Замість блоку з відео, тепер галерея фото */}
-      <div className="bg-white">
-        {photographer.photos.map((photo) => (
-          <section key={photo.id} className="py-8 px-4 md:px-16">
-            <div className="max-w-7xl mx-auto flex flex-col items-center">
-              <img 
-                src={photo.src} 
-                alt={photo.title}
-                className="w-full h-auto object-contain max-h-[90vh]"
-              />
-              <p className="mt-4 text-center text-sm text-gray-600">{photo.title}</p>
-            </div>
-          </section>
-        ))}
-      </div>
+      <section className="w-full h-screen">
+        <img
+          src={photographer.coverImage}
+          alt={`Cover for ${photographer.name}`}
+          className="w-full h-full object-cover"
+        />
+      </section>
+      {/* ✨ НОВА СЕКЦІЯ ТУТ: Галерея з трьох зображень */}
+      {/* ✨ НОВА СЕКЦІЯ ТУТ: Галерея з трьох зображень */}
 
-      {/* Секція 3: Біографія фотографа (як у DirectorPage) */}
-      <section className="w-full bg-white text-black py-16 md:py-24">
-        <div className="max-w-7xl mx-auto px-8 flex flex-col md:flex-row items-center justify-center gap-12 md:gap-24">
-          <div className="w-full max-w-md md:w-[450px] flex-shrink-0">
+
+      <section className="bg-white pl-2 md:pl-5 py-24 overflow-hidden">
+        {/*
+          Key Changes on this <section> element:
+          1.  py-24: Додано значні вертикальні відступи (padding) зверху та знизу.
+        */}
+        <div className="flex flex-row gap-24 h-[100vh]">
+          {/*
+            Key Changes on this <div> element:
+            1.  gap-12: Збільшено відстань між зображеннями (було gap-8).
+            2.  З батьківського <div> видалено клас ширини (md:w-[130%]).
+          */}
+
+          {/* Перше зображення */}
+          <div className="flex-shrink-0 md:w-[39.5%]">
+            {/*
+              Key Changes on this <div> element:
+              1.  flex-shrink-0: Забороняє елементу стискатися.
+              2.  md:w-[35%]: Встановлює конкретну ширину для елемента (35% від ширини батька).
+                  Це робить його вужчим, ніж у попередній версії.
+              3.  Клас flex-1 видалено.
+            */}
             <img
-              src={photographer.profilePhoto} // ✨ Зміна тут: Фото самого фотографа з даних
-              alt={photographer.name}
-              className="w-full h-auto object-cover aspect-square"
+              src={photographer.coverImage}
+              alt="Gallery view 1"
+              className="w-full h-full object-cover"
             />
           </div>
-          <div className="w-full md:w-1/2 text-center md:text-left">
-            <h2 className="text-4xl font-chanel font-semibold uppercase mb-6">
+          
+          {/* Друге зображення */}
+          <div className="flex-shrink-0 md:w-[35%]">
+            <img
+              src={photographer.coverImage}
+              alt="Gallery view 2"
+              className="w-full h-full object-cover"
+            />
+          </div>
+          
+          {/* Третє зображення */}
+          <div className="flex-shrink-0 md:w-[35%]">
+            <img
+              src={photographer.coverImage}
+              alt="Gallery view 3"
+              className="w-full h-full object-cover"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Секція біографії (без змін) */}
+      <section className="relative w-full">
+        <img
+          src={photographer.profilePhoto}
+          alt={photographer.name}
+          className="w-full h-auto block"
+        />
+
+        {/* ---------- Верхній блок з іменем фотографа ---------- */}
+        <div className="absolute inset-x-0 bottom-[40%] h-[40%] bg-gradient-to-t from-black to-transparent flex items-end justify-center pb-8">
+          <div className="text-center">
+            <p className="text-white text-xl mb-7">{photographer.category}</p>
+            <h2 className="font-normal text-white text-[80px] leading-none tracking-[-0.15em]">
               {photographer.name}
             </h2>
-            <p className="text-sm font-helvetica leading-relaxed">
-              {photographer.bio}
-            </p>
           </div>
+        </div>
+
+        {/* ---------- Нижній суцільний чорний блок ---------- */}
+        <div className="absolute inset-x-0 bottom-0 h-[40%] bg-black"></div>
+
+        {/* ---------- Блок для біографії ---------- */}
+        <div className="absolute inset-x-0 bottom-0 h-[40%] flex justify-center pt-28">
+          <p
+            className="w-2/5 font-semibold text-white text-justify text-xs leading-[36px] tracking-[-0.09em]"
+            style={{ wordSpacing: '0.25em' }}
+          >
+            {photographer.bio}
+          </p>
         </div>
       </section>
     </div>

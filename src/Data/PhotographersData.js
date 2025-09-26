@@ -13,7 +13,7 @@ export const photographersData = [
     coverImage: gridPreviewPhoto,
     // Фото самого фотографа для його сторінки
     profilePhoto: DirectorPhoto,
-    bio: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.',
+    bio: 'Is a Dominican-American director, producer, and founder of the production company Cinema Giants. With a career spanning over two decades, he has become one of the most influential visual storytellers in Latin and urban music culture. Terrero has directed iconic music videos for global superstars including 50 Cent, Jennifer Lopez, Maluma, Bad Bunny, Daddy Yankee, and J Balvin—collectively earning billions of views and redefining the aesthetic of contemporary music visuals.He made his feature film debut with the cult comedy Soul Plane (2004), and later directed the crime drama Freelancers(2012), starring Robert De Niro and Forest Whitaker. His television work includes the Netflix biopic series Nicky Jam: El Ganador and the YouTube Originals documentary Maluma: Lo Que Era, Lo Que Soy, Lo Que Seré.Through Cinema Giants, Terrero champions Latinx storytelling across film, TV, and branded content, pushing boundaries while uplifting diverse voices and cultures.',
     // Галерея робіт для детальної сторінки
     photos: [
       { id: 'p1', title: 'Vogue Editorial', src: gridPreviewPhoto },
@@ -36,3 +36,4 @@ export const photographersData = [
   },
   // Додайте більше фотографів сюди
 ];
+
