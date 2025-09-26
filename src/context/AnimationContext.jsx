@@ -1,5 +1,3 @@
-// src/context/AnimationContext.js
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
@@ -10,6 +8,8 @@ const preloaderPages = [
   '/management',
   '/assignment',
   '/feature',
+  '/table-top-studio', // <-- Додано
+  '/post-production',   // <-- Додано
 ];
 
 const AnimationContext = createContext(null);

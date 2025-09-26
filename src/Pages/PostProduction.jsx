@@ -1,18 +1,52 @@
-import React from 'react';
+import React, { useEffect } from 'react'; // <-- Додано useEffect
 import { Link } from 'react-router-dom';
 import VideoContainer from '../Components/VideoContainer';
+import { AnimatePresence } from 'framer-motion'; // <-- Додано
+import PreloaderBanner from '../Components/PreloaderBanner'; // <-- Додано
+import { useAnimation } from '../context/AnimationContext'; // <-- Додано
 
 const videoURL = '/video/SHOWREEL SINNERS AND SAINTS 2024_1.mp4';
 
 const PostProduction = () => {
+  // --- Початок логіки банера ---
+  const { isPreloaderActive, setIsPreloaderActive } = useAnimation();
+
+  useEffect(() => {
+    document.body.style.overflow = isPreloaderActive ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isPreloaderActive]);
+
+  const handleBannerAnimationComplete = () => {
+    setIsPreloaderActive(false);
+  };
+
+  const bannerTitle = 'Innovation. Finish. Storytelling Refined.';
+  const bannerDescription =
+    'Our post-production team blends motion control, AI-enhanced editing, CG/VFX, and color finishing to deliver bold, elevated storytelling. Every project is refined frame by flawless frame — ensuring beauty, product, and performance content resonates across every platform.';
+  // --- Кінець логіки банера ---
+  
   return (
     <div className="bg-white text-black min-h-screen pt-36">
+      {/* Доданий блок банера */}
+      <AnimatePresence>
+        {isPreloaderActive && (
+          <PreloaderBanner
+            title={bannerTitle}
+            description={bannerDescription}
+            onAnimationComplete={handleBannerAnimationComplete}
+          />
+        )}
+      </AnimatePresence>
+
       <h1 className="text-center text-4xl md:text-5xl font-semibold text-black py-12 uppercase tracking-wider">
         POST PRODUCTION
       </h1>
 
       <div className="relative w-full h-screen bg-black">
-        <VideoContainer videoSrc={videoURL} shouldPlay={true} />
+        {/* Оновлено shouldPlay */}
+        <VideoContainer videoSrc={videoURL} shouldPlay={!isPreloaderActive} />
         <div className="absolute top-[80%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full text-center">
           <h1 className="text-white font-chanel font-normal uppercase text-4xl sm:text-6xl md:text-[5rem] tracking-[-0.3rem] md:tracking-[-0.6rem] mb-8">
             SUPERNOVA

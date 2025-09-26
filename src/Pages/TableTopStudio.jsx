@@ -1,18 +1,52 @@
-import React from 'react';
+import React, { useEffect } from 'react'; // <-- Додано useEffect
 import { Link } from 'react-router-dom';
 import VideoContainer from '../Components/VideoContainer';
+import { AnimatePresence } from 'framer-motion'; // <-- Додано
+import PreloaderBanner from '../Components/PreloaderBanner'; // <-- Додано
+import { useAnimation } from '../context/AnimationContext'; // <-- Додано
 
 const videoURL = '/video/SHOWREEL SINNERS AND SAINTS 2024_1.mp4';
 
 const TableTopStudio = () => {
+  // --- Початок логіки банера ---
+  const { isPreloaderActive, setIsPreloaderActive } = useAnimation();
+
+  useEffect(() => {
+    document.body.style.overflow = isPreloaderActive ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isPreloaderActive]);
+
+  const handleBannerAnimationComplete = () => {
+    setIsPreloaderActive(false);
+  };
+
+  const bannerTitle = 'Beauty. Flavor. Precision in Motion.';
+  const bannerDescription =
+    'Our in-house studio crafts bold beauty, product, and food visuals with cinematic detail. From the perfect swipe to the slow-motion pour, we transform everyday objects into irresistible icons for commercials, social, and branded content.';
+  // --- Кінець логіки банера ---
+
   return (
     <div className="bg-white text-black min-h-screen pt-36">
+      {/* Доданий блок банера */}
+      <AnimatePresence>
+        {isPreloaderActive && (
+          <PreloaderBanner
+            title={bannerTitle}
+            description={bannerDescription}
+            onAnimationComplete={handleBannerAnimationComplete}
+          />
+        )}
+      </AnimatePresence>
+
       <h1 className="text-center text-4xl md:text-5xl font-semibold text-black py-12 uppercase tracking-wider">
         TABLE TOP DIVISION
       </h1>
 
       <div className="relative w-full h-screen bg-black">
-        <VideoContainer videoSrc={videoURL} shouldPlay={true} />
+        {/* Оновлено shouldPlay */}
+        <VideoContainer videoSrc={videoURL} shouldPlay={!isPreloaderActive} />
       </div>
 
       <div className="w-full bg-gray-100 flex items-center justify-center text-center py-24 px-8">
@@ -25,7 +59,8 @@ const TableTopStudio = () => {
 
       {[...Array(2)].map((_, index) => (
         <div key={index} className="relative w-full h-screen bg-black">
-          <VideoContainer videoSrc={videoURL} shouldPlay={true} />
+          {/* Оновлено shouldPlay */}
+          <VideoContainer videoSrc={videoURL} shouldPlay={!isPreloaderActive} />
           <div className="absolute top-[80%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full text-center">
             <h1 className="text-white font-chanel font-normal uppercase text-4xl sm:text-6xl md:text-[5rem] tracking-[-0.3rem] md:tracking-[-0.6rem] mb-8">
               SUPERNOVA
