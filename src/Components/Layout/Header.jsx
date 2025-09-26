@@ -14,7 +14,8 @@ const navLinks = [
   { path: '/management', label: 'Management' },
   { path: '/assignment', label: 'On Assignment' },
   { path: '/feature', label: 'Feature Film Packaging' },
-  { path: '/studio', label: 'Studio Lux' },
+  { path: '/table-top-studio', label: 'TableTop Studio' },
+  { path: '/post-production', label: 'Post Production' },
   { path: '/about', label: 'About' },
 ];
 
@@ -38,6 +39,8 @@ export default function Header() {
     location.pathname.startsWith('/directors/') ||
     location.pathname === '/login' ||
     location.pathname === '/studio' ||
+    location.pathname === '/table-top-studio' ||
+    location.pathname === '/post-production' ||
     location.pathname === '/privacy-policy';
 
   const preloaderPages = [

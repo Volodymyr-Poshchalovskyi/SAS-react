@@ -1,14 +1,12 @@
-// src/pages/TableTop.js
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import VideoContainer from '../Components/VideoContainer';
 
 const videoURL = '/video/SHOWREEL SINNERS AND SAINTS 2024_1.mp4';
 
-const TableTop = () => {
+const TableTopStudio = () => {
   return (
-    <div className="w-full">
+    <div className="bg-white text-black min-h-screen pt-36">
       <h1 className="text-center text-4xl md:text-5xl font-semibold text-black py-12 uppercase tracking-wider">
         TABLE TOP DIVISION
       </h1>
@@ -32,7 +30,7 @@ const TableTop = () => {
             <h1 className="text-white font-chanel font-normal uppercase text-4xl sm:text-6xl md:text-[5rem] tracking-[-0.3rem] md:tracking-[-0.6rem] mb-8">
               SUPERNOVA
             </h1>
-            <Link to="/table-top-projects">
+            <Link to="/table-top-studio-projects">
               <button
                 className="py-3 px-8 text-xs font-normal bg-white text-black border-2 border-white 
                                hover:bg-transparent hover:text-white transition-colors duration-300"
@@ -47,4 +45,4 @@ const TableTop = () => {
   );
 };
 
-export default TableTop;
+export default TableTopStudio;
