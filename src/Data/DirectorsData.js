@@ -31,7 +31,7 @@ export const directorsData = [
     slug: 'antony-hoffman',
     photoSrc: placeholderPhoto,
     bio: 'Lorem ipsum dolor sit amet...',
-    videos: [{ title: 'UAE - Guardians of a Nation', src: "front-end/01-Directors/03-ANTONY HOFFMAN/1-UAE - GAURDIANS OF A NATION.mov" }],
+    videos: [{ title: 'UAE - Guardians of a Nation', src: "front-end/01-Directors/03-ANTONY HOFFMAN/2-TOYOTA Highlander 'Home Team'.mov" }],
   },
   {
     id: 4,
