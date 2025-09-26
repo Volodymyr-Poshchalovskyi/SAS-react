@@ -94,8 +94,8 @@ export const directorsData = [
     photoSrc: placeholderPhoto,
     bio: 'Lorem ipsum dolor sit amet...',
     videos: [
-      { title: 'SA 2025 Launch', src: "front-end/01-Directors/10-Beedy/AUSR4494H_SA_2025_LAUNCH_DAVIDANDDAVE__STREAMING_60.mov" },
-      { title: 'DunKings', src: "front-end/01-Directors/10-Beedy/DD_SB_60_DunKings_Sometimes_YouTube.mp4" } // Додав друге відео, хоча воно поки не використовується на цій сторінці
+      { title: 'SA 2025 Launch', src: "front-end/01-Directors/10-Beedy/The-Dunkalatte----She-Loves-That-Coffee-Milk----ft-Kristen-Wiig.mp4" },
+      { title: 'DunKings', src: "front-end/01-Directors/10-Beedy/The-Dunkalatte----She-Loves-That-Coffee-Milk----ft-Kristen-Wiig.mp4" } // Додав друге відео, хоча воно поки не використовується на цій сторінці
     ],
   },
   {
