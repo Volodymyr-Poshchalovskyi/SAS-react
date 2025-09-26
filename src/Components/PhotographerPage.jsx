@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { photographersData } from '../Data/PhotographersData';
 
@@ -10,10 +10,41 @@ export default function PhotographerPage() {
   const galleryImages = Array(8).fill(photographer?.coverImage);
   
   const sliderRef = useRef(null);
+  const collageSectionRef = useRef(null);
+  
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+ const collageImagesData = [
+    { width: 411, height: 732, left: 120, top: 2256 },
+    { width: 363, height: 510, left: 710, top: 2271 },
+    { width: 363, height: 491, left: 935, top: 2494 }, // 3-й елемент
+    { width: 461, height: 579, left: -55, top: 3240 },
+    { width: 585, height: 732, left: 740, top: 3132 },
+    { width: 446, height: 448, left: 523, top: 3921 },
+    { width: 385, height: 441, left: 15, top: 4446 }, // 7-й елемент
+    { width: 343, height: 596, left: 301, top: 4510 }, // 8-й елемент
+    { width: 462, height: 580, left: 930, top: 4484 },
+  ];
+
+  const topOffset = 2150;
+
+  const containerHeight = Math.max(
+    ...collageImagesData.map(img => (img.top - topOffset) + img.height)
+  );
 
   const handlePrev = () => {
     if (sliderRef.current) {
@@ -37,7 +68,7 @@ export default function PhotographerPage() {
 
   return (
     <div className="bg-white">
-      {/* Секція 1: Заголовок з кнопкою "назад" (без змін) */}
+      {/* Секція заголовку */}
       <section className="bg-white text-black h-[40vh] flex items-center justify-center pt-20 md:pt-28">
         <div className="relative w-full flex items-center justify-center">
           <div className="absolute left-0 h-full flex items-center pl-12 md:pl-32">
@@ -61,7 +92,7 @@ export default function PhotographerPage() {
         </div>
       </section>
 
-      {/* Секція з великим фото (без змін) */}
+      {/* Секція з великим фото */}
       <section className="w-full h-screen">
         <img
           src={photographer.coverImage}
@@ -70,7 +101,7 @@ export default function PhotographerPage() {
         />
       </section>
       
-      {/* Секція: Заголовок та опис (без змін) */}
+      {/* Секція: Заголовок та опис 1 */}
       <section className="bg-white py-20">
         <div className="max-w-2xl mx-auto text-center px-4">
           <h2 className="text-[20px] font-semibold uppercase mb-4">
@@ -82,10 +113,8 @@ export default function PhotographerPage() {
         </div>
       </section>
 
-      {/* ОНОВЛЕНА СЕКЦІЯ: Галерея-слайдер */}
+      {/* Секція: Галерея-слайдер */}
       <section className="bg-white pl-2 md:pl-5 overflow-hidden relative group">
-        
-        {/* ✨ ЗМІНЕНО: Кнопка "Назад" без фону */}
         <button
           onClick={handlePrev}
           className="absolute left-5 top-1/2 -translate-y-1/2 z-10 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300"
@@ -95,8 +124,6 @@ export default function PhotographerPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
-
-        {/* ✨ ЗМІНЕНО: Кнопка "Вперед" без фону */}
         <button
           onClick={handleNext}
           className="absolute right-5 top-1/2 -translate-y-1/2 z-10 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300"
@@ -106,7 +133,6 @@ export default function PhotographerPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </button>
-
         <div 
           ref={sliderRef}
           className="flex flex-row gap-24 h-[100vh] overflow-x-auto scrollbar-hide"
@@ -127,8 +153,84 @@ export default function PhotographerPage() {
           ))}
         </div>
       </section>
+      
+      {/* Секція: Колаж з зображень */}
+      <section 
+        ref={collageSectionRef}
+        className="w-full bg-white py-[50px] flex justify-center"
+      >
+        <div 
+          className="relative" 
+          style={{ 
+            width: '1440px',
+            height: `${containerHeight}px` 
+          }}
+        >
+          {collageImagesData.map((img, index) => {
+            if (index === 2 || index === 6) {
+              const parallaxStrength = 0.2;
+              let backgroundOffsetY = 0;
+              
+              if (collageSectionRef.current) {
+                const elementTop = collageSectionRef.current.offsetTop + (img.top - topOffset);
+                const scrollRelativeToElement = scrollY - elementTop;
+                backgroundOffsetY = scrollRelativeToElement * parallaxStrength;
+              }
+              return (
+                <div
+                  key={index}
+                  style={{
+                    position: 'absolute',
+                    width: `${img.width}px`,
+                    height: `${img.height}px`,
+                    left: `${img.left}px`,
+                    top: `${img.top - topOffset}px`,
+                    zIndex: index === 6 ? 2 : 0,
+                    backgroundImage: `url(${photographer.coverImage})`,
+                    backgroundSize: 'cover',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundAttachment: 'fixed',
+                    backgroundPosition: `center ${backgroundOffsetY}px`,
+                  }}
+                />
+              );
+            }
+            return (
+              <div
+                key={index}
+                style={{
+                  position: 'absolute',
+                  width: `${img.width}px`,
+                  height: `${img.height}px`,
+                  left: `${img.left}px`,
+                  top: `${img.top - topOffset}px`,
+                  zIndex: index === 7 ? 1 : 0, 
+                }}
+              >
+                <img
+                  src={photographer.coverImage}
+                  alt={`Collage view ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            );
+          })}
+        </div>
+      </section>
 
-      {/* Секція біографії (без змін) */}
+      {/* ✨ НОВА СЕКЦІЯ: Заголовок та опис 2 */}
+      <section className="bg-white py-20">
+        <div className="max-w-2xl mx-auto text-center px-4">
+          <h2 className="text-[20px] font-semibold uppercase mb-4">
+            Vestibulum Ante
+          </h2>
+          <p className="text-[12px] leading-relaxed text-gray-700 text-justify">
+            Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit.
+          </p>
+        </div>
+      </section>
+
+      {/* Секція біографії */}
       <section className="relative w-full">
         <img
           src={photographer.profilePhoto}
