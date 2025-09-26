@@ -10,6 +10,7 @@ const preloaderPages = [
   '/feature',
   '/table-top-studio', // <-- Додано
   '/post-production',   // <-- Додано
+  '/photographers',
 ];
 
 const AnimationContext = createContext(null);

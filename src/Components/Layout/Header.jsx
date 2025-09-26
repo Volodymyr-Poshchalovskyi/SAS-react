@@ -9,7 +9,7 @@ import sinnersLogoWhite from '../../assets/Logo/Sinners logo white.png';
 
 const navLinks = [
   { path: '/directors', label: 'Directors' },
-  {  label: 'Photographers' },
+  { path: '/photographers', label: 'Photographers' },
   { path: '/assignment', label: 'On Assignment' },
   { path: '/service', label: 'Service' },
   { path: '/feature', label: 'Feature Film Packaging' },
@@ -37,6 +37,7 @@ export default function Header() {
     location.pathname === '/' ||
     location.pathname.startsWith('/directors/') ||
     location.pathname.startsWith('/assignment/') ||
+    location.pathname.startsWith('/photographers/') ||
     location.pathname === '/login' ||
     location.pathname === '/studio' ||
     location.pathname === '/table-top-studio' ||
@@ -50,6 +51,7 @@ export default function Header() {
     '/management',
     '/assignment',
     '/feature',
+    '/photographers',
   ];
 
   const isVisible =
