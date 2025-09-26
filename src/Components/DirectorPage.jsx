@@ -7,7 +7,6 @@ import VideoContainer from '../Components/VideoContainer';
 import VideoModal from '../Components/VideoModal';
 import Photo from '../assets/Photos/DirectorPhoto.png';
 
-// ✨ ЗМІНА: Компонент тепер приймає signedUrl як проп
 const DirectorVideoBlock = ({ video, signedUrl, onExpand }) => {
   const [shouldPlay, setShouldPlay] = useState(false);
   const videoRef = useRef(null);
@@ -34,19 +33,18 @@ const DirectorVideoBlock = ({ video, signedUrl, onExpand }) => {
 
   return (
     <section ref={videoRef} className="relative w-full h-[75vh] bg-black">
-      {/* ✨ ЗМІНА: Відображаємо відео, тільки якщо є signedUrl */}
       {signedUrl ? (
         <VideoContainer videoSrc={signedUrl} shouldPlay={shouldPlay} />
       ) : (
-        // Можна додати індикатор завантаження
         <div className="w-full h-full flex items-center justify-center text-white">Loading...</div>
       )}
       <div className="absolute inset-0 z-10 flex items-end justify-center">
-        <div className="text-center text-white pb-24">
-          <p className="text-2xl mb-6 text-shadow">{video.title}</p>
+        {/* ✨ Зміни тут: Використовуємо flexbox для незалежного центрування */}
+        <div className="flex flex-col items-center text-white pb-24">
+          <p className="text-2xl mb-6 text-shadow text-center">{video.title}</p>
           <button
-            onClick={() => onExpand({ ...video, src: signedUrl })} // ✨ ЗМІНА: Передаємо підписаний URL в модалку
-            disabled={!signedUrl} // Блокуємо кнопку, поки URL не завантажено
+            onClick={() => onExpand({ ...video, src: signedUrl })}
+            disabled={!signedUrl}
             className="bg-white text-black py-4 px-6 text-xs font-semibold uppercase tracking-wider flex items-center gap-2
                        transition-transform hover:scale-105 disabled:opacity-50"
           >
@@ -66,20 +64,16 @@ export default function DirectorPage() {
   const director = directorsData.find((d) => d.slug === directorSlug);
 
   const [expandedVideo, setExpandedVideo] = useState(null);
-  
-  // ✨ КРОК 1: Стан для зберігання підписаних URL-адрес
   const [videoUrls, setVideoUrls] = useState({});
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  // ✨ КРОК 2: useEffect для завантаження URL-адрес
   useEffect(() => {
     const fetchVideoUrls = async () => {
       if (!director) return;
 
-      // ✨ КРОК 3: Збираємо всі GCS шляхи для відео цього режисера
       const gcsPaths = director.videos.map(video => video.src);
 
       try {
@@ -90,7 +84,6 @@ export default function DirectorPage() {
         });
         if (!response.ok) throw new Error('Failed to fetch video URLs');
         
-        // ✨ КРОК 4: Зберігаємо отримані URL-и в стані
         const urlsMap = await response.json();
         setVideoUrls(urlsMap);
       } catch (error) {
@@ -99,7 +92,7 @@ export default function DirectorPage() {
     };
 
     fetchVideoUrls();
-  }, [director]); // Запускаємо ефект, коли `director` стає доступним
+  }, [director]);
 
   const handleExpandVideo = (video) => {
     setExpandedVideo(video);
@@ -147,14 +140,13 @@ export default function DirectorPage() {
 
       <div className="bg-black">
         {director.videos.map((video, index) => {
-          // ✨ КРОК 5: Знаходимо підписаний URL для кожного відео
           const signedUrl = videoUrls[video.src];
           
           return (
             <DirectorVideoBlock
               key={index}
               video={video}
-              signedUrl={signedUrl} // Передаємо URL в компонент
+              signedUrl={signedUrl}
               onExpand={handleExpandVideo}
             />
           );
