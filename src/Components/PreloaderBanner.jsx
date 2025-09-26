@@ -1,7 +1,6 @@
-// src/Components/PreloaderBanner.js
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useAnimation } from '../context/AnimationContext';
 
 const fadeAnimation = {
   duration: 0.8,
@@ -13,10 +12,11 @@ export default function PreloaderBanner({
   description,
   onAnimationComplete,
 }) {
+  const { isBannerFadingOut, setIsBannerFadingOut } = useAnimation();
+  const [isUnmounted, setIsUnmounted] = useState(false);
+
   const titleWords = title ? title.split(' ') : [];
   const descriptionWords = description ? description.split(' ') : [];
-  const [startFadeOut, setStartFadeOut] = useState(false);
-  const [isUnmounted, setIsUnmounted] = useState(false);
 
   const titleContainerVariants = {
     hidden: { opacity: 0 },
@@ -34,10 +34,9 @@ export default function PreloaderBanner({
   };
 
   const handleTextAnimationComplete = () => {
-    // Затримка перед зникненням банера
     setTimeout(() => {
-      setStartFadeOut(true);
-    }, 2000); 
+      setIsBannerFadingOut(true);
+    }, 2000);
   };
 
   if (isUnmounted) {
@@ -46,27 +45,24 @@ export default function PreloaderBanner({
 
   return (
     <motion.div
-      // --- ЗМІНИ ТУТ ---
-      className="fixed bottom-0 left-0 right-0 z-50 flex flex-col items-start justify-center 
-           px-8 py-6 md:px-16 md:py-10
-           bg-black/20 backdrop-blur-xs border-t border-white/10"
-      // --- КІНЕЦЬ ЗМІН ---
+      className="fixed bottom-0 left-0 right-0 z-50 flex flex-col items-start justify-center px-8 py-6 md:px-16 md:py-10 bg-black/20 backdrop-blur-xs border-t border-white/10"
       initial={{ opacity: 1 }}
-      animate={{ opacity: startFadeOut ? 0 : 1 }}
+      animate={{ opacity: isBannerFadingOut ? 0 : 1 }}
       transition={fadeAnimation}
       onAnimationComplete={() => {
-        if (startFadeOut) {
+        if (isBannerFadingOut) {
           setIsUnmounted(true);
           if (onAnimationComplete) {
-            onAnimationComplete();
+            onAnimationComplete(); // Викликає setIsPreloaderActive(false)
           }
+          // 👇 ОСЬ КЛЮЧОВА ЗМІНА 👇
+          // Скидаємо стан зникнення, щоб хедер міг знову реагувати на hover
+          setIsBannerFadingOut(false);
         }
       }}
     >
       <motion.h1
-        // --- ЗМІНИ ТУТ ---
         className="font-chanel font-semibold text-white text-2xl md:text-4xl uppercase"
-        // --- КІНЕЦЬ ЗМІН ---
         variants={titleContainerVariants}
         initial="hidden"
         animate="visible"
@@ -82,9 +78,7 @@ export default function PreloaderBanner({
         ))}
       </motion.h1>
       <motion.p
-        // --- ЗМІНИ ТУТ ---
         className="font-montserrat text-gray-200 text-base max-w-5xl mt-4 normal-case"
-        // --- КІНЕЦЬ ЗМІН ---
         variants={descriptionContainerVariants}
         initial="hidden"
         animate="visible"

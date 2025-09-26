@@ -8,8 +8,8 @@ const preloaderPages = [
   '/management',
   '/assignment',
   '/feature',
-  '/table-top-studio', // <-- Додано
-  '/post-production',   // <-- Додано
+  '/table-top-studio',
+  '/post-production',
   '/photographers',
 ];
 
@@ -29,16 +29,24 @@ export const AnimationProvider = ({ children }) => {
   const [isPreloaderActive, setIsPreloaderActive] = useState(
     preloaderPages.includes(location.pathname)
   );
+  
+  // 👇 ДОДАНО НОВИЙ СТАН 👇
+  const [isBannerFadingOut, setIsBannerFadingOut] = useState(false);
 
   useEffect(() => {
     if (preloaderPages.includes(location.pathname)) {
       setIsPreloaderActive(true);
+      // Скидаємо стан зникнення при переході на нову сторінку
+      setIsBannerFadingOut(false); 
     }
   }, [location.pathname]);
 
   const value = {
     isPreloaderActive,
     setIsPreloaderActive,
+    // 👇 ДОДАНО В КОНТЕКСТ 👇
+    isBannerFadingOut,
+    setIsBannerFadingOut,
   };
 
   return (

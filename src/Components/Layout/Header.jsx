@@ -1,8 +1,6 @@
-// src/Components/Layout/Header.jsx
-
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion'; // AnimatePresence потрібен тільки для іконки логіна
 import { useAnimation } from '../../context/AnimationContext';
 import sinnersLogoBlack from '../../assets/Logo/Sinners logo black.png';
 import sinnersLogoWhite from '../../assets/Logo/Sinners logo white.png';
@@ -13,7 +11,7 @@ const navLinks = [
   { path: '/assignment', label: 'On Assignment' },
   { path: '/service', label: 'Service' },
   { path: '/feature', label: 'Feature Film Packaging' },
-    { path: '/post-production', label: 'Post Production' },
+  { path: '/post-production', label: 'Post Production' },
   { path: '/table-top-studio', label: 'TableTop Studio' },
   { path: '/about', label: 'About' },
 ];
@@ -23,14 +21,21 @@ const fadeAnimation = {
   ease: 'easeInOut',
 };
 
+// Варіанти для всього хедера (тільки прозорість)
 const headerVariants = {
-  hidden: { backgroundColor: 'rgba(255, 255, 255, 0)' },
-  visible: { backgroundColor: 'rgba(255, 255, 255, 1)' },
+  hidden: { opacity: 0 },
+  visible: { opacity: 1 },
+};
+
+// 👇 НОВЕ: Варіанти для навігації (висота і прозорість для "складання")
+const navVariants = {
+  hidden: { height: 0, opacity: 0, transition: { duration: 0.3, ease: 'easeInOut' } },
+  visible: { height: 'auto', opacity: 1, transition: { duration: 0.3, ease: 'easeInOut' } },
 };
 
 export default function Header() {
   const [isHovered, setIsHovered] = useState(false);
-  const { isPreloaderActive } = useAnimation();
+  const { isPreloaderActive, isBannerFadingOut } = useAnimation();
   const location = useLocation();
 
   const isSpecialPage =
@@ -44,34 +49,23 @@ export default function Header() {
     location.pathname === '/post-production' ||
     location.pathname === '/privacy-policy';
 
-  const preloaderPages = [
-    '/directors',
-    '/originals',
-    '/production',
-    '/management',
-    '/assignment',
-    '/feature',
-    '/photographers',
-  ];
+  // --- 👇 ОНОВЛЕНА ЛОГІКА УМОВ 👇 ---
 
-  const isVisible =
-    isHovered ||
-    isSpecialPage ||
-    (preloaderPages.includes(location.pathname) && isPreloaderActive);
+  // 1. Умова для фону і логотипа (стає білим при наведенні або на спец. сторінках)
+  const shouldHaveBackground = isHovered || isSpecialPage || isPreloaderActive;
 
-  const [indicatorStyle, setIndicatorStyle] = useState({
-    opacity: 0,
-    left: 0,
-    width: 0,
-  });
+  // 2. Умова для анімації fade-out всього хедера (зникає тільки коли банер зникає)
+  const shouldBeVisible = !isBannerFadingOut;
+
+  // 3. Умова для анімації "складання" навігації (тільки при наведенні або активному прелоадері)
+  const isNavExpanded = isHovered || isPreloaderActive;
+
+
+  const [indicatorStyle, setIndicatorStyle] = useState({ opacity: 0, left: 0, width: 0 });
 
   const handleLinkMouseEnter = (e) => {
     const linkElement = e.currentTarget;
-    setIndicatorStyle({
-      opacity: 1,
-      left: linkElement.offsetLeft,
-      width: linkElement.offsetWidth,
-    });
+    setIndicatorStyle({ opacity: 1, left: linkElement.offsetLeft, width: linkElement.offsetWidth });
   };
 
   const handleNavMouseLeave = () => {
@@ -81,46 +75,37 @@ export default function Header() {
   return (
     <motion.header
       className="fixed top-0 left-0 w-full z-[1000]"
+      style={{ backgroundColor: shouldHaveBackground ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0)', transition: 'background-color 0.8s ease-in-out' }}
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
       variants={headerVariants}
-      animate={isVisible ? 'visible' : 'hidden'}
+      animate={shouldBeVisible ? 'visible' : 'hidden'} // Керує ТІЛЬКИ fade-out
       transition={fadeAnimation}
     >
       <div className="w-full relative px-8 flex justify-center items-center h-16">
         <Link to="/" className="flex items-center h-full">
           <img
-            src={isVisible ? sinnersLogoBlack : sinnersLogoWhite}
+            src={shouldHaveBackground ? sinnersLogoBlack : sinnersLogoWhite}
             alt="Sinners Logo"
-            className="w-32 h-auto transition-opacity duration-300"
+            className="w-32 h-auto"
           />
         </Link>
 
         <AnimatePresence>
-          {isVisible && (
+          {shouldHaveBackground && (
             <motion.div
               className="absolute right-8 top-1/2 -translate-y-1/2"
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3, ease: 'easeInOut' }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
             >
               <Link
                 to="/login"
                 aria-label="Login"
                 className="w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-200 text-black hover:bg-gray-100"
               >
-                {/* 👇 ОНОВЛЕНА ІКОНКА ТУТ 👇 */}
                 <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="w-6 h-6"
-                  aria-hidden="true"
-                  role="img"
+                  viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6"
                 >
                   <circle cx="12" cy="7" r="3" />
                   <path d="M5 20a7 7 0 0 1 14 0" />
@@ -133,39 +118,35 @@ export default function Header() {
 
       <div className="absolute left-0 right-0 top-16 h-12" />
 
-      <AnimatePresence>
-        {isVisible && (
-          <motion.nav
-            className="w-full flex justify-center overflow-hidden"
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
-            onMouseLeave={handleNavMouseLeave}
-          >
-            <div className="flex items-center gap-8 pb-4 pt-2 relative">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  onMouseEnter={handleLinkMouseEnter}
-                  className="py-2 px-3 text-xs font-semibold uppercase tracking-[0.15em] text-black"
-                >
-                  {link.label}
-                </Link>
-              ))}
-              <div
-                className="absolute bottom-0 h-[3px] bg-black"
-                style={{
-                  ...indicatorStyle,
-                  transition:
-                    'left 0.2s ease-out, width 0.2s ease-out, opacity 0.2s ease-out',
-                }}
-              />
-            </div>
-          </motion.nav>
-        )}
-      </AnimatePresence>
+      {/* --- 👇 ОСНОВНА ЗМІНА В JSX 👇 --- */}
+      {/* AnimatePresence тут більше не потрібен! */}
+      <motion.nav
+        className="w-full flex justify-center overflow-hidden"
+        variants={navVariants}
+        initial="hidden"
+        animate={isNavExpanded ? 'visible' : 'hidden'} // Керує ТІЛЬКИ "складанням"
+        onMouseLeave={handleNavMouseLeave}
+      >
+        <div className="flex items-center gap-8 pb-4 pt-2 relative">
+          {navLinks.map((link) => (
+            <Link
+              key={link.path}
+              to={link.path}
+              onMouseEnter={handleLinkMouseEnter}
+              className="py-2 px-3 text-xs font-semibold uppercase tracking-[0.15em] text-black"
+            >
+              {link.label}
+            </Link>
+          ))}
+          <div
+            className="absolute bottom-0 h-[3px] bg-black"
+            style={{
+              ...indicatorStyle,
+              transition: 'left 0.2s ease-out, width 0.2s ease-out, opacity 0.2s ease-out',
+            }}
+          />
+        </div>
+      </motion.nav>
     </motion.header>
   );
 }
