@@ -1,6 +1,8 @@
+// src/components/Header.js
+
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion'; // AnimatePresence потрібен тільки для іконки логіна
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAnimation } from '../../context/AnimationContext';
 import sinnersLogoBlack from '../../assets/Logo/Sinners logo black.png';
 import sinnersLogoWhite from '../../assets/Logo/Sinners logo white.png';
@@ -21,13 +23,11 @@ const fadeAnimation = {
   ease: 'easeInOut',
 };
 
-// Варіанти для всього хедера (тільки прозорість)
 const headerVariants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1 },
 };
 
-// 👇 НОВЕ: Варіанти для навігації (висота і прозорість для "складання")
 const navVariants = {
   hidden: { height: 0, opacity: 0, transition: { duration: 0.3, ease: 'easeInOut' } },
   visible: { height: 'auto', opacity: 1, transition: { duration: 0.3, ease: 'easeInOut' } },
@@ -35,7 +35,7 @@ const navVariants = {
 
 export default function Header() {
   const [isHovered, setIsHovered] = useState(false);
-  const { isPreloaderActive, isBannerFadingOut } = useAnimation();
+  const { isPreloaderActive, isBannerFadingOut, onPreloaderPage } = useAnimation();
   const location = useLocation();
 
   const isSpecialPage =
@@ -49,17 +49,17 @@ export default function Header() {
     location.pathname === '/post-production' ||
     location.pathname === '/privacy-policy';
 
-  // --- 👇 ОНОВЛЕНА ЛОГІКА УМОВ 👇 ---
+  // --- УМОВИ ---
 
-  // 1. Умова для фону і логотипа (стає білим при наведенні або на спец. сторінках)
   const shouldHaveBackground = isHovered || isSpecialPage || isPreloaderActive;
+  const shouldBeVisible = !onPreloaderPage || !isBannerFadingOut;
 
-  // 2. Умова для анімації fade-out всього хедера (зникає тільки коли банер зникає)
-  const shouldBeVisible = !isBannerFadingOut;
-
-  // 3. Умова для анімації "складання" навігації (тільки при наведенні або активному прелоадері)
-  const isNavExpanded = isHovered || isPreloaderActive;
-
+  // ✨ ОСЬ КЛЮЧОВА ЗМІНА ЛОГІКИ 👇
+  // Навігація розгорнута, якщо:
+  // 1. На неї наведено курсор.
+  // 2. Активний прелоадер.
+  // 3. АБО це звичайна сторінка (не з прелоадером).
+  const isNavExpanded = isHovered || isPreloaderActive || !onPreloaderPage;
 
   const [indicatorStyle, setIndicatorStyle] = useState({ opacity: 0, left: 0, width: 0 });
 
@@ -75,11 +75,14 @@ export default function Header() {
   return (
     <motion.header
       className="fixed top-0 left-0 w-full z-[1000]"
-      style={{ backgroundColor: shouldHaveBackground ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0)', transition: 'background-color 0.8s ease-in-out' }}
+      style={{
+        backgroundColor: shouldHaveBackground ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0)',
+        transition: 'background-color 0.8s ease-in-out'
+      }}
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
       variants={headerVariants}
-      animate={shouldBeVisible ? 'visible' : 'hidden'} // Керує ТІЛЬКИ fade-out
+      animate={shouldBeVisible ? 'visible' : 'hidden'}
       transition={fadeAnimation}
     >
       <div className="w-full relative px-8 flex justify-center items-center h-16">
@@ -105,7 +108,13 @@ export default function Header() {
                 className="w-10 h-10 rounded-full flex items-center justify-center transition-colors duration-200 text-black hover:bg-gray-100"
               >
                 <svg
-                  viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="w-6 h-6"
                 >
                   <circle cx="12" cy="7" r="3" />
                   <path d="M5 20a7 7 0 0 1 14 0" />
@@ -118,13 +127,11 @@ export default function Header() {
 
       <div className="absolute left-0 right-0 top-16 h-12" />
 
-      {/* --- 👇 ОСНОВНА ЗМІНА В JSX 👇 --- */}
-      {/* AnimatePresence тут більше не потрібен! */}
       <motion.nav
         className="w-full flex justify-center overflow-hidden"
         variants={navVariants}
         initial="hidden"
-        animate={isNavExpanded ? 'visible' : 'hidden'} // Керує ТІЛЬКИ "складанням"
+        animate={isNavExpanded ? 'visible' : 'hidden'} // Тепер ця умова працює правильно
         onMouseLeave={handleNavMouseLeave}
       >
         <div className="flex items-center gap-8 pb-4 pt-2 relative">

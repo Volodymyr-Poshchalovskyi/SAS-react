@@ -1,3 +1,5 @@
+// src/context/AnimationContext.js
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
@@ -25,28 +27,33 @@ export const useAnimation = () => {
 
 export const AnimationProvider = ({ children }) => {
   const location = useLocation();
+  const onPreloaderPage = preloaderPages.includes(location.pathname);
 
-  const [isPreloaderActive, setIsPreloaderActive] = useState(
-    preloaderPages.includes(location.pathname)
-  );
-  
-  // 👇 ДОДАНО НОВИЙ СТАН 👇
+  const [isPreloaderActive, setIsPreloaderActive] = useState(onPreloaderPage);
   const [isBannerFadingOut, setIsBannerFadingOut] = useState(false);
 
   useEffect(() => {
-    if (preloaderPages.includes(location.pathname)) {
+    // Ця логіка тепер обробляє ОБИДВА випадки
+    if (onPreloaderPage) {
+      // Якщо це сторінка з прелоадером - вмикаємо його
       setIsPreloaderActive(true);
-      // Скидаємо стан зникнення при переході на нову сторінку
-      setIsBannerFadingOut(false); 
+      setIsBannerFadingOut(false);
+    } else {
+      // ✨ ВАЖЛИВА ЗМІНА:
+      // Якщо це БУДЬ-ЯКА ІНША сторінка - примусово вимикаємо всі стани прелоадера.
+      // Це гарантує, що хедер не зникне.
+      setIsPreloaderActive(false);
+      setIsBannerFadingOut(false);
     }
+    // Спрощуємо залежність, оскільки onPreloaderPage залежить від pathname
   }, [location.pathname]);
 
   const value = {
     isPreloaderActive,
     setIsPreloaderActive,
-    // 👇 ДОДАНО В КОНТЕКСТ 👇
     isBannerFadingOut,
     setIsBannerFadingOut,
+    onPreloaderPage,
   };
 
   return (

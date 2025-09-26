@@ -1,11 +1,18 @@
+// src/pages/Photographers.js
+
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import PreloaderBanner from '../Components/PreloaderBanner';
 import ScrollProgressBar from '../Components/ScrollProgressBar';
 import { useAnimation } from '../context/AnimationContext';
-// ✨ Зміна тут: Імпортуємо дані фотографів
 import { photographersData } from '../Data/PhotographersData';
+
+// ✨ ДОДАНО: Анімація для імені, як у Directors.js
+const nameAnimation = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: 'easeOut' } },
+};
 
 const MotionLink = motion(Link);
 
@@ -46,7 +53,6 @@ export default function Photographers() {
     setIsPreloaderActive(false);
   };
 
-  // ✨ Зміна тут: Новий текст для банера
   const bannerTitle = 'Masters of Light. Architects of Image.';
   const bannerDescription = 'From iconic portraiture to fashion-driven campaigns, our photographers capture the essence of story through stills that resonate. Whether shooting luxury editorials, celebrity features, or global campaigns, they deliver timeless imagery that elevates every brand narrative.';
 
@@ -74,28 +80,30 @@ export default function Photographers() {
           key={photographer.id}
           className="relative w-full h-screen snap-start bg-black"
         >
-          {/* ✨ Зміна тут: Замість VideoContainer використовуємо div з фоновим зображенням */}
           <div
             className="absolute inset-0 w-full h-full bg-cover bg-center"
             style={{ backgroundImage: `url(${photographer.coverImage})` }}
           />
           <div className="absolute inset-0 bg-black opacity-30" />
 
-          {/* ✨ Зміна тут: Нова верстка для інформації про фотографа, як на скріншоті */}
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-white">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] mb-4">
-              {photographer.category}
-            </p>
-            <h2 className="font-chanel font-normal uppercase text-4xl sm:text-6xl md:text-[5rem] mb-8">
-              {photographer.name}
-            </h2>
-            <Link
+          {/* ✨ ЗМІНА: Блок з іменем тепер повністю відповідає стилю та анімації зі сторінки Directors */}
+          <div className="absolute top-[80%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full text-center">
+            <MotionLink
               to={`/photographers/${photographer.slug}`}
-              className="bg-white text-black py-3 px-8 text-xs font-semibold uppercase tracking-wider
-                         transition-transform hover:scale-105"
+              className="text-white font-chanel font-normal uppercase 
+                         text-4xl sm:text-6xl md:text-[5rem] 
+                         tracking-[-0.3rem] md:tracking-[-0.6rem]
+                         transition-opacity duration-500 hover:opacity-50"
+              variants={nameAnimation}
+              initial="hidden"
+              animate={
+                index === 0 && !isPreloaderActive ? 'visible' : undefined
+              }
+              whileInView={index > 0 ? 'visible' : undefined}
+              viewport={{ once: true, amount: 0.5 }}
             >
-              See More
-            </Link>
+              {photographer.name}
+            </MotionLink>
           </div>
         </div>
       ))}

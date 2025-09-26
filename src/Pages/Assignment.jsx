@@ -7,7 +7,6 @@ import VideoContainer from '../Components/VideoContainer';
 import PreloaderBanner from '../Components/PreloaderBanner';
 import ScrollProgressBar from '../Components/ScrollProgressBar';
 import { useAnimation } from '../context/AnimationContext';
-// ✨ Зміна тут: Імпортуємо нові дані
 import { assignmentData } from '../Data/AssignmentData';
 
 const nameAnimation = {
@@ -17,7 +16,6 @@ const nameAnimation = {
 
 const MotionLink = motion(Link);
 
-// ✨ Зміна тут: Перейменовуємо компонент
 export default function Assignment() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const { isPreloaderActive, setIsPreloaderActive } = useAnimation();
@@ -27,9 +25,9 @@ export default function Assignment() {
     window.scrollTo(0, 0);
   }, []);
 
+  // ✨ ПІДТВЕРДЖЕННЯ: Цей useEffect завантажує відео відразу, не чекаючи зникнення банера.
   useEffect(() => {
     const fetchVideoUrls = async () => {
-      // ✨ Зміна тут: Використовуємо assignmentData
       const gcsPaths = assignmentData.map(director => director.videos[0].src);
       
       try {
@@ -48,7 +46,7 @@ export default function Assignment() {
     };
 
     fetchVideoUrls();
-  }, []);
+  }, []); // Пустий масив залежностей гарантує виконання один раз при монтуванні.
 
   useEffect(() => {
     document.body.style.overflow = isPreloaderActive ? 'hidden' : '';
@@ -79,7 +77,6 @@ export default function Assignment() {
     setIsPreloaderActive(false);
   };
 
-  // ✨ Зміна тут: Оновлюємо текст для банера
   const bannerTitle = 'ELITE TALENT. LIMITED AVAILABILITY.';
   const bannerDescription = 'Our On Assignment division represents top-tier talent available exclusively for select projects. These creators bring a unique vision and expertise, adding unparalleled value to any production.';
 
@@ -98,12 +95,10 @@ export default function Assignment() {
       {!isPreloaderActive && (
         <ScrollProgressBar
           currentIndex={currentIndex}
-          // ✨ Зміна тут: Використовуємо довжину assignmentData
           totalItems={assignmentData.length}
         />
       )}
 
-      {/* ✨ Зміна тут: Ітеруємо по assignmentData */}
       {assignmentData.map((director, index) => {
         const gcsPath = director.videos[0].src;
         const signedUrl = videoUrls[gcsPath];
@@ -121,7 +116,7 @@ export default function Assignment() {
             )}
 
             <div className="absolute top-[80%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full text-center">
-              {/* ✨ Зміна тут: Посилання веде на /assignment/slug */}
+              {/* ✨ ПІДТВЕРДЖЕННЯ: Логіка анімації для імені вже реалізована коректно. */}
               <MotionLink
                 to={`/assignment/${director.slug}`}
                 className="text-white font-chanel font-normal uppercase 
