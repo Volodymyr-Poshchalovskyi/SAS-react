@@ -48,6 +48,7 @@ export default function PhotographerPage() {
         </div>
       </section>
 
+      {/* Секція з великим фото */}
       <section className="w-full h-screen">
         <img
           src={photographer.coverImage}
@@ -55,31 +56,26 @@ export default function PhotographerPage() {
           className="w-full h-full object-cover"
         />
       </section>
-      {/* ✨ НОВА СЕКЦІЯ ТУТ: Галерея з трьох зображень */}
-      {/* ✨ НОВА СЕКЦІЯ ТУТ: Галерея з трьох зображень */}
+      
+      {/* ✨ НОВА СЕКЦІЯ: Заголовок та опис ✨ */}
+      <section className="bg-white py-20">
+  <div className="max-w-2xl mx-auto text-center px-4">
+    <h2 className="text-[20px] font-semibold uppercase mb-4">
+      Lorem Ipsum
+    </h2>
+    <p className="text-[12px] leading-relaxed text-gray-700 text-justify">
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua, et quidem faciunt, ut aut reiciendis voluptatibus maiores alias consequatur aut perferendis doloribus asperiores repellat. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus. Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet ut et voluptates repudiandae sint et molestiae non recusandae.
+    </p>
+  </div>
+</section>
+      {/* ✨ КІНЕЦЬ НОВОЇ СЕКЦІЇ ✨ */}
 
 
-      <section className="bg-white pl-2 md:pl-5 py-24 overflow-hidden">
-        {/*
-          Key Changes on this <section> element:
-          1.  py-24: Додано значні вертикальні відступи (padding) зверху та знизу.
-        */}
+      {/* Секція галереї з трьох зображень */}
+      <section className="bg-white pl-2 md:pl-5 overflow-hidden">
         <div className="flex flex-row gap-24 h-[100vh]">
-          {/*
-            Key Changes on this <div> element:
-            1.  gap-12: Збільшено відстань між зображеннями (було gap-8).
-            2.  З батьківського <div> видалено клас ширини (md:w-[130%]).
-          */}
-
           {/* Перше зображення */}
           <div className="flex-shrink-0 md:w-[39.5%]">
-            {/*
-              Key Changes on this <div> element:
-              1.  flex-shrink-0: Забороняє елементу стискатися.
-              2.  md:w-[35%]: Встановлює конкретну ширину для елемента (35% від ширини батька).
-                  Це робить його вужчим, ніж у попередній версії.
-              3.  Клас flex-1 видалено.
-            */}
             <img
               src={photographer.coverImage}
               alt="Gallery view 1"
