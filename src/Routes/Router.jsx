@@ -60,7 +60,7 @@ export default function AppRouter() {
         <Route path="/originals" element={<Originals />} />
         <Route path="/production" element={<Production />} />
         <Route path="/studio" element={<Studio />} />
-        <Route path="/team" element={<Team />} />
+        <Route path="/about" element={<Team />} />
         <Route path="/login" element={<Login />} />
         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
       </Route>

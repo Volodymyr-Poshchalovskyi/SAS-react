@@ -15,7 +15,7 @@ const navLinks = [
   { path: '/assignment', label: 'On Assignment' },
   { path: '/feature', label: 'Feature Film Packaging' },
   { path: '/studio', label: 'Studio Lux' },
-  { path: '/team', label: 'Team' },
+  { path: '/about', label: 'About' },
 ];
 
 const fadeAnimation = {
