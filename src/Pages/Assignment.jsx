@@ -67,9 +67,9 @@ export default function Assignment() {
   };
 
   const bannerTitle =
-    'VISIONARY STORYTELLERS. COMMERCIAL REBELS. GLOBAL CREATORS.';
+    'ELITE TALENT. LIMITED AVAILABILITY.';
   const bannerDescription =
-    'From award-winning filmmakers to fashion-forward image makers, our directors and hybrid talent deliver world-class content across commercials, music videos, branded series, and global campaigns.';
+    'Our On Assignment division represents lop-lier talent available exclusively lor select projects. These creators bring a unique vision and expertise, adding unparalleled value to any production.';
 
   return (
     <div>

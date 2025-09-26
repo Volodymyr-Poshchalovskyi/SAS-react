@@ -35,9 +35,9 @@ export default function Feature() {
   };
 
   const bannerTitle =
-    'VISIONARY STORYTELLERS. COMMERCIAL REBELS. GLOBAL CREATORS.';
+    'From Script to Screen.';
   const bannerDescription =
-    'From award-winning filmmakers to fashion-forward image makers, our directors and hybrid talent deliver world-class content across commercials, music videos, branded series, and global campaigns.';
+    'Our feature film division specializes in packaging commercially viable projects with top-tier talent, financing strategies, and distribution plans. Whether building a festival hit or a streamer-ready series, we develop narratives with lasting impact.';
 
   return (
     <div className="bg-black">
