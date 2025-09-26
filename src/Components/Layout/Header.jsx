@@ -9,13 +9,12 @@ import sinnersLogoWhite from '../../assets/Logo/Sinners logo white.png';
 
 const navLinks = [
   { path: '/directors', label: 'Directors' },
-  { path: '/originals', label: 'Originals' },
-  { path: '/production', label: 'Production services' },
-  { path: '/management', label: 'Management' },
+  {  label: 'Photographers' },
   { path: '/assignment', label: 'On Assignment' },
+  { path: '/service', label: 'Service' },
   { path: '/feature', label: 'Feature Film Packaging' },
+    { path: '/post-production', label: 'Post Production' },
   { path: '/table-top-studio', label: 'TableTop Studio' },
-  { path: '/post-production', label: 'Post Production' },
   { path: '/about', label: 'About' },
 ];
 
