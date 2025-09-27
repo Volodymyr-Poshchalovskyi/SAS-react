@@ -1,7 +1,7 @@
 // src/AdminComponents/Layout/Dashboard.jsx
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; // 👈 1. Імпортуємо useNavigate
+import { useNavigate } from 'react-router-dom';
 import WeeklyViewsChart from './WeeklyViewsChart';
 import DateRangePicker from './DateRangePicker';
 import { formatDistanceToNow } from 'date-fns';
@@ -33,7 +33,6 @@ const VideoCard = ({ title, imageUrl, badge, description, isLoading }) => (
   </div>
 );
 
-// 👇 2. Оновлюємо ListItem, щоб приймати onActionClick
 const ListItem = ({ imageUrl, title, subtitle, time, actionText, isLoading, onActionClick }) => (
     <div className="flex items-center space-x-4 py-3">
     { isLoading ? (
@@ -52,7 +51,6 @@ const ListItem = ({ imageUrl, title, subtitle, time, actionText, isLoading, onAc
             <p className="text-xs text-slate-500 dark:text-slate-400 break-words whitespace-normal truncate">{subtitle}</p>
             <span className="text-xs text-slate-400 dark:text-slate-500">{time}</span>
         </div>
-        {/* 👇 3. Замінюємо <a> на <button> з onClick */}
         {actionText && (
           <button 
             onClick={onActionClick} 
@@ -72,7 +70,7 @@ const Dashboard = () => {
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(today.getDate() - 6);
   
-  const navigate = useNavigate(); // 👈 4. Ініціалізуємо navigate
+  const navigate = useNavigate();
 
   const [dateRange, setDateRange] = useState({
     from: sevenDaysAgo,
@@ -85,7 +83,6 @@ const Dashboard = () => {
   const [recentActivity, setRecentActivity] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   
-  // 👇 5. Створюємо функцію-обробник для навігації
   const handleShowreelClick = (reelId) => {
     navigate('/adminpanel/analytics', { state: { openModalForReelId: reelId } });
   };
@@ -169,7 +166,8 @@ const Dashboard = () => {
   }, [dateRange]);
   
   return (
-    <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+    // 👇 Зміни тут: видалено 'max-w-7xl' та 'mx-auto', додано 'w-full'
+    <div className="w-full p-4 sm:p-6 lg:p-8">
       <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">
           Dashboard
@@ -223,7 +221,7 @@ const Dashboard = () => {
                         subtitle={item.title}
                         time={formatDistanceToNow(new Date(item.created_at), { addSuffix: true })}
                         actionText="SHOWREEL"
-                        onActionClick={() => handleShowreelClick(item.id)} // 👈 6. Передаємо обробник у компонент
+                        onActionClick={() => handleShowreelClick(item.id)}
                         isLoading={false}
                       />
                     ))

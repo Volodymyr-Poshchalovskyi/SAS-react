@@ -224,7 +224,7 @@ const ManagementPage = () => {
   const textareaClasses = 'flex min-h-[80px] w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500';
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="w-full p-4 sm:p-6 lg:p-8">
       <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50 mb-6">Artists / Clients / Featured Celebrity</h1>
       {loading ? ( <p className="text-center text-slate-500 dark:text-slate-400">Loading data...</p> ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
