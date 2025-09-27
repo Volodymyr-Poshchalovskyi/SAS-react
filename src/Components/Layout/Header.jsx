@@ -25,17 +25,18 @@ const fadeAnimation = {
 
 const headerVariants = {
   hidden: { opacity: 0 },
-  visible: { opacity: 1 },
+  visible: { opacity: 1, transition: fadeAnimation }, // Додаємо transition сюди
 };
 
 const navVariants = {
-  hidden: { height: 0, opacity: 0, transition: { duration: 0.3, ease: 'easeInOut' } },
-  visible: { height: 'auto', opacity: 1, transition: { duration: 0.3, ease: 'easeInOut' } },
+  hidden: { height: 0, transition: { duration: 0.3, ease: 'easeInOut' } },
+  visible: { height: 'auto', transition: { duration: 0.3, ease: 'easeInOut' } },
 };
 
 export default function Header() {
   const [isHovered, setIsHovered] = useState(false);
-  const { isPreloaderActive, isBannerFadingOut, onPreloaderPage } = useAnimation();
+  // ✨ ЗМІНА №1: Забираємо isBannerFadingOut та onPreloaderPage, вони більше не потрібні для логіки видимості
+  const { isPreloaderActive } = useAnimation();
   const location = useLocation();
 
   const isSpecialPage =
@@ -50,16 +51,9 @@ export default function Header() {
     location.pathname === '/privacy-policy';
 
   // --- УМОВИ ---
-
+  // isPreloaderActive тепер єдине джерело правди про стан прелоадера
   const shouldHaveBackground = isHovered || isSpecialPage || isPreloaderActive;
-  const shouldBeVisible = !onPreloaderPage || !isBannerFadingOut;
-
-  // ✨ ОСЬ КЛЮЧОВА ЗМІНА ЛОГІКИ 👇
-  // Навігація розгорнута, якщо:
-  // 1. На неї наведено курсор.
-  // 2. Активний прелоадер.
-  // 3. АБО це звичайна сторінка (не з прелоадером).
-  const isNavExpanded = isHovered || isPreloaderActive || !onPreloaderPage;
+  const isNavExpanded = isHovered || isSpecialPage || isPreloaderActive;
 
   const [indicatorStyle, setIndicatorStyle] = useState({ opacity: 0, left: 0, width: 0 });
 
@@ -82,8 +76,10 @@ export default function Header() {
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
       variants={headerVariants}
-      animate={shouldBeVisible ? 'visible' : 'hidden'}
-      transition={fadeAnimation}
+      // ✨ ЗМІНА №2: Спрощуємо логіку. Хедер просто з'являється і залишається видимим.
+      // Це усуває баг, коли він зникав назавжди.
+      initial="hidden"
+      animate="visible"
     >
       <div className="w-full relative px-8 flex justify-center items-center h-16">
         <Link to="/" className="flex items-center h-full">
@@ -131,7 +127,8 @@ export default function Header() {
         className="w-full flex justify-center overflow-hidden"
         variants={navVariants}
         initial="hidden"
-        animate={isNavExpanded ? 'visible' : 'hidden'} // Тепер ця умова працює правильно
+        // ✨ ЗМІНА №3: Спрощуємо умову. Навігація розгортається, якщо є фон.
+        animate={isNavExpanded ? 'visible' : 'hidden'}
         onMouseLeave={handleNavMouseLeave}
       >
         <div className="flex items-center gap-8 pb-4 pt-2 relative">

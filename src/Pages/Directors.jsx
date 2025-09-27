@@ -1,5 +1,3 @@
-// src/pages/Directors.js
-
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -16,21 +14,25 @@ const nameAnimation = {
 
 const MotionLink = motion(Link);
 
-function Directors() {
+export default function Directors() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const { isPreloaderActive, setIsPreloaderActive } = useAnimation();
+  const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } = useAnimation();
   const [videoUrls, setVideoUrls] = useState({});
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  // ✨ ЗМІНА: Цей useEffect тепер завантажує дані відразу, не чекаючи прелоадер.
+  // ✨ ОСНОВНА ЛОГІКА: Цей блок запускає прелоадер при завантаженні сторінки.
+  useEffect(() => {
+    if (onPreloaderPage) {
+      setIsPreloaderActive(true);
+    }
+  }, [onPreloaderPage, setIsPreloaderActive]);
+
   useEffect(() => {
     const fetchVideoUrls = async () => {
-      // Збираємо всі GCS шляхи з даних
       const gcsPaths = directorsData.map(director => director.videos[0].src);
-      
       try {
         const response = await fetch('http://localhost:3001/generate-read-urls', {
           method: 'POST',
@@ -38,46 +40,34 @@ function Directors() {
           body: JSON.stringify({ gcsPaths }),
         });
         if (!response.ok) throw new Error('Failed to fetch video URLs');
-        
         const urlsMap = await response.json();
         setVideoUrls(urlsMap);
       } catch (error) {
         console.error('Error fetching director video URLs:', error);
       }
     };
-
     fetchVideoUrls();
-  }, []); // <-- Пустий масив залежностей означає "виконати один раз при монтуванні"
+  }, []);
 
-  // Інші useEffect залишаються без змін
   useEffect(() => {
     document.body.style.overflow = isPreloaderActive ? 'hidden' : '';
-    return () => {
-      document.body.style.overflow = '';
-    };
+    return () => { document.body.style.overflow = ''; };
   }, [isPreloaderActive]);
 
   useEffect(() => {
     const htmlElement = document.documentElement;
     htmlElement.classList.add('scroll-snap-enabled');
-
     const handleScroll = () => {
       if (isPreloaderActive) return;
       const newIndex = Math.round(window.scrollY / window.innerHeight);
       setCurrentIndex(newIndex);
     };
-
     window.addEventListener('scroll', handleScroll, { passive: true });
-
     return () => {
       htmlElement.classList.remove('scroll-snap-enabled');
       window.removeEventListener('scroll', handleScroll);
     };
   }, [isPreloaderActive]);
-
-  const handleBannerAnimationComplete = () => {
-    setIsPreloaderActive(false);
-  };
 
   const bannerTitle = 'VISIONARY STORYTELLERS. COMMERCIAL REBELS. GLOBAL CREATORS.';
   const bannerDescription = 'From award-winning filmmakers to fashion-forward image makers, our directors and hybrid talent deliver world-class content across commercials, music videos, branded series, and global campaigns.';
@@ -87,7 +77,7 @@ function Directors() {
       <AnimatePresence>
         {isPreloaderActive && (
           <PreloaderBanner
-            onAnimationComplete={handleBannerAnimationComplete}
+            onAnimationComplete={() => setIsPreloaderActive(false)}
             title={bannerTitle}
             description={bannerDescription}
           />
@@ -95,41 +85,24 @@ function Directors() {
       </AnimatePresence>
 
       {!isPreloaderActive && (
-        <ScrollProgressBar
-          currentIndex={currentIndex}
-          totalItems={directorsData.length}
-        />
+        <ScrollProgressBar currentIndex={currentIndex} totalItems={directorsData.length} />
       )}
 
       {directorsData.map((director, index) => {
         const gcsPath = director.videos[0].src;
         const signedUrl = videoUrls[gcsPath];
-
         return (
-          <div
-            key={director.id}
-            className="relative w-full h-screen snap-start"
-          >
-            {/* Тепер signedUrl буде готовий заздалегідь */}
+          <div key={director.id} className="relative w-full h-screen snap-start">
             {signedUrl && (
-              <VideoContainer
-                videoSrc={signedUrl}
-                shouldPlay={!isPreloaderActive && currentIndex === index}
-              />
+              <VideoContainer videoSrc={signedUrl} shouldPlay={!isPreloaderActive && currentIndex === index} />
             )}
-
             <div className="absolute top-[80%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full text-center">
               <MotionLink
                 to={`/directors/${director.slug}`}
-                className="text-white font-chanel font-normal uppercase 
-                           text-4xl sm:text-6xl md:text-[5rem] 
-                           tracking-[-0.3rem] md:tracking-[-0.6rem]
-                           transition-opacity duration-500 hover:opacity-50"
+                className="text-white font-chanel font-normal uppercase text-4xl sm:text-6xl md:text-[5rem] tracking-[-0.3rem] md:tracking-[-0.6rem] transition-opacity duration-500 hover:opacity-50"
                 variants={nameAnimation}
                 initial="hidden"
-                animate={
-                  index === 0 && !isPreloaderActive ? 'visible' : undefined
-                }
+                animate={index === 0 && !isPreloaderActive ? 'visible' : undefined}
                 whileInView={index > 0 ? 'visible' : undefined}
                 viewport={{ once: true, amount: 0.5 }}
               >
@@ -142,5 +115,3 @@ function Directors() {
     </div>
   );
 }
-
-export default Directors;

@@ -53,10 +53,8 @@ export default function PreloaderBanner({
         if (isBannerFadingOut) {
           setIsUnmounted(true);
           if (onAnimationComplete) {
-            onAnimationComplete(); // Викликає setIsPreloaderActive(false)
+            onAnimationComplete();
           }
-          // 👇 ОСЬ КЛЮЧОВА ЗМІНА 👇
-          // Скидаємо стан зникнення, щоб хедер міг знову реагувати на hover
           setIsBannerFadingOut(false);
         }
       }}
