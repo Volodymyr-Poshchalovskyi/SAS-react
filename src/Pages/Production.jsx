@@ -22,13 +22,21 @@ export default function Production() {
     window.scrollTo(0, 0);
   }, []);
 
-  // ✨ ОСНОВНА ЛОГІКА: Цей блок запускає прелоадер при завантаженні сторінки.
+  // --- Логіка прелоадера ---
   useEffect(() => {
     if (onPreloaderPage) {
       setIsPreloaderActive(true);
     }
   }, [onPreloaderPage, setIsPreloaderActive]);
 
+  useEffect(() => {
+    document.body.style.overflow = isPreloaderActive ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isPreloaderActive]);
+  
+  // --- Завантаження URL відео ---
   useEffect(() => {
     const fetchVideoUrls = async () => {
       const gcsPaths = productionData.map(video => video.src);
@@ -47,12 +55,8 @@ export default function Production() {
     };
     fetchVideoUrls();
   }, []);
-
-  useEffect(() => {
-    document.body.style.overflow = isPreloaderActive ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
-  }, [isPreloaderActive]);
-
+  
+  // --- Логіка скролу ---
   useEffect(() => {
     const htmlElement = document.documentElement;
     htmlElement.classList.add('scroll-snap-enabled');
@@ -67,7 +71,8 @@ export default function Production() {
       window.removeEventListener('scroll', handleScroll);
     };
   }, [isPreloaderActive]);
-
+  
+  // --- Текст для банера ---
   const bannerTitle = 'Global Production. White Glove Support.';
   const bannerDescription = 'Celebrity-driven production, luxury brand campaigns, and international shoots are our specialty. We travel megastars in music, film, and fashion, producing high-impact content across the globe. Our teams in Los Angeles, New York, Mexico City, Bangkok, and beyond provide full-service line production, location sourcing, casting, and post.';
 
@@ -83,12 +88,16 @@ export default function Production() {
         )}
       </AnimatePresence>
       
-      {productionData.map((video, index) => {
+      {/* ✨ ЗМІНА: Контент відображається тільки після зникнення прелоадера */}
+      {!isPreloaderActive && productionData.map((video, index) => {
         const signedUrl = videoUrls[video.src];
         return (
           <div key={video.id} className="relative w-full h-screen snap-start">
             {signedUrl ? (
-              <VideoContainer videoSrc={signedUrl} shouldPlay={!isPreloaderActive && currentIndex === index} />
+              <VideoContainer 
+                videoSrc={signedUrl} 
+                shouldPlay={!isPreloaderActive && currentIndex === index} 
+              />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-black text-white">Loading...</div>
             )}

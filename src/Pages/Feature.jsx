@@ -30,7 +30,7 @@ export default function Feature() {
   }, [isPreloaderActive]);
 
   // ✨ ОНОВЛЕНО: Текст для банера згідно з вашим запитом.
-  const bannerTitle = 'Feature Film Packaging: From Script to Screen.';
+  const bannerTitle = 'From Script to Screen.';
   const bannerDescription = 'Our feature film division specializes in packaging commercially viable projects with top-tier talent, financing strategies, and distribution plans. Whether building a festival hit or a streamer-ready series, we develop narratives with lasting impact.';
   
   const featureTitle = 'FEATURE FILMS & DOCUMENTARIES';
