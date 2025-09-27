@@ -207,9 +207,9 @@ const AuthProvider = ({ children }) => {
 
   const updateApplicationStatus = async (applicationId, newStatus, email) => {
     if (newStatus === 'approved') {
-      const { error: inviteError } = await supabase.functions.invoke('invite-user', {
-        body: { email },
-      });
+  const { error: inviteError } = await supabase.functions.invoke('invite-user', {
+    body: JSON.stringify({ email }), // <--- ОСЬ ЗМІНА
+  });
       if (inviteError) throw new Error(`Failed to invite user: ${inviteError.message}`);
 
       const { data, error } = await supabase
