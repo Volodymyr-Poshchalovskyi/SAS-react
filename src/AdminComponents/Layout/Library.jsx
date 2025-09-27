@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { useNavigate, useLocation } from 'react-router-dom';
+// ✨ ЗМІНА: Імпортуємо спільну функцію з кешем
+import { getSignedUrls } from '../../lib/gcsUrlCache'; 
 
 // =======================
 // HELPER FUNCTIONS & SETUP
@@ -28,23 +30,7 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "YOUR_SUPABASE_URL";
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "YOUR_SUPABASE_ANON_KEY";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Логіка кешування URL-адрес GCS
-const getSignedUrls = async (gcsPaths) => {
-  const uniquePaths = [...new Set(gcsPaths.filter(path => path))];
-  if (uniquePaths.length === 0) return {};
-  try {
-    const response = await fetch('http://localhost:3001/generate-read-urls', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ gcsPaths: uniquePaths }),
-    });
-    if (!response.ok) throw new Error(`Server responded with ${response.status}`);
-    return await response.json();
-  } catch (error) {
-    console.error('Error fetching signed URLs:', error);
-    return {};
-  }
-};
+// ✨ ЗМІНА: Локальну версію getSignedUrls було видалено, оскільки ми тепер її імпортуємо.
 
 
 // =======================
@@ -479,7 +465,7 @@ const Library = () => {
         navigate(location.pathname, { replace: true, state: {} });
       }
     }
-  }, [location.state, items, navigate]);
+  }, [location.state, items, navigate, signedUrls]);
 
 
   const allItemsWithUrls = useMemo(() => items.map(item => ({ ...item, previewUrl: signedUrls[item.preview_gcs_path] || null })), [items, signedUrls]);
@@ -515,7 +501,7 @@ const Library = () => {
       }
     };
     if (currentItems.length > 0) fetchUrlsForCurrentPage();
-  }, [currentItems]);
+  }, [currentItems, signedUrls]);
 
   useEffect(() => {
     if (headerCheckboxRef.current) {
