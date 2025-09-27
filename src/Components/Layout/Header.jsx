@@ -48,7 +48,8 @@ export default function Header() {
     location.pathname === '/studio' ||
     location.pathname === '/table-top-studio' ||
     location.pathname === '/post-production' ||
-    location.pathname === '/privacy-policy';
+    location.pathname === '/privacy-policy' ||
+    location.pathname === '/about'; 
 
   // --- УМОВИ ---
   // isPreloaderActive тепер єдине джерело правди про стан прелоадера
