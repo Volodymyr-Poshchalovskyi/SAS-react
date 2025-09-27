@@ -1,16 +1,34 @@
-import React  from 'react';
-import { useState, useEffect, useLayoutEffect } from 'react';
-import { AnimatePresence } from 'framer-motion';
+// src/pages/Production.js
+
+import React, { useState, useEffect, useLayoutEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import PreloaderBanner from '../Components/PreloaderBanner';
 import { useAnimation } from '../context/AnimationContext';
 import VideoContainer from '../Components/VideoContainer';
-import ScrollProgressBar from '../Components/ScrollProgressBar'; // ✨ NEW: Імпортуємо прогрес-бар
+import ScrollProgressBar from '../Components/ScrollProgressBar';
 import { productionData } from '../Data/ProductionData';
 
-const VideoTitleOverlay = ({ title }) => {
+// ✨ ЗМІНА: Додано об'єкт анімації, скопійований зі сторінки Directors
+const nameAnimation = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: 'easeOut' } },
+};
+
+// ✨ ЗМІНА: Компонент VideoTitleOverlay тепер анімований
+const VideoTitleOverlay = ({ title, index, isPreloaderActive }) => {
   return (
     <div className="absolute inset-0 z-10 flex items-end justify-center text-center p-8 pb-24 text-white pointer-events-none">
-      <p className="font-chanel text-2xl sm:text-4xl text-shadow">{title}</p>
+      <motion.p
+        className="font-chanel text-2xl sm:text-4xl text-shadow"
+        variants={nameAnimation}
+        initial="hidden"
+        // Логіка анімації, ідентична до сторінки Directors
+        animate={index === 0 && !isPreloaderActive ? 'visible' : undefined}
+        whileInView={index > 0 ? 'visible' : undefined}
+        viewport={{ once: true, amount: 0.5 }}
+      >
+        {title}
+      </motion.p>
     </div>
   );
 };
@@ -39,7 +57,7 @@ export default function Production() {
     };
   }, [isPreloaderActive]);
 
-  // --- Завантаження URL відео (тепер запускається одночасно з прелоадером) ---
+  // --- Завантаження URL відео ---
   useEffect(() => {
     const fetchVideoUrls = async () => {
       const gcsPaths = productionData.map((video) => video.src);
@@ -95,7 +113,6 @@ export default function Production() {
         )}
       </AnimatePresence>
 
-      {/* ✨ NEW: Додаємо прогрес-бар, який з'являється після прелоадера */}
       {!isPreloaderActive && (
         <ScrollProgressBar
           currentIndex={currentIndex}
@@ -103,19 +120,22 @@ export default function Production() {
         />
       )}
 
-      {/* ✨ MODIFIED: Рендеримо контент одразу, а не чекаємо на кінець анімації прелоадера */}
       {productionData.map((video, index) => {
         const signedUrl = videoUrls[video.src];
         return (
           <div key={video.id} className="relative w-full h-screen snap-start">
-            {/* ✨ MODIFIED: Логіка рендерингу VideoContainer як на сторінці Directors */}
             {signedUrl && (
               <VideoContainer
                 videoSrc={signedUrl}
                 shouldPlay={!isPreloaderActive && currentIndex === index}
               />
             )}
-            <VideoTitleOverlay title={video.title} />
+            {/* ✨ ЗМІНА: Передаємо index та isPreloaderActive для керування анімацією */}
+            <VideoTitleOverlay
+              title={video.title}
+              index={index}
+              isPreloaderActive={isPreloaderActive}
+            />
           </div>
         );
       })}
