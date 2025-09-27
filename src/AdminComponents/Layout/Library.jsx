@@ -93,6 +93,8 @@ const CreationStatusModal = ({ isOpen, onClose, status, title, message }) => {
     switch (status) {
       case 'creating':
         return (<div className="text-center py-4"><Loader2 className="h-16 w-16 text-blue-500 mx-auto mb-4 animate-spin" /><h3 className="text-lg font-medium text-slate-900 dark:text-slate-50">Creating Reel...</h3><p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Please wait a moment.</p></div>);
+      case 'updating':
+        return (<div className="text-center py-4"><Loader2 className="h-16 w-16 text-blue-500 mx-auto mb-4 animate-spin" /><h3 className="text-lg font-medium text-slate-900 dark:text-slate-50">Updating Reel...</h3><p className="text-sm text-slate-500 dark:text-slate-400 mt-2">Please wait a moment.</p></div>);
       case 'success':
         return (<div className="text-center py-4"><CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" /><h3 className="text-lg font-medium text-slate-900 dark:text-slate-50">{title}</h3>{message && <p className="text-sm text-slate-500 dark:text-slate-400 mt-2" dangerouslySetInnerHTML={{ __html: message }} />}</div>);
       case 'error':
@@ -155,16 +157,17 @@ const ExistingReelsList = ({ reels, onCopy, signedUrls, isLoading }) => {
   );
 };
 
-const ReelCreatorSidebar = ({ allItems, activeTab, setActiveTab, reelItems, setReelItems, reelTitle, setReelTitle }) => {
+const ReelCreatorSidebar = ({ allItems, activeTab, setActiveTab, reelItems, setReelItems, reelTitle, setReelTitle, editingReel, onUpdateSuccess }) => {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [modalState, setModalState] = useState({ isOpen: false, status: 'idle' });
   const [existingReels, setExistingReels] = useState([]);
   const [isLoadingReels, setIsLoadingReels] = useState(false);
   const [signedSidebarUrls, setSignedSidebarUrls] = useState({});
+  const navigate = useNavigate();
   
-  // ✨ useRef для відстеження індексу елемента, який перетягується
+  const isEditing = !!editingReel;
+
   const draggedItemIndex = useRef(null);
-  // ✨ useRef для відстеження індексу елемента, над яким відбувається перетягування
   const draggedOverItemIndex = useRef(null);
 
   useEffect(() => {
@@ -194,8 +197,7 @@ const ReelCreatorSidebar = ({ allItems, activeTab, setActiveTab, reelItems, setR
     };
     if (existingReels.length > 0) fetchAndCacheUrls();
   }, [existingReels]);
-
-  // Цей обробник залишається для перетягування з основної таблиці В СЕРЕДИНУ сайдбару
+  
   const handleDragOverContainer = (e) => { e.preventDefault(); setIsDraggingOver(true); };
   const handleDragLeaveContainer = () => setIsDraggingOver(false);
   const handleDropIntoContainer = (e) => {
@@ -207,7 +209,6 @@ const ReelCreatorSidebar = ({ allItems, activeTab, setActiveTab, reelItems, setR
   
   const handleRemoveItem = (id) => setReelItems(prev => prev.filter(item => item.id !== id));
   
-  // ✨ Функції для обробки сортування елементів УСЕРЕДИНІ сайдбару
   const handleSortDragStart = (e, index) => {
     draggedItemIndex.current = index;
     e.currentTarget.classList.add('opacity-50');
@@ -221,14 +222,13 @@ const ReelCreatorSidebar = ({ allItems, activeTab, setActiveTab, reelItems, setR
     e.currentTarget.classList.remove('opacity-50');
     draggedItemIndex.current = null;
     draggedOverItemIndex.current = null;
-    // Очистити візуальні індикатори з усіх елементів
     document.querySelectorAll('.drag-sort-item').forEach(el => {
         el.classList.remove('border-t-2', 'border-blue-500');
     });
   };
 
   const handleSortDrop = (e) => {
-    e.preventDefault(); // Запобігаємо стандартній обробці
+    e.preventDefault();
     const fromIndex = draggedItemIndex.current;
     const toIndex = draggedOverItemIndex.current;
     
@@ -242,8 +242,7 @@ const ReelCreatorSidebar = ({ allItems, activeTab, setActiveTab, reelItems, setR
   };
   
   const handleSortDragOver = (e) => {
-      e.preventDefault(); // Це необхідно, щоб дозволити drop
-      // Додаємо візуальний індикатор
+      e.preventDefault();
       document.querySelectorAll('.drag-sort-item').forEach(el => {
         el.classList.remove('border-t-2', 'border-blue-500');
       });
@@ -252,22 +251,38 @@ const ReelCreatorSidebar = ({ allItems, activeTab, setActiveTab, reelItems, setR
       }
   };
 
-
-  const handleCreateReel = async () => {
+  const handleSubmitReel = async () => {
     if (reelItems.length === 0 || !reelTitle.trim()) return;
-    setModalState({ isOpen: true, status: 'creating' });
+    
+    const status = isEditing ? 'updating' : 'creating';
+    setModalState({ isOpen: true, status });
+
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("User not authenticated.");
-      const res = await fetch('http://localhost:3001/reels', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: reelTitle, media_item_ids: reelItems.map(i => i.id), user_id: user.id })
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const newReel = await res.json();
-      setExistingReels(prev => [newReel, ...prev]);
-      setModalState({ isOpen: true, status: 'success', title: 'Reel Created!', message: `Your reel "<strong>${newReel.title}</strong>" was created.` });
-    } catch (err) { setModalState({ isOpen: true, status: 'error', title: 'Creation Failed', message: err.message }); }
+      if (isEditing) {
+        const res = await fetch(`http://localhost:3001/reels/${editingReel.id}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: reelTitle, media_item_ids: reelItems.map(i => i.id) })
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const updatedReel = await res.json();
+        setModalState({ isOpen: true, status: 'success', title: 'Reel Updated!', message: `Your reel "<strong>${updatedReel.title}</strong>" was successfully updated.` });
+        onUpdateSuccess(updatedReel);
+      } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("User not authenticated.");
+        const res = await fetch('http://localhost:3001/reels', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: reelTitle, media_item_ids: reelItems.map(i => i.id), user_id: user.id })
+        });
+        if (!res.ok) throw new Error(await res.text());
+        const newReel = await res.json();
+        setExistingReels(prev => [newReel, ...prev]);
+        setModalState({ isOpen: true, status: 'success', title: 'Reel Created!', message: `Your reel "<strong>${newReel.title}</strong>" was created.` });
+      }
+    } catch (err) { 
+      const title = isEditing ? 'Update Failed' : 'Creation Failed';
+      setModalState({ isOpen: true, status: 'error', title, message: err.message }); 
+    }
   };
 
   const handleCopyReel = (reelToCopy) => {
@@ -280,15 +295,69 @@ const ReelCreatorSidebar = ({ allItems, activeTab, setActiveTab, reelItems, setR
 
   const handleCloseModal = () => {
     if (modalState.status === 'success') {
-      setReelItems([]);
-      setReelTitle(`Draft: Showreel (${new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })})`);
+      if (isEditing) {
+        navigate('/adminpanel/analytics', { state: { openModalForReelId: editingReel.id }});
+      } else {
+        setReelItems([]);
+        setReelTitle(`Draft: Showreel (${new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })})`);
+      }
     }
     setModalState({ isOpen: false, status: 'idle' });
   };
   
   const TabButton = ({ name, label }) => (<button onClick={() => setActiveTab(name)} className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors w-1/2 ${activeTab === name ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800'}`}>{label}</button>);
 
-  return (<><CreationStatusModal {...modalState} onClose={handleCloseModal} /><div className="w-96 shrink-0 space-y-4"><div className="p-1 bg-slate-100 dark:bg-slate-900 rounded-lg flex items-center"><TabButton name="new" label="New Reel" /><TabButton name="existing" label="Existing Reels" /></div><div onDragOver={handleDragOverContainer} onDrop={handleDropIntoContainer} onDragLeave={handleDragLeaveContainer} className={`flex flex-col p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 transition-all duration-300 min-h-[400px] ${isDraggingOver ? 'border-2 border-blue-500 ring-4 ring-blue-500/20' : 'border border-slate-200 dark:border-slate-800'}`}>{activeTab === 'new' ? (reelItems.length === 0 ? <div className="flex flex-col items-center justify-center text-center py-16 pointer-events-none h-full"><Layers className="h-12 w-12 text-slate-400 dark:text-slate-500 mb-4" /><h3 className="font-semibold text-slate-800 dark:text-slate-200">Drag work here</h3><p className="text-sm text-slate-500 dark:text-slate-400 mt-1">TO CREATE A REEL</p></div> : <div className="flex flex-col h-full"><div className="mb-4"><label htmlFor="reel-title" className="text-xs font-medium text-slate-500 dark:text-slate-400">TITLE</label><input id="reel-title" type="text" value={reelTitle} onChange={(e) => setReelTitle(e.target.value)} className="mt-1 block w-full bg-transparent text-sm text-slate-900 dark:text-slate-50 font-semibold border-none p-0 focus:ring-0" /></div><div className="flex-1 space-y-2 overflow-y-auto max-h-[calc(100vh-350px)] pr-2" onDrop={handleSortDrop} onDragOver={e => e.preventDefault()} /* ✨ Дозволяємо drop на контейнер списку */>{reelItems.map((item, index) => (<div key={item.id} draggable="true" onDragStart={(e) => handleSortDragStart(e, index)} onDragEnter={(e) => handleSortDragEnter(e, index)} onDragEnd={handleSortDragEnd} onDragOver={handleSortDragOver} data-index={index} /* ✨ Додаємо обробники для сортування */ className="drag-sort-item group flex items-center justify-between gap-3 p-2 rounded-md bg-white dark:bg-slate-800/50 cursor-grab active:cursor-grabbing transition-all /* ✨ Додаємо класи для UX */"><div className="flex items-center gap-3 min-w-0"><div className="w-14 h-9 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">{item.previewUrl ? <img src={item.previewUrl} alt={item.title} className="w-full h-full object-cover rounded-md" /> : <ImageIcon className="w-5 h-5 text-slate-400" />}</div><div className="min-w-0"><p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{item.title}</p><p className="text-xs text-slate-500 dark:text-slate-400 truncate">{item.subtitle || 'No subtitle'}</p></div></div><button onClick={() => handleRemoveItem(item.id)} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><X className="h-4 w-4 text-slate-500 dark:text-slate-400" /></button></div>))}</div><div className="mt-auto pt-4"><button onClick={handleCreateReel} disabled={modalState.status === 'creating'} className="w-full px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-slate-400 flex items-center justify-center">{modalState.status === 'creating' ? <><Loader2 className="animate-spin h-5 w-5 mr-2" />Creating...</> : 'Deliver'}</button></div></div>) : (<ExistingReelsList reels={existingReels} signedUrls={signedSidebarUrls} isLoading={isLoadingReels} onCopy={handleCopyReel} />)}</div></div></>);
+  const submitButtonText = isEditing ? 'Update' : 'Deliver';
+  const loadingButtonText = isEditing ? 'Updating...' : 'Creating...';
+  
+  return (
+    <>
+      <CreationStatusModal {...modalState} onClose={handleCloseModal} />
+      <div className="w-96 shrink-0 space-y-4">
+        <div className="p-1 bg-slate-100 dark:bg-slate-900 rounded-lg flex items-center">
+            <TabButton name="new" label={isEditing ? 'Editing Reel' : 'New Reel'} />
+            <button 
+              onClick={() => setActiveTab('existing')} 
+              disabled={isEditing}
+              className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors w-1/2 ${activeTab === 'existing' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800'} disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              Existing Reels
+            </button>
+        </div>
+        <div onDragOver={handleDragOverContainer} onDrop={handleDropIntoContainer} onDragLeave={handleDragLeaveContainer} className={`flex flex-col p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 transition-all duration-300 min-h-[400px] ${isDraggingOver ? 'border-2 border-blue-500 ring-4 ring-blue-500/20' : 'border border-slate-200 dark:border-slate-800'}`}>
+          {activeTab === 'new' ? (
+            reelItems.length === 0 ? 
+            <div className="flex flex-col items-center justify-center text-center py-16 pointer-events-none h-full"><Layers className="h-12 w-12 text-slate-400 dark:text-slate-500 mb-4" /><h3 className="font-semibold text-slate-800 dark:text-slate-200">Drag work here</h3><p className="text-sm text-slate-500 dark:text-slate-400 mt-1">TO CREATE A REEL</p></div> 
+            : 
+            <div className="flex flex-col h-full">
+              <div className="mb-4">
+                  <label htmlFor="reel-title" className="text-xs font-medium text-slate-500 dark:text-slate-400">TITLE</label>
+                  <input id="reel-title" type="text" value={reelTitle} onChange={(e) => setReelTitle(e.target.value)} className="mt-1 block w-full bg-transparent text-sm text-slate-900 dark:text-slate-50 font-semibold border-none p-0 focus:ring-0" />
+              </div>
+              <div className="flex-1 space-y-2 overflow-y-auto max-h-[calc(100vh-350px)] pr-2" onDrop={handleSortDrop} onDragOver={e => e.preventDefault()}>
+                  {reelItems.map((item, index) => (
+                      <div key={item.id} draggable="true" onDragStart={(e) => handleSortDragStart(e, index)} onDragEnter={(e) => handleSortDragEnter(e, index)} onDragEnd={handleSortDragEnd} onDragOver={handleSortDragOver} data-index={index} className="drag-sort-item group flex items-center justify-between gap-3 p-2 rounded-md bg-white dark:bg-slate-800/50 cursor-grab active:cursor-grabbing transition-all">
+                          <div className="flex items-center gap-3 min-w-0">
+                              <div className="w-14 h-9 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">{item.previewUrl ? <img src={item.previewUrl} alt={item.title} className="w-full h-full object-cover rounded-md" /> : <ImageIcon className="w-5 h-5 text-slate-400" />}</div>
+                              <div className="min-w-0"><p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">{item.title}</p><p className="text-xs text-slate-500 dark:text-slate-400 truncate">{item.subtitle || 'No subtitle'}</p></div>
+                          </div>
+                          <button onClick={() => handleRemoveItem(item.id)} className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><X className="h-4 w-4 text-slate-500 dark:text-slate-400" /></button>
+                      </div>
+                  ))}
+              </div>
+              <div className="mt-auto pt-4">
+                  <button onClick={handleSubmitReel} disabled={modalState.status === 'creating' || modalState.status === 'updating'} className="w-full px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-slate-400 flex items-center justify-center">
+                    {(modalState.status === 'creating' || modalState.status === 'updating') ? <><Loader2 className="animate-spin h-5 w-5 mr-2" />{loadingButtonText}</> : submitButtonText}
+                  </button>
+              </div>
+            </div>
+          ) : (
+            <ExistingReelsList reels={existingReels} signedUrls={signedSidebarUrls} isLoading={isLoadingReels} onCopy={handleCopyReel} />
+          )}
+        </div>
+      </div>
+    </>
+  );
 };
 
 const ConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
@@ -338,10 +407,11 @@ const Library = () => {
   const headerCheckboxRef = useRef(null);
   const itemsPerPage = 10;
 
-  // ✨ СТАН, ПІДНЯТИЙ ІЗ САЙДБАРУ
+  // СТАН, ПІДНЯТИЙ ІЗ САЙДБАРУ
   const [activeTab, setActiveTab] = useState('new');
   const [reelItems, setReelItems] = useState([]);
   const [reelTitle, setReelTitle] = useState(`Draft: Showreel (${new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })})`);
+  const [editingReel, setEditingReel] = useState(null);
 
   useEffect(() => {
     const fetchMediaItems = async () => {
@@ -359,19 +429,28 @@ const Library = () => {
     fetchMediaItems();
   }, []);
 
-  // ✨ ВИПРАВЛЕННЯ: Ефект для обробки копіювання тепер залежить від `items`, а не від `allItemsWithUrls`
   useEffect(() => {
     const reelToCopy = location.state?.reelToCopy;
-    if (reelToCopy && items.length > 0) {
-      const itemIds = reelToCopy.media_item_ids || [];
-      const rawItemsToCopy = itemIds.map(id => items.find(item => item.id === id)).filter(Boolean);
+    const reelToEdit = location.state?.reelToEdit;
+    const reelData = reelToCopy || reelToEdit;
 
-      if (rawItemsToCopy.length > 0) {
-        setReelTitle(`Copy: ${reelToCopy.title}`);
+    if (reelData && items.length > 0) {
+      const itemIds = reelData.media_item_ids || [];
+      const rawItemsToProcess = itemIds.map(id => items.find(item => item.id === id)).filter(Boolean);
+
+      if (rawItemsToProcess.length > 0) {
+        if (reelToEdit) {
+          setEditingReel(reelToEdit);
+          setReelTitle(reelToEdit.title);
+        } else { // reelToCopy
+          setEditingReel(null);
+          setReelTitle(`Copy: ${reelToCopy.title}`);
+        }
+        
         setActiveTab('new');
         
-        const processCopy = async () => {
-          const pathsToFetch = rawItemsToCopy.map(item => item.preview_gcs_path).filter(path => path && !signedUrls[path]);
+        const processItems = async () => {
+          const pathsToFetch = rawItemsToProcess.map(item => item.preview_gcs_path).filter(path => path && !signedUrls[path]);
           
           let newUrls = {};
           if (pathsToFetch.length > 0) {
@@ -379,7 +458,7 @@ const Library = () => {
             setSignedUrls(prev => ({ ...prev, ...newUrls }));
           }
           
-          const finalItemsWithUrls = rawItemsToCopy.map(item => ({
+          const finalItemsWithUrls = rawItemsToProcess.map(item => ({
             ...item,
             previewUrl: newUrls[item.preview_gcs_path] || signedUrls[item.preview_gcs_path] || null
           }));
@@ -387,14 +466,20 @@ const Library = () => {
           setReelItems(finalItemsWithUrls);
         };
 
-        processCopy();
+        processItems();
         navigate(location.pathname, { replace: true, state: {} });
       } else {
-        console.warn("Could not find media items to copy from the provided IDs.");
+        if (reelToEdit) {
+            setEditingReel(reelToEdit);
+            setReelTitle(reelToEdit.title);
+            setReelItems([]);
+            setActiveTab('new');
+        }
+        console.warn("Could not find media items to process from the provided IDs.");
         navigate(location.pathname, { replace: true, state: {} });
       }
     }
-  }, [location.state, items, navigate]); // Залежність від `items` гарантує, що ми маємо дані для пошуку
+  }, [location.state, items, navigate]);
 
 
   const allItemsWithUrls = useMemo(() => items.map(item => ({ ...item, previewUrl: signedUrls[item.preview_gcs_path] || null })), [items, signedUrls]);
@@ -454,6 +539,10 @@ const Library = () => {
     setItems(prev => prev.filter(item => item.id !== itemToDelete.id));
   };
   
+  const handleUpdateSuccess = (updatedReel) => {
+    console.log('Reel updated, data could be refreshed here.', updatedReel);
+  };
+  
   if (loading) return <div className="p-8 text-center text-slate-500">Loading library... ⏳</div>;
   if (error) return <div className="p-8 text-center text-red-500">Error: {error}</div>;
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
@@ -496,7 +585,9 @@ const Library = () => {
           reelItems={reelItems} 
           setReelItems={setReelItems} 
           reelTitle={reelTitle} 
-          setReelTitle={setReelTitle} 
+          setReelTitle={setReelTitle}
+          editingReel={editingReel}
+          onUpdateSuccess={handleUpdateSuccess}
         />
       </div>
     </>
@@ -504,4 +595,3 @@ const Library = () => {
 };
 
 export default Library;
-

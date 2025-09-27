@@ -12,6 +12,7 @@ import {
   Image as ImageIcon,
   Trash2,
   AlertTriangle,
+  Layers,
   Loader2,
   CheckCircle,
   User,
@@ -110,10 +111,13 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
   );
 };
 
-const EditReelModal = ({ isOpen, onClose, reel, onSaveSuccess }) => {
+// ... (початок файлу MyAnalytics.jsx без змін)
+
+const EditReelModal = ({ isOpen, onClose, reel, onSaveSuccess, onCopy }) => {
   const [formData, setFormData] = useState({ title: '' });
   const [status, setStatus] = useState('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (reel) {
@@ -133,6 +137,17 @@ const EditReelModal = ({ isOpen, onClose, reel, onSaveSuccess }) => {
   const handleCopyLink = () => {
     const link = `${window.location.origin}/reel/${reel.short_link}`;
     navigator.clipboard.writeText(link);
+  };
+
+  const handleChangeMedia = () => {
+    navigate('/adminpanel/library', { state: { reelToEdit: reel } });
+  };
+  
+  const handleCopyClick = () => {
+    if (onCopy && reel) {
+      onCopy(reel);
+    }
+    onClose();
   };
 
   const handleSave = async (e) => {
@@ -159,6 +174,11 @@ const EditReelModal = ({ isOpen, onClose, reel, onSaveSuccess }) => {
     }
   };
 
+  // ✨ ЗМІНА: Класи для кнопок для консистентності
+  const primaryButtonClasses = "w-full justify-center px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-400 flex items-center";
+  const secondaryButtonClasses = "w-full justify-center px-4 py-2 text-sm font-medium rounded-md border border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 disabled:opacity-50";
+
+
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50" onClick={status === 'idle' ? onClose : undefined}>
       <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl p-6 w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
@@ -168,6 +188,7 @@ const EditReelModal = ({ isOpen, onClose, reel, onSaveSuccess }) => {
             <FormField label="Title">
               <input type="text" name="title" value={formData.title} onChange={handleChange} className={inputClasses} required />
             </FormField>
+            
             <FormField label="Short Link">
               <div className="flex items-center gap-2">
                 <a href={`/reel/${reel.short_link}`} target="_blank" rel="noopener noreferrer" className="flex-grow px-3 py-2 text-sm text-blue-500 dark:text-blue-400 bg-slate-100 dark:bg-slate-900 rounded-md border border-slate-300 dark:border-slate-700 truncate hover:underline">
@@ -178,19 +199,51 @@ const EditReelModal = ({ isOpen, onClose, reel, onSaveSuccess }) => {
                 </button>
               </div>
             </FormField>
+            
             {status === 'error' && <p className="text-sm text-red-500">{errorMessage}</p>}
           </div>
-          <div className="mt-6 flex justify-end gap-3">
-            <button type="button" onClick={onClose} disabled={status === 'saving'} className="px-4 py-2 text-sm font-medium rounded-md border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50">Cancel</button>
-            <button type="submit" disabled={status === 'saving'} className="px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-400 flex items-center">
-              {status === 'saving' ? <><Loader2 className="animate-spin h-4 w-4 mr-2" /> Saving...</> : 'Save Changes'}
-            </button>
+          
+          {/* ✨ ЗМІНА: Повністю оновлений блок кнопок з використанням grid */}
+          <div className="mt-6 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={handleChangeMedia}
+                className={secondaryButtonClasses}
+              >
+                <Layers className="h-4 w-4" />
+                Change Media
+              </button>
+              <button
+                type="button"
+                onClick={handleCopyClick}
+                className={secondaryButtonClasses}
+              >
+                <Copy className="h-4 w-4" />
+                Make a Copy
+              </button>
+              <button 
+                type="button" 
+                onClick={onClose} 
+                disabled={status === 'saving'} 
+                className={secondaryButtonClasses}
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                disabled={status === 'saving'} 
+                className={primaryButtonClasses}
+              >
+                {status === 'saving' ? <><Loader2 className="animate-spin h-4 w-4 mr-2" /> Saving...</> : 'Save Changes'}
+              </button>
           </div>
         </form>
       </div>
     </div>
   );
 };
+
+
 
 const ReelActionsDropdown = ({ reel, onEdit, onCopy, onDelete, onToggleStatus, onClose, isLastItem }) => {
   const dropdownRef = useRef(null);
@@ -358,7 +411,7 @@ const MyAnalytics = () => {
   return (
     <>
       <ConfirmationModal isOpen={!!reelToDelete} onClose={() => setReelToDelete(null)} onConfirm={handleConfirmDelete} itemTitle={reelToDelete?.title} />
-      <EditReelModal isOpen={!!reelToEdit} onClose={() => setReelToEdit(null)} reel={reelToEdit} onSaveSuccess={handleSaveSuccess} />
+      <EditReelModal onCopy={handleCopy} isOpen={!!reelToEdit} onClose={() => setReelToEdit(null)} reel={reelToEdit} onSaveSuccess={handleSaveSuccess} />
       
       <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center mb-6">

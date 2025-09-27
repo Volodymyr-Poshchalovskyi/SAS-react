@@ -386,10 +386,13 @@ app.get('/reels', async (req, res) => {
   }
 });
 
-// ✨ ЗМІНА: Оновлено ендпоінт PUT /reels/:id
+// ... (початок файлу server.js без змін)
+
+// ✨ ЗМІНА: Оновлено ендпоінт PUT /reels/:id для підтримки зміни медіа-айтемів
 app.put('/reels/:id', async (req, res) => {
   const { id } = req.params;
-  const { title, artists, status } = req.body;
+  // Додаємо media_item_ids до полів, що деструктуруються
+  const { title, artists, status, media_item_ids } = req.body;
 
   try {
     const updateData = {};
@@ -397,24 +400,69 @@ app.put('/reels/:id', async (req, res) => {
     if (artists !== undefined) updateData.artists = artists;
     if (status !== undefined) updateData.status = status;
 
-    if (Object.keys(updateData).length === 0) {
-      return res.status(400).json({ details: 'No valid fields to update were provided.' });
+    // Оновлюємо основну інформацію про рілс
+    if (Object.keys(updateData).length > 0) {
+      const { error: updateReelError } = await supabase
+        .from('reels')
+        .update(updateData)
+        .eq('id', id);
+      if (updateReelError) throw updateReelError;
     }
 
-    const { data, error } = await supabase
+    // Якщо передано масив media_item_ids, оновлюємо зв'язки
+    if (media_item_ids && Array.isArray(media_item_ids)) {
+      // 1. Видаляємо всі існуючі зв'язки для цього рілса
+      const { error: deleteError } = await supabase
+        .from('reel_media_items')
+        .delete()
+        .eq('reel_id', id);
+      if (deleteError) throw deleteError;
+
+      // 2. Створюємо нові зв'язки, якщо масив не порожній
+      if (media_item_ids.length > 0) {
+        const newReelMediaItems = media_item_ids.map((mediaId, index) => ({
+          reel_id: id,
+          media_item_id: mediaId,
+          display_order: index + 1,
+        }));
+        const { error: insertError } = await supabase
+          .from('reel_media_items')
+          .insert(newReelMediaItems);
+        if (insertError) throw insertError;
+      }
+    }
+
+    // Повертаємо повністю оновлений рілс з усіма даними
+    const { data: finalReel, error: finalFetchError } = await supabase
       .from('reels')
-      .update(updateData)
+      .select('*, user_profiles(first_name, last_name)')
       .eq('id', id)
-      .select('*, user_profiles(first_name, last_name)') // Повертаємо оновлені дані з профілем
       .single();
 
-    if (error) throw error;
-    res.status(200).json(data);
+    if (finalFetchError) throw finalFetchError;
+    
+    // Додаємо аналітичні дані (як у GET /reels) для консистентності
+    const { data: views, error: viewsError } = await supabase.from('reel_views').select('session_id, event_type').eq('reel_id', id);
+    if(viewsError) console.warn("Could not fetch views for updated reel, analytics data might be incomplete.");
+
+    const total_views = views ? new Set(views.map(v => v.session_id)).size : 0;
+    const completed_views = views ? views.filter(v => v.event_type === 'completion').length : 0;
+
+    res.status(200).json({
+      ...finalReel,
+      total_views,
+      completed_views,
+      completion_rate: total_views > 0 ? (completed_views / total_views) * 100 : 0,
+      media_item_ids: media_item_ids || [] // Повертаємо оновлені ID
+    });
+
   } catch (error) {
     console.error(`Error updating reel ${id}:`, error);
-    res.status(500).json({ error: 'Failed to update reel status.', details: error.message });
+    res.status(500).json({ error: 'Failed to update reel.', details: error.message });
   }
 });
+
+
 
 app.delete('/reels/:id', async (req, res) => {
   const { id } = req.params;
