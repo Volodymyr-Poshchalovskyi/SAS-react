@@ -2,10 +2,10 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { Loader2, CheckCircle, AlertTriangle } from 'lucide-react'; // ✨ NEW: Import icons
+import { Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
 
 // =======================
-// Status Badge Component
+// Status Badge Component (No changes)
 // =======================
 const StatusBadge = ({ status }) => {
   const baseClasses =
@@ -33,7 +33,7 @@ const StatusBadge = ({ status }) => {
 };
 
 // =======================
-// Highlight Component
+// Highlight Component (No changes)
 // =======================
 const Highlight = ({ text, highlight }) => {
   if (!text) return null;
@@ -61,7 +61,7 @@ const Highlight = ({ text, highlight }) => {
 };
 
 // ===================================
-// ✨ MODIFIED: Advanced Modal Component
+// Modal Component (No changes)
 // ===================================
 const Modal = ({
   isOpen,
@@ -208,6 +208,7 @@ const Modal = ({
   );
 };
 
+
 // =======================
 // Main Component
 // =======================
@@ -218,8 +219,8 @@ const ApplicationsForAdmin = () => {
   const [error, setError] = useState('');
   const [visibleCount, setVisibleCount] = useState(8);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
-  // --- ✨ MODIFIED: State for the new modal ---
   const [modalConfig, setModalConfig] = useState({
     isOpen: false,
     title: '',
@@ -233,7 +234,6 @@ const ApplicationsForAdmin = () => {
 
   const { getApplications, updateApplicationStatus } = useAuth();
 
-  // ---------- Fetch Applications ----------
   const fetchApplications = useCallback(async () => {
     try {
       setError('');
@@ -256,28 +256,30 @@ const ApplicationsForAdmin = () => {
     fetchApplications();
   }, [fetchApplications]);
 
-  // ---------- Filtered Applications ----------
   const filteredApplications = useMemo(() => {
-    if (!searchTerm) return applications;
-    return applications.filter(
-      (app) =>
-        app.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (app.text && app.text.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  }, [applications, searchTerm]);
+    return applications
+      .filter((app) => {
+        if (statusFilter === 'all') return true;
+        return app.status === statusFilter;
+      })
+      .filter((app) => {
+        if (!searchTerm) return true;
+        return (
+          app.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (app.text && app.text.toLowerCase().includes(searchTerm.toLowerCase()))
+        );
+      });
+  }, [applications, searchTerm, statusFilter]);
 
-  // ---------- Handlers ----------
   const closeModal = useCallback(() => {
     setModalConfig((prev) => ({ ...prev, isOpen: false }));
   }, []);
-  
-  // --- ✨ MODIFIED: This function now prepares and opens the modal ---
+
   const handleUpdateStatus = (id, newStatus, email) => {
     const isApproving = newStatus === 'approved';
     const actionText = isApproving ? 'approve' : 'deny';
     const actionPastTense = isApproving ? 'approved' : 'denied';
 
-    // This function will be called by the modal on confirmation
     const performUpdate = async () => {
       try {
         await updateApplicationStatus(id, newStatus, email);
@@ -286,7 +288,6 @@ const ApplicationsForAdmin = () => {
         );
       } catch (err) {
         console.error(`Failed to ${actionText} application:`, err);
-        // Re-throw the error so the modal can catch it and display it
         throw err;
       }
     };
@@ -308,8 +309,19 @@ const ApplicationsForAdmin = () => {
   const handleShowMore = () => {
     setVisibleCount((prevCount) => prevCount + 5);
   };
+  
+  // ✨ ЗМІНА: Додано `year: 'numeric'` до форматування дати
+  const formatApplicationDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+  };
 
-  // ---------- Styles ----------
   const baseButtonClasses =
     'py-1 px-3 rounded-md text-xs font-semibold border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900';
   const approveButtonClasses =
@@ -319,7 +331,6 @@ const ApplicationsForAdmin = () => {
   const inputClasses =
     'flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500 dark:focus-visible:ring-offset-slate-900';
 
-  // ---------- Loading / Error States ----------
   if (loading)
     return (
       <div className="p-4 text-center text-slate-500 dark:text-slate-400">
@@ -329,49 +340,59 @@ const ApplicationsForAdmin = () => {
   if (error)
     return <div className="p-4 text-center text-red-500">Error: {error}</div>;
 
-  // ---------- Render ----------
   return (
     <div className="max-w-7xl mx-auto">
-      {/* ... (Header and table JSX remains the same) ... */}
       <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">
           Applications
         </h1>
-        <div className="w-full sm:w-64">
-          <input
-            type="text"
-            placeholder="Search by email or text..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className={inputClasses}
-          />
+        <div className="flex items-center gap-4 flex-wrap">
+          {/* ✨ ЗМІНА: Збільшено ширину контейнера для dropdown */}
+          <div className="w-full sm:w-48">
+             <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className={inputClasses}
+              >
+                <option value="all">All Statuses</option>
+                <option value="in progress">In Progress</option>
+                <option value="approved">Approved</option>
+                <option value="denied">Denied</option>
+              </select>
+          </div>
+          <div className="w-full sm:w-64">
+            <input
+              type="text"
+              placeholder="Search by email or text..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className={inputClasses}
+            />
+          </div>
         </div>
       </div>
-      {/* ... */}
+      
       {filteredApplications.length === 0 ? (
         <div className="text-center p-8 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl bg-white dark:bg-slate-900/70">
           <p className="text-slate-500 dark:text-slate-400">
-            {searchTerm
-              ? `No applications found for "${searchTerm}"`
+            {searchTerm || statusFilter !== 'all'
+              ? `No applications found for the selected filters.`
               : 'There are no new applications.'}
           </p>
         </div>
       ) : (
         <div className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden">
-          {/* ---- Table ---- */}
           <div className="overflow-x-auto">
             <table className="w-full text-sm table-auto">
-              {/* Table Head */}
               <thead className="text-slate-500 dark:text-slate-400">
                 <tr className="border-b border-slate-200 dark:border-slate-800">
                   <th className="p-4 font-medium text-left">Email</th>
                   <th className="p-4 font-medium text-left">Application Text</th>
+                  <th className="p-4 font-medium text-left">Date</th>
                   <th className="p-4 font-medium text-center">Status</th>
                   <th className="p-4 font-medium text-center">Actions</th>
                 </tr>
               </thead>
-
-              {/* Table Body */}
               <tbody className="text-slate-800 dark:text-slate-200">
                 {filteredApplications.slice(0, visibleCount).map((app) => (
                   <tr
@@ -387,6 +408,9 @@ const ApplicationsForAdmin = () => {
                       <p className="text-slate-600 dark:text-slate-400 break-words">
                         <Highlight text={app.text} highlight={searchTerm} />
                       </p>
+                    </td>
+                    <td className="p-4 text-left align-top text-slate-600 dark:text-slate-300 whitespace-nowrap">
+                      {formatApplicationDate(app.created_at)}
                     </td>
                     <td className="p-4 text-center align-top">
                       <StatusBadge status={app.status} />
@@ -418,7 +442,6 @@ const ApplicationsForAdmin = () => {
               </tbody>
             </table>
           </div>
-          {/* ---- Show More Button ---- */}
           {visibleCount < filteredApplications.length && (
             <div className="p-4 text-center border-t border-slate-100 dark:border-slate-800">
               <button
@@ -432,8 +455,6 @@ const ApplicationsForAdmin = () => {
           )}
         </div>
       )}
-
-      {/* --- ✨ MODIFIED: Render the new modal here --- */}
       <Modal
         isOpen={modalConfig.isOpen}
         onClose={closeModal}
