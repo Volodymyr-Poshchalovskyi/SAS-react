@@ -1,6 +1,6 @@
 // src/AdminComponents/Layout/WeeklyViewsChart.jsx
 
-import React from 'react';
+import React, { useState } from 'react';
 
 const getNiceUpperBound = (maxValue) => {
   if (maxValue <= 10) return 10;
@@ -44,6 +44,8 @@ const formatDate = (dateString) => {
 };
 
 const WeeklyViewsChart = ({ data = [], isLoading }) => {
+  const [hoveredIndex, setHoveredIndex] = useState(null);
+
   if (isLoading) {
     return (
       <div className="h-64 w-full flex items-center justify-center text-slate-400">
@@ -91,6 +93,7 @@ const WeeklyViewsChart = ({ data = [], isLoading }) => {
         height="100%"
         viewBox={`0 0 ${width} ${height}`}
         preserveAspectRatio="none"
+        onMouseLeave={() => setHoveredIndex(null)}
       >
         <defs>
           <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
@@ -99,6 +102,7 @@ const WeeklyViewsChart = ({ data = [], isLoading }) => {
           </linearGradient>
         </defs>
         
+        {/* Y-Axis Labels and Grid Lines */}
         <g className="text-xs text-slate-600 dark:text-slate-400">
           {yAxisLabels.map((labelValue) => (
             <g key={labelValue}>
@@ -124,6 +128,7 @@ const WeeklyViewsChart = ({ data = [], isLoading }) => {
           ))}
         </g>
         
+        {/* Chart Gradient Area and Line */}
         <path d={areaPathData} fill="url(#chartGradient)" />
         <path
           d={pathData}
@@ -132,7 +137,9 @@ const WeeklyViewsChart = ({ data = [], isLoading }) => {
           stroke="currentColor"
           strokeWidth="2"
         />
-        <g className="text-white" fill="currentColor">
+        
+        {/* Data Point Circles */}
+        <g className="text-teal-400" fill="currentColor">
           {data.map((point, index) => (
             <circle
               key={index}
@@ -145,7 +152,23 @@ const WeeklyViewsChart = ({ data = [], isLoading }) => {
             />
           ))}
         </g>
+
+        {/* Invisible hover areas */}
+        <g>
+          {data.map((_, index) => (
+            <rect
+              key={index}
+              x={getX(index) - 10}
+              y={0}
+              width={20}
+              height={height - paddingY}
+              fill="transparent"
+              onMouseEnter={() => setHoveredIndex(index)}
+            />
+          ))}
+        </g>
         
+        {/* X-Axis Labels */}
         <g className="text-xs text-slate-600 dark:text-slate-400" textAnchor="middle">
           {data.map((point, index) => (
             <text
@@ -158,6 +181,42 @@ const WeeklyViewsChart = ({ data = [], isLoading }) => {
             </text>
           ))}
         </g>
+
+        {/* ✨ MODIFIED: Tooltip зі зменшеним шрифтом */}
+        {hoveredIndex !== null && (() => {
+          const point = data[hoveredIndex];
+          const x = getX(hoveredIndex);
+          const y = getY(point.views);
+          
+          const viewsText = `${point.views.toLocaleString('en-US')} views`;
+          // 1. Коригуємо ширину для нового, меншого розміру шрифту
+          const textWidth = viewsText.length * 4.5 + 22;
+
+          return (
+            <g transform={`translate(${x}, ${y - 12})`} style={{ pointerEvents: 'none' }}>
+              <rect
+                x={-textWidth / 2}
+                y={-12} // Коригуємо позицію та розмір фону
+                width={textWidth}
+                height={20}
+                rx="5"
+                className="fill-slate-900 dark:fill-slate-800"
+                strokeWidth="1"
+                stroke="rgba(255, 255, 255, 0.1)"
+              />
+              <text
+                x="0"
+                y="-2" // Коригуємо позицію тексту для центрування
+                textAnchor="middle"
+                // 2. Явно встановлюємо менший розмір шрифту і прибираємо клас text-xs
+                fontSize="10" 
+                className="font-semibold fill-white"
+              >
+                {viewsText}
+              </text>
+            </g>
+          );
+        })()}
       </svg>
     </div>
   );
