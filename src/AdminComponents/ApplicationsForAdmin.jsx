@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { Loader2, CheckCircle, AlertTriangle } from 'lucide-react'; // ✨ NEW: Import icons
 
 // =======================
 // Status Badge Component
 // =======================
 const StatusBadge = ({ status }) => {
-  // ... (цей компонент залишається без змін)
   const baseClasses =
     'inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full text-xs font-medium capitalize';
   const statusStyles = {
@@ -36,7 +36,6 @@ const StatusBadge = ({ status }) => {
 // Highlight Component
 // =======================
 const Highlight = ({ text, highlight }) => {
-  // ... (цей компонент залишається без змін)
   if (!text) return null;
   if (!highlight.trim()) return <span>{text}</span>;
 
@@ -62,86 +61,148 @@ const Highlight = ({ text, highlight }) => {
 };
 
 // ===================================
-// ✨ NEW: Confirmation Modal Component
+// ✨ MODIFIED: Advanced Modal Component
 // ===================================
-const ConfirmationModal = ({
+const Modal = ({
   isOpen,
   onClose,
-  onConfirm,
   title,
   children,
-  confirmText = 'Confirm',
-  confirmVariant = 'default',
+  confirmText,
+  onConfirm,
+  showCancelButton = true,
+  confirmButtonClass,
+  successTitle = 'Success',
+  successMessage,
 }) => {
+  const [actionStatus, setActionStatus] = useState('idle');
+  const [errorMessage, setErrorMessage] = useState('');
+
   useEffect(() => {
-    const handleEsc = (event) => {
-      if (event.key === 'Escape') {
+    const handleEscape = (event) => {
+      if (event.key === 'Escape' && actionStatus === 'idle') {
         onClose();
       }
     };
+    
     if (isOpen) {
-      document.addEventListener('keydown', handleEsc);
+      setActionStatus('idle');
+      setErrorMessage('');
     }
-    return () => {
-      document.removeEventListener('keydown', handleEsc);
-    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
-  const baseButtonClasses =
-    'inline-flex justify-center rounded-md border border-transparent px-4 py-2 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-800 transition-colors';
-  const variantClasses = {
-    approve: `${baseButtonClasses} bg-green-600 text-white hover:bg-green-700 focus-visible:ring-green-500`,
-    deny: `${baseButtonClasses} bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500`,
-    default: `${baseButtonClasses} bg-slate-600 text-white hover:bg-slate-700 focus-visible:ring-slate-500`,
+  const handleConfirmClick = async () => {
+    setActionStatus('processing');
+    setErrorMessage('');
+    try {
+      await onConfirm();
+      setActionStatus('success');
+      setTimeout(() => {
+        onClose();
+      }, 2000);
+    } catch (error) {
+      console.error('Modal confirmation error:', error);
+      setActionStatus('error');
+      setErrorMessage(error.message || 'An unexpected error occurred.');
+      setTimeout(() => setActionStatus('idle'), 3000);
+    }
   };
-  const confirmButtonClasses =
-    variantClasses[confirmVariant] || variantClasses.default;
-  const cancelButtonClasses = `${baseButtonClasses} bg-transparent text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800`;
+
+  const baseButtonClasses =
+    'inline-flex items-center justify-center py-2 px-4 rounded-md text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 disabled:opacity-60 disabled:cursor-not-allowed';
 
   return (
     <div
-      className="relative z-50"
-      aria-labelledby="modal-title"
-      role="dialog"
-      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      onMouseDown={actionStatus === 'idle' ? onClose : undefined}
     >
-      <div className="fixed inset-0 bg-black/30 backdrop-blur-sm transition-opacity duration-300 ease-in-out" />
-      <div className="fixed inset-0 z-10 w-screen overflow-y-auto">
-        <div className="flex min-h-full items-center justify-center p-4 text-center">
-          <div className="relative w-full max-w-md transform overflow-hidden rounded-2xl bg-white dark:bg-slate-900 text-left align-middle shadow-xl transition-all duration-300 ease-in-out">
-            <div className="p-6">
-              <h3
-                className="text-lg font-medium leading-6 text-slate-900 dark:text-slate-50"
-                id="modal-title"
-              >
+      <div
+        className="relative w-full max-w-md p-6 m-4 bg-white rounded-xl shadow-xl dark:bg-slate-900"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        {actionStatus === 'success' ? (
+          <div className="text-center py-4">
+            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-slate-900 dark:text-slate-50">
+              {successTitle}
+            </h3>
+            {successMessage && (
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+                {successMessage}
+              </p>
+            )}
+          </div>
+        ) : (
+          <>
+            <div className="flex items-start justify-between">
+              <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-50">
                 {title}
               </h3>
-              <div className="mt-2">
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  {children}
-                </p>
-              </div>
-            </div>
-            <div className="bg-slate-50 dark:bg-slate-900/50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-3">
               <button
-                type="button"
-                className={confirmButtonClasses}
-                onClick={onConfirm}
+                onClick={onClose}
+                disabled={actionStatus === 'processing'}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors disabled:opacity-50"
+                aria-label="Close modal"
               >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-6 w-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <div className="mt-4 text-slate-600 dark:text-slate-300">
+              {children}
+            </div>
+            
+            {actionStatus === 'error' && (
+                <div className="mt-4 flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-md">
+                    <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+                    <span>{errorMessage}</span>
+                </div>
+            )}
+
+            <div className="mt-6 flex justify-end gap-3">
+              {showCancelButton && (
+                <button
+                  onClick={onClose}
+                  disabled={actionStatus === 'processing'}
+                  className={`${baseButtonClasses} border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800`}
+                >
+                  Cancel
+                </button>
+              )}
+              <button
+                onClick={handleConfirmClick}
+                disabled={actionStatus === 'processing'}
+                className={`${baseButtonClasses} text-white ${
+                  confirmButtonClass ||
+                  'bg-indigo-600 hover:bg-indigo-700 focus-visible:ring-indigo-500'
+                }`}
+              >
+                {actionStatus === 'processing' && (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                )}
                 {confirmText}
               </button>
-              <button
-                type="button"
-                className={cancelButtonClasses}
-                onClick={onClose}
-              >
-                Cancel
-              </button>
             </div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -158,14 +219,16 @@ const ApplicationsForAdmin = () => {
   const [visibleCount, setVisibleCount] = useState(8);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // --- ✨ NEW: State for managing the modal ---
+  // --- ✨ MODIFIED: State for the new modal ---
   const [modalConfig, setModalConfig] = useState({
     isOpen: false,
     title: '',
     message: '',
-    onConfirm: () => {},
     confirmText: 'Confirm',
-    confirmVariant: 'default',
+    onConfirm: () => {},
+    confirmButtonClass: '',
+    successTitle: '',
+    successMessage: '',
   });
 
   const { getApplications, updateApplicationStatus } = useAuth();
@@ -204,40 +267,41 @@ const ApplicationsForAdmin = () => {
   }, [applications, searchTerm]);
 
   // ---------- Handlers ----------
-  const closeModal = () => setModalConfig({ ...modalConfig, isOpen: false });
-
-  // --- ✨ NEW: Function to execute the update after confirmation ---
-  const executeStatusUpdate = async (id, newStatus, email) => {
-    try {
-      await updateApplicationStatus(id, newStatus, email);
-      setApplications((apps) =>
-        apps.map((app) => (app.id === id ? { ...app, status: newStatus } : app))
-      );
-    } catch (err) {
-      // Show error in a modal instead of an alert
-      setModalConfig({
-        isOpen: true,
-        title: 'An Error Occurred',
-        message: err.message,
-        confirmText: 'OK',
-        confirmVariant: 'deny',
-        onConfirm: closeModal, // Just close the modal on OK
-      });
-    } finally {
-      closeModal();
-    }
-  };
-
-  // --- ✨ MODIFIED: This function now just opens the modal ---
+  const closeModal = useCallback(() => {
+    setModalConfig((prev) => ({ ...prev, isOpen: false }));
+  }, []);
+  
+  // --- ✨ MODIFIED: This function now prepares and opens the modal ---
   const handleUpdateStatus = (id, newStatus, email) => {
     const isApproving = newStatus === 'approved';
+    const actionText = isApproving ? 'approve' : 'deny';
+    const actionPastTense = isApproving ? 'approved' : 'denied';
+
+    // This function will be called by the modal on confirmation
+    const performUpdate = async () => {
+      try {
+        await updateApplicationStatus(id, newStatus, email);
+        setApplications((apps) =>
+          apps.map((app) => (app.id === id ? { ...app, status: newStatus } : app))
+        );
+      } catch (err) {
+        console.error(`Failed to ${actionText} application:`, err);
+        // Re-throw the error so the modal can catch it and display it
+        throw err;
+      }
+    };
+
     setModalConfig({
       isOpen: true,
       title: `Confirm Action: ${isApproving ? 'Approve' : 'Deny'}`,
-      message: `Are you sure you want to ${newStatus} this application for ${email}? This action cannot be undone.`,
-      onConfirm: () => executeStatusUpdate(id, newStatus, email),
+      message: `Are you sure you want to ${actionText} this application for ${email}? This action cannot be undone.`,
+      onConfirm: performUpdate,
       confirmText: isApproving ? 'Approve' : 'Deny',
-      confirmVariant: isApproving ? 'approve' : 'deny',
+      confirmButtonClass: isApproving
+        ? 'bg-green-600 hover:bg-green-700 focus-visible:ring-green-500'
+        : 'bg-red-600 hover:bg-red-700 focus-visible:ring-red-500',
+      successTitle: `Application ${actionPastTense}`,
+      successMessage: `The application for ${email} has been successfully ${actionPastTense}.`,
     });
   };
 
@@ -369,17 +433,19 @@ const ApplicationsForAdmin = () => {
         </div>
       )}
 
-      {/* --- ✨ NEW: Render the modal here --- */}
-      <ConfirmationModal
+      {/* --- ✨ MODIFIED: Render the new modal here --- */}
+      <Modal
         isOpen={modalConfig.isOpen}
         onClose={closeModal}
-        onConfirm={modalConfig.onConfirm}
         title={modalConfig.title}
         confirmText={modalConfig.confirmText}
-        confirmVariant={modalConfig.confirmVariant}
+        onConfirm={modalConfig.onConfirm}
+        confirmButtonClass={modalConfig.confirmButtonClass}
+        successTitle={modalConfig.successTitle}
+        successMessage={modalConfig.successMessage}
       >
-        {modalConfig.message}
-      </ConfirmationModal>
+        <p>{modalConfig.message}</p>
+      </Modal>
     </div>
   );
 };
