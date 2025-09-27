@@ -87,7 +87,8 @@ export default function Header() {
           <img
             src={shouldHaveBackground ? sinnersLogoBlack : sinnersLogoWhite}
             alt="Sinners Logo"
-            className="w-32 h-auto"
+            className="w-32 h-auto "
+            
           />
         </Link>
 

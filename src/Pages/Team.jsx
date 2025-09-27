@@ -1,11 +1,12 @@
 // src/pages/Team.js
 
-import React, {useState, useLayoutEffect, useEffect} from 'react';
+import React, { useState, useLayoutEffect, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PreloaderBanner from '../Components/PreloaderBanner';
 import { useAnimation } from '../context/AnimationContext';
 import { X } from 'lucide-react';
 import placeholderPhoto from '../assets/Photos/Director.jpg';
+import sinnersLogoBlack from '../assets/Logo/Sinners logo black.png';
 
 // --- Анімації ---
 const titleAnimation = {
@@ -33,13 +34,14 @@ const tabsData = [
 // --- Плейсхолдери ---
 const teamMembersData = Array.from({ length: 5 }, (_, i) => ({
   id: i + 1,
-  name: `JANETTE BECKMAN ${i + 1}`,
+  firstName: 'JANETTE',
+  lastName: `BECKMAN ${i + 1}`,
   category: 'MUSIC & CULTURE',
   bio: 'IS A DOMINICAN-AMERICAN DIRECTOR, PRODUCER, AND FOUNDER OF THE PRODUCTION COMPANY CINEMA GIANTS. WITH A CAREER SPANNING OVER TWO DECADES, HE HAS BECOME ONE OF THE MOST INFLUENTIAL VISUAL STORYTELLERS IN LATIN AND URBAN MUSIC CULTURE. TERERO HAS DIRECTED ICONIC MUSIC VIDEOS FOR GLOBAL SUPERSTARS INCLUDING 50 CENT, JENNIFER LOPEZ, MALUMA, BAD BUNNY, DADDY YANKEE, AND J BALVIN—COLLECTIVELY EARNING BILLIONS OF VIEWS AND REDEFINING THE AESTHETIC OF CONTEMPORARY MUSIC VISUALS.\n\nHE MADE HIS FEATURE FILM DEBUT WITH THE CULT COMEDY SOUL PLANE (2004), AND LATER DIRECTED THE CRIME DRAMA FREELANCERS (2012), STARRING ROBERT DE NIRO AND FOREST WHITAKER. HIS TELEVISION WORK INCLUDES THE NETFLIX BIOPIC SERIES NICKY JAM: EL GANADOR AND THE YOUTUBE ORIGINALS DOCUMENTARY MALUMA: LO QUE ERA, LO QUE SOY, LO QUE SERÉ.\n\nTHROUGH CINEMA GIANTS, TERRERO CHAMPIONS LATINX STORYTELLING ACROSS FILM, TV, AND BRANDED CONTENT, PUSHING BOUNDARIES WHILE UPLIFTING DIVERSE VOICES AND CULTURES.',
 }));
 
 // ===================================
-// ✨ MODIFIED: Модальне вікно учасника команди
+// Модальне вікно учасника команди (без змін)
 // ===================================
 const TeamMemberModal = ({ member, onClose }) => {
   useEffect(() => {
@@ -64,50 +66,66 @@ const TeamMemberModal = ({ member, onClose }) => {
   };
 
   return (
-    // --- ЗМІНЕНО: justify-start та z-[100] для перекриття хедера ---
     <motion.div
-      className="fixed inset-0 z-[100] flex items-center justify-start bg-black/70"
+      className="fixed inset-0 z-[9999] flex items-center justify-start bg-black/70"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       onClick={onClose}
     >
-      {/* --- ЗМІНЕНО: w-[90vw], max-w-screen-xl та h-full --- */}
       <motion.div
-        className="relative w-[90vw] max-w-screen-xl h-full bg-white dark:bg-black text-black dark:text-white shadow-2xl flex"
+        className="w-[90vw] h-full bg-white dark:bg-black text-black dark:text-white shadow-2xl flex flex-col"
         variants={modalVariants}
         initial="hidden"
         animate="visible"
         exit="exit"
         onClick={(e) => e.stopPropagation()}
       >
-        <button
-  onClick={onClose}
-  className="absolute top-[120px] right-[10px] z-10 text-black dark:text-white hover:opacity-70 transition-opacity"
-  aria-label="Close"
->
-          <X size={32} />
-        </button>
+        <header className="flex-shrink-0 p-8 grid grid-cols-3 items-center z-20">
+          <div /> 
+          <img 
+            src={sinnersLogoBlack} 
+            alt="Sinners and Saints Logo" 
+            className="h-6 justify-self-center"
+          />
+          <button
+            onClick={onClose}
+            className="text-black dark:text-white hover:opacity-70 transition-opacity justify-self-end"
+            aria-label="Close"
+          >
+            <X size={32} />
+          </button>
+        </header>
 
-        {/* --- ЗМІНЕНО: overflow-y-auto для внутрішнього скролу --- */}
-        <div className="w-full h-full flex flex-col md:flex-row items-center p-8 md:p-16 overflow-y-auto">
-          <div className="w-full md:w-2/5 flex-shrink-0 mb-8 md:mb-0 md:mr-16">
-            <h1 className="text-4xl lg:text-6xl font-chanel font-semibold uppercase mb-8 leading-none">
-              {member.name}
-            </h1>
-            <img
-              src={placeholderPhoto}
-              alt={member.name}
-              className="w-full h-auto object-cover"
-            />
-          </div>
-          <div className="w-full md:w-3/5">
-            <h2 className="text-lg font-semibold uppercase tracking-widest mb-4">
-              CO-FOUNDER/CEO
-            </h2>
-            <p className="text-base leading-relaxed whitespace-pre-line">
-              {member.bio}
-            </p>
+        <div className="flex-grow flex flex-col px-8 md:px-16 pb-12">
+          
+          <h1 className="flex-shrink-0 text-6xl md:text-[120px] text-center font-chanel font-semibold uppercase mb-8 leading-none">
+            {member.firstName} {member.lastName}
+          </h1>
+
+          <div className="flex-grow flex flex-col md:flex-row gap-12 md:gap-16 min-h-0">
+            
+            <div className="w-full md:w-2/5 flex-shrink-0">
+              <img
+                src={placeholderPhoto}
+                alt={`${member.firstName} ${member.lastName}`}
+                className="w-full aspect-square object-cover"
+              />
+            </div>
+            
+            <div className="w-full md:w-3/5 flex flex-col">
+              <div className="flex-grow" />
+
+              <div>
+                <h2 className="text-3xl font-bold uppercase tracking-widest mb-4">
+                  CO-FOUNDER/CEO
+                </h2>
+                <p className="text-base leading-relaxed whitespace-pre-line max-h-[40vh] md:max-h-full overflow-y-auto">
+                  {member.bio}
+                </p>
+              </div>
+            </div>
+
           </div>
         </div>
       </motion.div>
@@ -117,7 +135,7 @@ const TeamMemberModal = ({ member, onClose }) => {
 
 
 // ===================================
-// Сітка з учасниками команди
+// ✨ REVISED: Сітка з учасниками команди
 // ===================================
 const TeamGrid = ({ onSelectMember }) => {
   return (
@@ -128,24 +146,34 @@ const TeamGrid = ({ onSelectMember }) => {
       exit="exit"
       className="bg-white dark:bg-black text-black dark:text-white"
     >
-      <div className="max-w-7xl mx-auto py-20 px-4 space-y-24">
+      {/* ЗМІНЕНО: Видалено контейнер з max-w-7xl, щоб сітка займала повну ширину.
+        Кожен дочірній елемент тепер є повноширинним рядком.
+      */}
+      <div>
         {teamMembersData.map((member, index) => {
           const isReversed = index % 2 !== 0;
           return (
             <div
               key={member.id}
-              className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center"
+              className="grid grid-cols-1 md:grid-cols-2"
             >
-              <div className={`w-full ${isReversed ? 'md:order-last' : ''}`}>
+              {/* ЗМІНЕНО: Блок зображення тепер має висоту 50vw,
+                що робить його квадратом (ширина 50% екрану, висота 50% ширини екрану).
+              */}
+              <div className={`w-full h-[50vw] ${isReversed ? 'md:order-last' : ''}`}>
                 <img
                   src={placeholderPhoto}
-                  alt={member.name}
-                  className="w-full h-auto object-cover"
+                  alt={`${member.firstName} ${member.lastName}`}
+                  className="w-full h-full object-cover" // Зображення заповнює весь блок
                 />
               </div>
-              <div className="flex flex-col items-center justify-center text-center">
+              
+              {/* ЗМІНЕНО: Текстовий блок автоматично розтягується на ту саму висоту (50vw).
+                Flexbox центрує вміст всередині цього квадратного блоку.
+              */}
+              <div className="w-full flex flex-col items-center justify-center text-center p-8">
                 <p className="text-sm uppercase tracking-[0.2em] mb-3">{member.category}</p>
-                <h2 className="text-4xl font-chanel font-semibold uppercase mb-6">{member.name}</h2>
+                <h2 className="text-4xl font-chanel font-semibold uppercase mb-6">{`${member.firstName} ${member.lastName}`}</h2>
                 <button
                   onClick={() => onSelectMember(member)}
                   className="px-6 py-2 border border-black dark:border-white text-xs font-semibold uppercase tracking-widest hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors"
