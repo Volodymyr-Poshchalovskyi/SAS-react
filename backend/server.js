@@ -220,6 +220,7 @@ app.get('/analytics/trending-media', async (req, res) => {
     fullEndDate.setUTCHours(23, 59, 59, 999);
 
     try {
+        // Крок 1: Отримуємо перегляди за період і рахуємо їх для кожного РІЛСА
         const { data: viewCounts, error: viewError } = await supabase
             .from('reel_views')
             .select('reel_id')
@@ -233,32 +234,50 @@ app.get('/analytics/trending-media', async (req, res) => {
             acc[reel_id] = (acc[reel_id] || 0) + 1;
             return acc;
         }, {});
+
+        // Крок 2: Отримуємо ВСІ зв'язки між рілсами та медіа-айтемами
+        const { data: allReelLinks, error: linksError } = await supabase
+            .from('reel_media_items')
+            .select('reel_id, media_item_id');
         
-        const topReelIds = Object.entries(countsByReel)
+        if (linksError) throw linksError;
+
+        // Крок 3: Сумуємо перегляди для кожного УНІКАЛЬНОГО медіа-айтема
+        const countsByMediaItem = {};
+        for (const link of allReelLinks) {
+            // Якщо для рілса є перегляди в нашому діапазоні дат
+            if (countsByReel[link.reel_id]) {
+                const viewsForThisReel = countsByReel[link.reel_id];
+                // Додаємо перегляди рілса до загального рахунку медіа-айтема
+                countsByMediaItem[link.media_item_id] = (countsByMediaItem[link.media_item_id] || 0) + viewsForThisReel;
+            }
+        }
+        
+        // Крок 4: Визначаємо ID найпопулярніших медіа-айтемів
+        const topMediaItemIds = Object.entries(countsByMediaItem)
             .sort(([, countA], [, countB]) => countB - countA)
             .slice(0, Number(limit))
-            .map(([reelId]) => reelId);
+            .map(([mediaItemId]) => mediaItemId);
             
-        if (topReelIds.length === 0) return res.status(200).json([]);
+        if (topMediaItemIds.length === 0) return res.status(200).json([]);
 
+        // Крок 5: Отримуємо деталі для цих найпопулярніших медіа-айтемів
         const { data: trendingItems, error: itemsError } = await supabase
-            .from('reel_media_items')
-            .select(`reel_id, media_items (id, title, client, preview_gcs_path, artists)`)
-            .in('reel_id', topReelIds)
-            .eq('display_order', 1);
+            .from('media_items')
+            .select(`id, title, client, preview_gcs_path, artists`)
+            .in('id', topMediaItemIds);
 
         if (itemsError) throw itemsError;
 
+        // Крок 6: Формуємо фінальний результат з сумарними переглядами
         const result = trendingItems.map(item => ({
-            id: item.media_items.id,
-            title: item.media_items.title,
-            client: item.media_items.client,
-            preview_gcs_path: item.media_items.preview_gcs_path,
-            artists: item.media_items.artists, 
-            views: countsByReel[item.reel_id]
+            ...item,
+            views: countsByMediaItem[item.id] || 0
         }));
         
+        // Сортуємо фінальний результат ще раз, бо запит до бази не гарантує порядок
         result.sort((a, b) => b.views - a.views);
+        
         res.status(200).json(result);
 
     } catch (error) {
