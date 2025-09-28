@@ -5,17 +5,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import PreloaderBanner from '../Components/PreloaderBanner';
 import { useAnimation } from '../context/AnimationContext';
 import { X } from 'lucide-react';
-import placeholderPhoto from '../assets/Photos/Director.jpg';
+// ✨ ЗМІНА: Імпортуємо дані з нового файлу
+import { teamData } from '../Data/TeamData'; 
 import sinnersLogoBlack from '../assets/Logo/Sinners logo black.png';
 
-// --- Анімації ---
+// --- Анімації (без змін) ---
 const titleAnimation = {
   hidden: { opacity: 0, y: 30 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.8, ease: 'easeOut' },
-  },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: 'easeOut' } },
   exit: { opacity: 0, y: -30, transition: { duration: 0.4, ease: 'easeIn' } },
 };
 
@@ -25,34 +22,23 @@ const contentAnimation = {
   exit: { opacity: 0, transition: { duration: 0.4 } },
 };
 
-// --- Дані для вкладок ---
+// --- Дані для вкладок (без змін) ---
 const tabsData = [
   { id: 'team', label: 'TEAM', title: 'MEET THE TEAM' },
   { id: 'contact', label: 'CONTACT', title: 'CONTACT' },
 ];
 
-// --- Плейсхолдери ---
-const teamMembersData = Array.from({ length: 5 }, (_, i) => ({
-  id: i + 1,
-  firstName: 'JANETTE',
-  lastName: `BECKMAN ${i + 1}`,
-  category: 'MUSIC & CULTURE',
-  bio: 'IS A DOMINICAN-AMERICAN DIRECTOR, PRODUCER, AND FOUNDER OF THE PRODUCTION COMPANY CINEMA GIANTS. WITH A CAREER SPANNING OVER TWO DECADES, HE HAS BECOME ONE OF THE MOST INFLUENTIAL VISUAL STORYTELLERS IN LATIN AND URBAN MUSIC CULTURE. TERERO HAS DIRECTED ICONIC MUSIC VIDEOS FOR GLOBAL SUPERSTARS INCLUDING 50 CENT, JENNIFER LOPEZ, MALUMA, BAD BUNNY, DADDY YANKEE, AND J BALVIN—COLLECTIVELY EARNING BILLIONS OF VIEWS AND REDEFINING THE AESTHETIC OF CONTEMPORARY MUSIC VISUALS.\n\nHE MADE HIS FEATURE FILM DEBUT WITH THE CULT COMEDY SOUL PLANE (2004), AND LATER DIRECTED THE CRIME DRAMA FREELANCERS (2012), STARRING ROBERT DE NIRO AND FOREST WHITAKER. HIS TELEVISION WORK INCLUDES THE NETFLIX BIOPIC SERIES NICKY JAM: EL GANADOR AND THE YOUTUBE ORIGINALS DOCUMENTARY MALUMA: LO QUE ERA, LO QUE SOY, LO QUE SERÉ.\n\nTHROUGH CINEMA GIANTS, TERRERO CHAMPIONS LATINX STORYTELLING ACROSS FILM, TV, AND BRANDED CONTENT, PUSHING BOUNDARIES WHILE UPLIFTING DIVERSE VOICES AND CULTURES.',
-}));
 
 // ===================================
-// Модальне вікно учасника команди (без змін)
+// ✨ REVISED: Модальне вікно учасника команди (приймає динамічні дані)
 // ===================================
-const TeamMemberModal = ({ member, onClose }) => {
+const TeamMemberModal = ({ member, photoUrl, onClose }) => {
   useEffect(() => {
     const handleEsc = (event) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
+      if (event.key === 'Escape') onClose();
     };
     document.addEventListener('keydown', handleEsc);
     document.body.style.overflow = 'hidden';
-
     return () => {
       document.removeEventListener('keydown', handleEsc);
       document.body.style.overflow = '';
@@ -83,49 +69,39 @@ const TeamMemberModal = ({ member, onClose }) => {
       >
         <header className="flex-shrink-0 p-8 grid grid-cols-3 items-center z-20">
           <div /> 
-          <img 
-            src={sinnersLogoBlack} 
-            alt="Sinners and Saints Logo" 
-            className="h-6 justify-self-center"
-          />
-          <button
-            onClick={onClose}
-            className="text-black dark:text-white hover:opacity-70 transition-opacity justify-self-end"
-            aria-label="Close"
-          >
+          <img src={sinnersLogoBlack} alt="Sinners and Saints Logo" className="h-6 justify-self-center" />
+          <button onClick={onClose} className="text-black dark:text-white hover:opacity-70 transition-opacity justify-self-end" aria-label="Close">
             <X size={32} />
           </button>
         </header>
 
         <div className="flex-grow flex flex-col px-8 md:px-16 pb-12">
-          
           <h1 className="flex-shrink-0 text-6xl md:text-[120px] text-center font-chanel font-semibold uppercase mb-8 leading-none">
+            {/* ЗМІНЕНО: Динамічне ім'я */}
             {member.firstName} {member.lastName}
           </h1>
-
           <div className="flex-grow flex flex-col md:flex-row gap-12 md:gap-16 min-h-0">
-            
             <div className="w-full md:w-2/5 flex-shrink-0">
-              <img
-                src={placeholderPhoto}
-                alt={`${member.firstName} ${member.lastName}`}
-                className="w-full aspect-square object-cover"
-              />
+              {/* ЗМІНЕНО: Динамічне фото */}
+              {photoUrl ? (
+                <img src={photoUrl} alt={`${member.firstName} ${member.lastName}`} className="w-full aspect-square object-cover" />
+              ) : (
+                <div className="w-full aspect-square bg-gray-200 dark:bg-gray-800" /> // Placeholder while loading
+              )}
             </div>
-            
             <div className="w-full md:w-3/5 flex flex-col">
               <div className="flex-grow" />
-
               <div>
+                {/* ЗМІНЕНО: Динамічна посада */}
                 <h2 className="text-3xl font-bold uppercase tracking-widest mb-4">
-                  CO-FOUNDER/CEO
+                  {member.role}
                 </h2>
+                {/* ЗМІНЕНО: Динамічне біо */}
                 <p className="text-base leading-relaxed whitespace-pre-line max-h-[40vh] md:max-h-full overflow-y-auto">
                   {member.bio}
                 </p>
               </div>
             </div>
-
           </div>
         </div>
       </motion.div>
@@ -135,9 +111,9 @@ const TeamMemberModal = ({ member, onClose }) => {
 
 
 // ===================================
-// ✨ REVISED: Сітка з учасниками команди
+// ✨ REVISED: Сітка з учасниками команди (приймає динамічні дані)
 // ===================================
-const TeamGrid = ({ onSelectMember }) => {
+const TeamGrid = ({ teamMembers, photoUrls, onSelectMember }) => {
   return (
     <motion.div
       variants={contentAnimation}
@@ -146,32 +122,22 @@ const TeamGrid = ({ onSelectMember }) => {
       exit="exit"
       className="bg-white dark:bg-black text-black dark:text-white"
     >
-      {/* ЗМІНЕНО: Видалено контейнер з max-w-7xl, щоб сітка займала повну ширину.
-        Кожен дочірній елемент тепер є повноширинним рядком.
-      */}
       <div>
-        {teamMembersData.map((member, index) => {
+        {teamMembers.map((member, index) => {
           const isReversed = index % 2 !== 0;
+          const memberPhotoUrl = photoUrls[member.photoSrc];
           return (
-            <div
-              key={member.id}
-              className="grid grid-cols-1 md:grid-cols-2"
-            >
-              {/* ЗМІНЕНО: Блок зображення тепер має висоту 50vw,
-                що робить його квадратом (ширина 50% екрану, висота 50% ширини екрану).
-              */}
+            <div key={member.id} className="grid grid-cols-1 md:grid-cols-2">
               <div className={`w-full h-[50vw] ${isReversed ? 'md:order-last' : ''}`}>
-                <img
-                  src={placeholderPhoto}
-                  alt={`${member.firstName} ${member.lastName}`}
-                  className="w-full h-full object-cover" // Зображення заповнює весь блок
-                />
+                {/* ЗМІНЕНО: Динамічне фото */}
+                {memberPhotoUrl ? (
+                  <img src={memberPhotoUrl} alt={`${member.firstName} ${member.lastName}`} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-gray-200 dark:bg-gray-800" /> // Placeholder while loading
+                )}
               </div>
-              
-              {/* ЗМІНЕНО: Текстовий блок автоматично розтягується на ту саму висоту (50vw).
-                Flexbox центрує вміст всередині цього квадратного блоку.
-              */}
               <div className="w-full flex flex-col items-center justify-center text-center p-8">
+                {/* ЗМІНЕНО: Динамічні дані */}
                 <p className="text-sm uppercase tracking-[0.2em] mb-3">{member.category}</p>
                 <h2 className="text-4xl font-chanel font-semibold uppercase mb-6">{`${member.firstName} ${member.lastName}`}</h2>
                 <button
@@ -193,12 +159,16 @@ const TeamGrid = ({ onSelectMember }) => {
 // ===================================
 // Компонент секції контактів (без змін)
 // ===================================
+// ===================================
+// ✨ REVISED: Компонент секції контактів
+// ===================================
 const ContactInfoSection = () => {
+  // ЗМІНЕНО: Адреса тепер є масивом для переносу на новий рядок
   const contactDetails = [
     { label: 'PHONE', value: '+1 (000) 123-4567' },
     {
       label: 'ADDRESS',
-      value: '1234 SUNSET BOULEVARD, LOS ANGELES, CA 90028',
+      value: ['1234 SUNSET BOULEVARD, LOS ANGELES,', 'CA 90028'],
     },
     { label: 'EMAIL', value: 'CONTACT@SINNERSANDSAINTS.COM' },
     {
@@ -220,13 +190,16 @@ const ContactInfoSection = () => {
       exit="exit"
       className="bg-white dark:bg-black text-black dark:text-white"
     >
-      <div className="max-w-2xl mx-auto text-center py-20 px-4">
+      {/* ЗМІНЕНО: Зменшено верхній відступ (pt-12) для меншої відстані від заголовка */}
+      <div className="max-w-2xl mx-auto text-center pt-12 pb-20 px-4">
         {contactDetails.map((item) => (
           <div key={item.label} className="mb-10">
+            {/* ЗМІНЕНО: Заголовки тепер мають жирніший шрифт (font-bold) */}
             <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-black dark:text-white mb-2">
               {item.label}
             </h3>
-            <div className="text-lg tracking-wider">
+            {/* ЗМІНЕНО: Значення тепер мають звичайну товщину шрифту (font-normal) */}
+            <div className="text-lg tracking-wider font-normal">
               {Array.isArray(item.value) ? (
                 item.value.map((line, index) => <p key={index}>{line}</p>)
               ) : (
@@ -235,8 +208,10 @@ const ContactInfoSection = () => {
             </div>
           </div>
         ))}
-        <hr className="my-20 border-black dark:border-gray-700 w-full mx-auto" />
-        <h2 className="text-3xl font-chanel font-semibold uppercase tracking-[0.15em] mb-14">
+        {/* ЗМІНЕНО: Зменшено вертикальні відступи (my-12) */}
+        <hr className="my-12 border-black dark:border-gray-700 w-full mx-auto" />
+        {/* ЗМІНЕНО: Збільшено розмір тексту (text-4xl) та зменшено нижній відступ (mb-12) */}
+        <h2 className="text-4xl font-chanel font-semibold uppercase tracking-[0.15em] mb-12">
           SALES
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-y-10 gap-x-8">
@@ -258,21 +233,44 @@ const ContactInfoSection = () => {
 
 
 // ===================================
-// ГОЛОВНИЙ КОМПОНЕНТ СТОРІНКИ
+// ✨ REVISED: ГОЛОВНИЙ КОМПОНЕНТ СТОРІНКИ
 // ===================================
 export default function Team() {
   const { isPreloaderActive, setIsPreloaderActive } = useAnimation();
   const [activeTab, setActiveTab] = useState(tabsData[0].id);
   const [selectedMember, setSelectedMember] = useState(null);
+  // ✨ НОВЕ: Стан для зберігання підписаних URL-адрес фотографій
+  const [photoUrls, setPhotoUrls] = useState({});
 
   useLayoutEffect(() => { window.scrollTo(0, 0); }, []);
+
+  // ✨ НОВЕ: useEffect для завантаження URL-адрес з GCS
+  useEffect(() => {
+    const fetchPhotoUrls = async () => {
+      const gcsPaths = teamData.map(member => member.photoSrc);
+      try {
+        const response = await fetch('http://localhost:3001/generate-read-urls', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ gcsPaths }),
+        });
+        if (!response.ok) throw new Error('Failed to fetch photo URLs');
+        const urlsMap = await response.json();
+        setPhotoUrls(urlsMap);
+      } catch (error) {
+        console.error('Error fetching team member photo URLs:', error);
+      }
+    };
+
+    fetchPhotoUrls();
+  }, []); // Пустий масив залежностей означає, що ефект виконається один раз при монтуванні
+
   useEffect(() => {
     document.body.style.overflow = isPreloaderActive || selectedMember ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [isPreloaderActive, selectedMember]);
 
   const handleBannerAnimationComplete = () => setIsPreloaderActive(false);
-  
   const handleOpenModal = (member) => setSelectedMember(member);
   const handleCloseModal = () => setSelectedMember(null);
 
@@ -294,13 +292,18 @@ export default function Team() {
       </AnimatePresence>
       
       <AnimatePresence>
+        {/* ЗМІНЕНО: Передача URL фото до модального вікна */}
         {selectedMember && (
-          <TeamMemberModal member={selectedMember} onClose={handleCloseModal} />
+          <TeamMemberModal 
+            member={selectedMember} 
+            photoUrl={photoUrls[selectedMember.photoSrc]}
+            onClose={handleCloseModal} 
+          />
         )}
       </AnimatePresence>
 
-
       <header className="bg-white dark:bg-black pt-[150px] pb-16 text-center">
+        {/* ... (код хедера залишається без змін) */}
         <div className="max-w-7xl mx-auto px-4">
           <nav className="flex items-center justify-center">
             <div className="flex space-x-10 border-b border-gray-300 dark:border-gray-700">
@@ -347,7 +350,13 @@ export default function Team() {
       <main>
         <AnimatePresence mode="wait">
           {activeTab === 'team' ? (
-             <TeamGrid key="team-content" onSelectMember={handleOpenModal} />
+             // ✨ ЗМІНА: Передача динамічних даних до сітки
+             <TeamGrid 
+                key="team-content" 
+                teamMembers={teamData}
+                photoUrls={photoUrls}
+                onSelectMember={handleOpenModal} 
+              />
           ) : (
             <ContactInfoSection key="contact-content" />
           )}

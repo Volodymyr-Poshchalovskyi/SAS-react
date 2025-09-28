@@ -1,0 +1,45 @@
+// src/Data/TeamData.js
+
+/**
+ * Data for team members.
+ * Note: photoSrc should be the path to the image file within your GCS bucket.
+ * The front-end will request a signed URL for this path from the server.
+ */
+export const teamData = [
+  {
+    id: 1,
+    firstName: 'JANETTE',
+    lastName: 'BECKMAN',
+    role: 'CO-FOUNDER / PHOTOGRAPHER',
+    category: 'MUSIC & CULTURE',
+    photoSrc: 'front-end/08-about/01-Team/Candice.png', // Example GCS path
+    bio: 'IS A BRITISH-BORN PHOTOGRAPHER WHO NOW LIVES AND WORKS IN NEW YORK. SHE IS KNOWN FOR HER WORK WITH MUSICIANS AND HER DOCUMENTATION OF URBAN SUBCULTURES. HER PHOTOGRAPHS HAVE APPEARED IN PUBLICATIONS SUCH AS THE FACE, I-D, MELODY MAKER, ROLLING STONE, AND VIBE.'
+  },
+  {
+    id: 2,
+    firstName: 'JESSY',
+    lastName: 'TERRERO',
+    role: 'CO-FOUNDER / CEO',
+    category: 'FILM & BRANDED CONTENT',
+    photoSrc: 'front-end/08-about/01-Team/Heather.jpg', // Example GCS path
+    bio: 'IS A DOMINICAN-AMERICAN DIRECTOR, PRODUCER, AND FOUNDER OF THE PRODUCTION COMPANY CINEMA GIANTS. WITH A CAREER SPANNING OVER TWO DECADES, HE HAS BECOME ONE OF THE MOST INFLUENTIAL VISUAL STORYTELLERS IN LATIN AND URBAN MUSIC CULTURE. HE HAS DIRECTED ICONIC MUSIC VIDEOS FOR GLOBAL SUPERSTARS.'
+  },
+  {
+    id: 3,
+    firstName: 'SOPHIE',
+    lastName: 'MULLER',
+    role: 'DIRECTOR',
+    category: 'MUSIC VIDEOS',
+    photoSrc: 'front-end/08-about/01-Team/Rost.jpg', // Example GCS path
+    bio: 'IS A BRITISH MUSIC VIDEO DIRECTOR, WHO HAS DIRECTED OVER 200 MUSIC VIDEOS. SHE IS BEST KNOWN FOR HER FREQUENT COLLABORATIONS WITH ARTISTS SUCH AS NO DOUBT, GWEN STEFANI, SHAKIRA, AND RIHANNA. HER WORK IS CHARACTERIZED BY A STRONG VISUAL STYLE AND A FOCUS ON PERFORMANCE.'
+  },
+  {
+    id: 4,
+    firstName: 'DAVID',
+    lastName: 'LACHAPELLE',
+    role: 'DIRECTOR / ARTIST',
+    category: 'FASHION & ART',
+    photoSrc: 'front-end/08-about/01-Team/Tommy.jpg', // Example GCS path
+    bio: 'IS AN AMERICAN COMMERCIAL PHOTOGRAPHER, FINE-ART PHOTOGRAPHER, MUSIC VIDEO DIRECTOR, AND FILM DIRECTOR. HE IS KNOWN FOR HIS PHOTOGRAPHY, WHICH OFTEN REFERENCES ART HISTORY AND SOMETIMES CONVEYS SOCIAL MESSAGES. HIS PHOTOGRAPHIC STYLE HAS BEEN DESCRIBED AS "HYPER-REAL AND SLICKLY SURREALIST".'
+  }
+];
