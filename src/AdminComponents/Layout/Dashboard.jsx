@@ -1,5 +1,3 @@
-// src/AdminComponents/Layout/Dashboard.jsx
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import WeeklyViewsChart from './WeeklyViewsChart';
@@ -11,27 +9,6 @@ import { getSignedUrls } from '../../lib/gcsUrlCache';
 
 const cardClasses =
   'bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl';
-
-const VideoCard = ({ title, imageUrl, badge, description, isLoading }) => (
-  <div className={`${cardClasses} p-5`}>
-    { isLoading ? (
-        <div className="animate-pulse space-y-4">
-            <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div>
-            <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
-            <div className="aspect-video bg-slate-200 dark:bg-slate-700 rounded-lg"></div>
-        </div>
-    ) : (
-    <>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">{title}</h3>
-        {description && <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{description}</p>}
-        <div className="relative overflow-hidden aspect-video rounded-lg">
-            <img src={imageUrl || 'https://placehold.co/1600x900'} alt={title} className="w-full h-full object-cover" />
-            {badge && <div className="absolute top-2 left-2 border text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-900 border-slate-200 dark:bg-slate-800 dark:text-slate-50 dark:border-slate-700">{badge}</div>}
-        </div>
-    </>
-    )}
-  </div>
-);
 
 const ListItem = ({ imageUrl, title, subtitle, time, actionText, isLoading, onActionClick }) => (
     <div className="flex items-center space-x-4 py-3">
@@ -64,6 +41,14 @@ const ListItem = ({ imageUrl, title, subtitle, time, actionText, isLoading, onAc
     </div>
 );
 
+// ✨ НОВА ДОПОМІЖНА ФУНКЦІЯ для коректного форматування дати
+const toYYYYMMDD = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0'); // Місяці 0-індексовані
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 
 const Dashboard = () => {
   const today = new Date();
@@ -93,8 +78,9 @@ const Dashboard = () => {
         setTrendingDirectors([]);
         if (!dateRange.from || !dateRange.to) return;
 
-        const startDateStr = dateRange.from.toISOString().split('T')[0];
-        const endDateStr = dateRange.to.toISOString().split('T')[0];
+        // ✨ ВИПРАВЛЕНО: Використовуємо нову функцію замість toISOString()
+        const startDateStr = toYYYYMMDD(dateRange.from);
+        const endDateStr = toYYYYMMDD(dateRange.to);
         
         try {
             const [chartRes, trendingRes, activityRes] = await Promise.all([
@@ -166,7 +152,6 @@ const Dashboard = () => {
   }, [dateRange]);
   
   return (
-    // 👇 Зміни тут: видалено 'max-w-7xl' та 'mx-auto', додано 'w-full'
     <div className="w-full p-4 sm:p-6 lg:p-8">
       <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">

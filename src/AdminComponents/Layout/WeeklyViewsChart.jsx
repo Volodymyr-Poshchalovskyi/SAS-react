@@ -1,6 +1,6 @@
-// src/AdminComponents/Layout/WeeklyViewsChart.jsx
-
 import React, { useState } from 'react';
+
+// --- Helper Functions (без змін) ---
 
 const getNiceUpperBound = (maxValue) => {
   if (maxValue <= 10) return 10;
@@ -39,186 +39,216 @@ const generateSmoothPath = (data, getX, getY) => {
 };
 
 const formatDate = (dateString) => {
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const date = new Date(dateString);
-  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  return `${date.getDate()} ${months[date.getMonth()]}`;
 };
+
+
+// --- Component ---
 
 const WeeklyViewsChart = ({ data = [], isLoading }) => {
   const [hoveredIndex, setHoveredIndex] = useState(null);
 
-  if (isLoading) {
-    return (
-      <div className="h-64 w-full flex items-center justify-center text-slate-400">
-        Loading chart data...
-      </div>
-    );
-  }
-  if (!data || data.length === 0) {
-    return (
-      <div className="h-64 w-full flex items-center justify-center text-slate-400">
-        No data available for the selected period.
-      </div>
-    );
-  }
+  return (
+    <div className="h-80 w-full">
+      {isLoading ? (
+        <div className="flex h-full w-full items-center justify-center text-base-content/50">
+          Loading chart data...
+        </div>
+      ) : !data || data.length === 0 ? (
+        <div className="flex h-full w-full items-center justify-center text-base-content/50">
+          No data available for the selected period.
+        </div>
+      ) : (
+        <ChartContent data={data} hoveredIndex={hoveredIndex} setHoveredIndex={setHoveredIndex} />
+      )}
+    </div>
+  );
+};
 
-  const width = 500;
-  const height = 200;
+// --- SVG Chart Sub-component ---
+
+const ChartContent = ({ data, hoveredIndex, setHoveredIndex }) => {
+  const width = 750;
+  const height = 250;
   const paddingX = 40;
   const paddingY = 20;
 
-  const maxViews = Math.max(...data.map((d) => d.views), 0);
+  // ✨ ФІНАЛЬНА НАДІЙНА ЛОГІКА: Семплювання з гарантованим збереженням піку
+  let chartPoints = data;
+  const desiredPoints = 9;
+
+  if (data.length > desiredPoints) {
+    // Крок 1: Вибираємо 9 рівномірно розташованих "кандидатів"
+    const evenlySpacedPoints = [];
+    const step = (data.length - 1) / (desiredPoints - 1);
+    for (let i = 0; i < desiredPoints; i++) {
+        const index = Math.round(i * step);
+        evenlySpacedPoints.push(data[index]);
+    }
+
+    // Крок 2: Знаходимо абсолютний пік за весь період
+    const overallPeak = data.reduce((max, current) => (current.views > max.views ? current : max), data[0]);
+
+    // Крок 3: Перевіряємо, чи є пік серед кандидатів. Якщо ні - додаємо його.
+    const isPeakIncluded = evenlySpacedPoints.some(p => p.date === overallPeak.date);
+    
+    if (!isPeakIncluded && overallPeak.views > 0) {
+        // Знаходимо індекс піку в оригінальному масиві
+        const peakIndexInData = data.findIndex(p => p.date === overallPeak.date);
+
+        // Знаходимо найближчого "сусіда" серед кандидатів, щоб його замінити
+        let closestPointIndex = -1;
+        let minDistance = Infinity;
+
+        evenlySpacedPoints.forEach((point, index) => {
+            const pointIndexInData = data.findIndex(p => p.date === point.date);
+            const distance = Math.abs(peakIndexInData - pointIndexInData);
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestPointIndex = index;
+            }
+        });
+        
+        // Замінюємо найближчого сусіда на наш пік
+        if (closestPointIndex !== -1) {
+             evenlySpacedPoints[closestPointIndex] = overallPeak;
+        }
+    }
+    
+    // Сортуємо фінальний масив за датою, щоб лінія графіка була коректною
+    chartPoints = evenlySpacedPoints.sort((a, b) => new Date(a.date) - new Date(b.date));
+  }
+  
+  const maxViews = Math.max(...chartPoints.map((d) => d.views), 0);
   const niceMaxViews = getNiceUpperBound(maxViews);
   const minViews = 0;
   const viewRange = niceMaxViews - minViews;
 
   const getX = (index) =>
-    ((width - paddingX * 2) / (data.length > 1 ? data.length - 1 : 1)) * index + paddingX;
+    ((width - paddingX * 2) / (chartPoints.length > 1 ? chartPoints.length - 1 : 1)) * index + paddingX;
 
   const getY = (views) =>
     height -
     paddingY -
     ((height - paddingY * 2) * (views - minViews)) / (viewRange || 1);
 
-  const pathData = generateSmoothPath(data, getX, getY);
-  const areaPathData = `${pathData} L ${getX(data.length - 1)},${height - paddingY} L ${getX(0)},${height - paddingY} Z`;
+  const pathData = generateSmoothPath(chartPoints, getX, getY);
+  const areaPathData = `${pathData} L ${getX(chartPoints.length - 1)},${height - paddingY} L ${getX(0)},${height - paddingY} Z`;
 
   const yAxisLabels = [0, 0.25, 0.5, 0.75, 1].map(
     (multiple) => minViews + viewRange * multiple
   );
 
   return (
-    <div className="h-64 w-full">
-      <svg
-        width="100%"
-        height="100%"
-        viewBox={`0 0 ${width} ${height}`}
-        preserveAspectRatio="none"
-        onMouseLeave={() => setHoveredIndex(null)}
-      >
-        <defs>
-          <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#81E6D9" stopOpacity={0.4} />
-            <stop offset="100%" stopColor="#81E6D9" stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        
-        {/* Y-Axis Labels and Grid Lines */}
-        <g className="text-xs text-slate-600 dark:text-slate-400">
-          {yAxisLabels.map((labelValue) => (
-            <g key={labelValue}>
-              <line
-                x1={paddingX}
-                y1={getY(labelValue)}
-                x2={width - paddingX}
-                y2={getY(labelValue)}
-                className="text-slate-200 dark:text-slate-800"
-                stroke="currentColor"
-                strokeWidth="1"
-              />
-              <text
-                x={paddingX - 8}
-                y={getY(labelValue)}
-                textAnchor="end"
-                dominantBaseline="middle"
-                fill="currentColor"
-              >
-                {formatNumber(labelValue)}
-              </text>
-            </g>
-          ))}
-        </g>
-        
-        {/* Chart Gradient Area and Line */}
+    <svg
+      width="100%"
+      height="100%"
+      viewBox={`0 0 ${width} ${height}`}
+      preserveAspectRatio="xMidYMid meet"
+      onMouseLeave={() => setHoveredIndex(null)}
+      className="text-xs"
+    >
+        {/* ... решта SVG-коду без змін (defs, осі, тултіпи і т.д.) ... */}
+      <defs>
+        <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="hsl(var(--p))" stopOpacity={0.4} />
+          <stop offset="100%" stopColor="hsl(var(--p))" stopOpacity={0} />
+        </linearGradient>
+      </defs>
+
+      <g className="text-base-content/60 cursor-default select-none">
+        {yAxisLabels.map((labelValue) => (
+          <g key={labelValue}>
+            <line
+              x1={paddingX}
+              y1={getY(labelValue)}
+              x2={width - paddingX}
+              y2={getY(labelValue)}
+              stroke="currentColor"
+              className="opacity-20"
+              strokeWidth="1"
+            />
+            <text x={paddingX - 8} y={getY(labelValue)} textAnchor="end" dominantBaseline="middle" fill="currentColor">
+              {formatNumber(labelValue)}
+            </text>
+          </g>
+        ))}
+      </g>
+
+      <g className="text-primary">
         <path d={areaPathData} fill="url(#chartGradient)" />
-        <path
-          d={pathData}
-          fill="none"
-          className="text-teal-400"
-          stroke="currentColor"
-          strokeWidth="2"
-        />
-        
-        {/* Data Point Circles */}
-        <g className="text-teal-400" fill="currentColor">
-          {data.map((point, index) => (
+        <path d={pathData} fill="none" stroke="currentColor" strokeWidth="2" />
+      </g>
+
+      <g className="text-primary">
+        {chartPoints.map((point, index) => (
             <circle
-              key={index}
+              key={point.date} // Використовуємо дату як унікальний ключ
               cx={getX(index)}
               cy={getY(point.views)}
               r="4"
-              className="fill-slate-800"
+              fill="transparent"
               stroke="currentColor"
               strokeWidth="2"
             />
-          ))}
-        </g>
+        ))}
+      </g>
+      
+      <g>
+        {chartPoints.map((point, index) => (
+          <rect
+            key={point.date}
+            x={getX(index) - 10}
+            y={0}
+            width={20}
+            height={height - paddingY}
+            fill="transparent"
+            onMouseEnter={() => setHoveredIndex(index)}
+          />
+        ))}
+      </g>
 
-        {/* Invisible hover areas */}
-        <g>
-          {data.map((_, index) => (
-            <rect
-              key={index}
-              x={getX(index) - 10}
-              y={0}
-              width={20}
-              height={height - paddingY}
-              fill="transparent"
-              onMouseEnter={() => setHoveredIndex(index)}
-            />
-          ))}
-        </g>
-        
-        {/* X-Axis Labels */}
-        <g className="text-xs text-slate-600 dark:text-slate-400" textAnchor="middle">
-          {data.map((point, index) => (
-            <text
-              key={index}
-              x={getX(index)}
-              y={height - 5}
-              fill="currentColor"
-            >
+      <g className="text-base-content/60 cursor-default select-none" textAnchor="middle">
+        {chartPoints.map((point, index) => (
+            <text key={point.date} x={getX(index)} y={height - 5} fill="currentColor">
               {formatDate(point.date)}
             </text>
-          ))}
-        </g>
+        ))}
+      </g>
 
-        {/* ✨ MODIFIED: Tooltip зі зменшеним шрифтом */}
-        {hoveredIndex !== null && (() => {
-          const point = data[hoveredIndex];
-          const x = getX(hoveredIndex);
-          const y = getY(point.views);
-          
-          const viewsText = `${point.views.toLocaleString('en-US')} views`;
-          // 1. Коригуємо ширину для нового, меншого розміру шрифту
-          const textWidth = viewsText.length * 4.5 + 22;
+      {hoveredIndex !== null && chartPoints[hoveredIndex] && (() => {
+        const point = chartPoints[hoveredIndex];
+        const x = getX(hoveredIndex);
+        const y = getY(point.views);
+        const viewsText = `${point.views.toLocaleString('en-US')} views`;
+        const textWidth = viewsText.length * 5 + 24;
 
-          return (
-            <g transform={`translate(${x}, ${y - 12})`} style={{ pointerEvents: 'none' }}>
-              <rect
-                x={-textWidth / 2}
-                y={-12} // Коригуємо позицію та розмір фону
-                width={textWidth}
-                height={20}
-                rx="5"
-                className="fill-slate-900 dark:fill-slate-800"
-                strokeWidth="1"
-                stroke="rgba(255, 255, 255, 0.1)"
-              />
-              <text
-                x="0"
-                y="-2" // Коригуємо позицію тексту для центрування
-                textAnchor="middle"
-                // 2. Явно встановлюємо менший розмір шрифту і прибираємо клас text-xs
-                fontSize="10" 
-                className="font-semibold fill-white"
-              >
-                {viewsText}
-              </text>
-            </g>
-          );
-        })()}
-      </svg>
-    </div>
+        return (
+          <g transform={`translate(${x}, ${y - 12})`} style={{ pointerEvents: 'none' }}>
+            <rect
+              x={-textWidth / 2}
+              y={-14}
+              width={textWidth}
+              height={22}
+              rx="5"
+              className="fill-gray-900 dark:fill-gray-800" 
+            />
+            <text
+              x="0"
+              y="0"
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fontSize="11"
+              className="font-semibold fill-white"
+            >
+              {viewsText}
+            </text>
+          </g>
+        );
+      })()}
+    </svg>
   );
 };
 
