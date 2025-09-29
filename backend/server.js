@@ -364,20 +364,22 @@ app.get('/reels', async (req, res) => {
         .select('reel_id, media_item_id, display_order, media_items(preview_gcs_path)');
     if (linksError) throw linksError;
 
-    const { data: allViews, error: viewsError } = await supabase.from('reel_views').select('reel_id, session_id, event_type');
+    // ✨ ЗМІНА 1: Розширюємо запит, щоб отримати duration_seconds
+    const { data: allViews, error: viewsError } = await supabase
+        .from('reel_views')
+        .select('reel_id, session_id, event_type, duration_seconds'); // <-- Додано duration_seconds
     if (viewsError) throw viewsError;
 
+    // ... (код для mediaIdsByReel та previewPathByReelId залишається без змін)
     const mediaIdsByReel = allLinks.reduce((acc, link) => {
       if (!acc[link.reel_id]) acc[link.reel_id] = [];
       acc[link.reel_id].push({ id: link.media_item_id, order: link.display_order });
       return acc;
     }, {});
-    
     for (const reelId in mediaIdsByReel) {
       mediaIdsByReel[reelId].sort((a, b) => a.order - b.order);
       mediaIdsByReel[reelId] = mediaIdsByReel[reelId].map(item => item.id);
     }
-
     const previewPathByReelId = allLinks
       .sort((a, b) => a.display_order - b.display_order)
       .reduce((acc, link) => {
@@ -387,24 +389,48 @@ app.get('/reels', async (req, res) => {
         return acc;
     }, {});
 
-    const viewsByReel = allViews.reduce((acc, view) => {
-        if (!acc[view.reel_id]) acc[view.reel_id] = new Set();
-        acc[view.reel_id].add(view.session_id);
-        return acc;
+    // ✨ ЗМІНА 2: Об'єднуємо всю логіку розрахунку аналітики в один reduce для ефективності
+    const analyticsByReel = allViews.reduce((acc, view) => {
+      const { reel_id, session_id, event_type, duration_seconds } = view;
+
+      // Ініціалізуємо об'єкт для рілса, якщо його ще немає
+      if (!acc[reel_id]) {
+        acc[reel_id] = {
+          sessions: new Set(),
+          completions: 0,
+          durations: []
+        };
+      }
+      
+      // 1. Рахуємо унікальні сесії для total_views
+      acc[reel_id].sessions.add(session_id);
+
+      // 2. Рахуємо завершення (completions)
+      if (event_type === 'completion') {
+        acc[reel_id].completions++;
+      }
+
+      // 3. Збираємо всі тривалості сесій
+      if (event_type === 'session_duration' && duration_seconds != null) {
+        acc[reel_id].durations.push(duration_seconds);
+      }
+
+      return acc;
     }, {});
 
-    const completionByReel = allViews.reduce((acc, view) => {
-        if(view.event_type === 'completion'){
-            if (!acc[view.reel_id]) acc[view.reel_id] = 0;
-            acc[view.reel_id]++;
-        }
-        return acc;
-    }, {});
-
+    // ✨ ЗМІНА 3: Формуємо фінальний результат з розрахованими даними
     const analyticsData = reels.map(reel => {
-        const total_views = viewsByReel[reel.id] ? viewsByReel[reel.id].size : 0;
-        const completed_views = completionByReel[reel.id] || 0;
+        const reelAnalytics = analyticsByReel[reel.id] || { sessions: new Set(), completions: 0, durations: [] };
+        
+        const total_views = reelAnalytics.sessions.size;
+        const completed_views = reelAnalytics.completions;
         const completion_rate = total_views > 0 ? (completed_views / total_views) * 100 : 0;
+        
+        // Розраховуємо середнє арифметичне для тривалості сесії
+        const durations = reelAnalytics.durations;
+        const avg_watch_duration = durations.length > 0
+            ? durations.reduce((sum, d) => sum + d, 0) / durations.length
+            : 0;
         
         return {
             ...reel,
@@ -413,7 +439,7 @@ app.get('/reels', async (req, res) => {
             total_views,
             completed_views,
             completion_rate,
-            avg_watch_duration: 0, 
+            avg_watch_duration, // <-- Ось ваше нове значення
         };
     });
 

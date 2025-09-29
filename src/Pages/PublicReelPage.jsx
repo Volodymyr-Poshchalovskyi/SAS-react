@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react'; // Додано useCallback
 import { useParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 
@@ -34,82 +34,86 @@ export default function PublicReelPage() {
     const videoRef = useRef(null);
     const hasMultipleSlides = data?.mediaItems?.length > 1;
 
-    // --- ОСНОВНИЙ useEffect З ОНОВЛЕНОЮ ЛОГІКОЮ ЛОГУВАННЯ ---
-    useEffect(() => {
-        if (!data || !data.reelDbId) return;
+    // --- НОВЕ: Універсальний логгер винесено за межі useEffect ---
+    // Обернуто в useCallback, щоб функція не створювалася заново при кожному рендері,
+    // і її можна було безпечно використовувати в dependency array для useEffect.
+    const logEvent = useCallback((eventType, mediaItemId = null, duration = null) => {
+        // Перевіряємо, чи є дані для логування
+        if (!data?.reelDbId) return;
 
-        // --- Генеруємо/дістаємо session_id ---
         let sessionId = sessionStorage.getItem(`session_id_${data.reelDbId}`);
         if (!sessionId) {
             sessionId = crypto.randomUUID();
             sessionStorage.setItem(`session_id_${data.reelDbId}`, sessionId);
         }
 
-        // --- Універсальний логгер ---
-        const logEvent = (eventType, mediaItemId = null, duration = null) => {
-            const payload = {
-                reel_id: data.reelDbId,
-                session_id: sessionId,
-                event_type: eventType,
-            };
-
-            // Додаємо media_item_id для івентів, де це потрібно
-            if (eventType === "completion" || eventType === "media_completion") {
-                payload.media_item_id = mediaItemId ?? data.mediaItems[currentSlide]?.id;
-            } else if (mediaItemId) {
-                payload.media_item_id = mediaItemId;
-            }
-
-            if (duration) {
-                payload.duration_seconds = duration;
-            }
-
-            fetch("http://localhost:3001/reels/log-event", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            })
-                .then(res => {
-                    if (!res.ok) {
-                        return res.json().then(errData => {
-                            throw new Error(errData.error || "Failed to log event");
-                        });
-                    }
-                    console.log(`✅ Event logged:`, payload);
-                })
-                .catch(err => console.error(`❌ Failed to log ${eventType}:`, err));
+        const payload = {
+            reel_id: data.reelDbId,
+            session_id: sessionId,
+            event_type: eventType,
         };
 
-        // --- Логіка логування 'view' (без змін) ---
-        const viewLogged = sessionStorage.getItem(`view_logged_${data.reelDbId}`);
-        if (!viewLogged) {
+        if (eventType === "completion" || eventType === "media_completion") {
+            payload.media_item_id = mediaItemId ?? data.mediaItems[currentSlide]?.id;
+        } else if (mediaItemId) {
+            payload.media_item_id = mediaItemId;
+        }
+
+        if (duration !== null) { // Перевірка на null, щоб можна було відправити 0
+            payload.duration_seconds = duration;
+        }
+
+        fetch("http://localhost:3001/reels/log-event", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+        })
+            .then(res => {
+                if (!res.ok) {
+                    return res.json().then(errData => {
+                        throw new Error(errData.error || "Failed to log event");
+                    });
+                }
+                console.log(`✅ Event logged:`, payload);
+            })
+            .catch(err => console.error(`❌ Failed to log ${eventType}:`, err));
+
+    }, [data, currentSlide]); // Залежить від data та currentSlide
+
+
+    // --- ОСНОВНИЙ useEffect З ОНОВЛЕНОЮ ЛОГІКОЮ ---
+    useEffect(() => {
+        if (!data || !data.reelDbId) return;
+
+        // --- НОВЕ: Записуємо час входу в сесію, якщо його ще немає ---
+        const sessionStartTimeKey = `session_start_time_${data.reelDbId}`;
+        if (!sessionStorage.getItem(sessionStartTimeKey)) {
+            sessionStorage.setItem(sessionStartTimeKey, Date.now().toString());
+            console.log("🚀 Session timer started.");
+        }
+        
+        // --- Логіка логування 'view' ---
+        const viewLoggedKey = `view_logged_${data.reelDbId}`;
+        if (!sessionStorage.getItem(viewLoggedKey)) {
             logEvent("view");
-            sessionStorage.setItem(`view_logged_${data.reelDbId}`, "true");
+            sessionStorage.setItem(viewLoggedKey, "true");
         }
 
         const currentMedia = data.mediaItems[currentSlide];
         if (!currentMedia) return;
 
         const completedVideosKey = `completed_videos_${data.reelDbId}`;
-        const VIEW_THRESHOLD = 0.9; // 90%
+        const VIEW_THRESHOLD = 0.9;
 
-        // --- Функція, що обробляє завершення перегляду відео ---
         const markVideoCompleted = () => {
             let completed = JSON.parse(sessionStorage.getItem(completedVideosKey) || "[]");
-
-            // Перевіряємо, чи це відео ще НЕ було відмічене як переглянуте
             if (!completed.includes(currentMedia.id)) {
-                // 1. ДОДАНО: Відправляємо івент про перегляд КОНКРЕТНОГО відео
                 logEvent("media_completion", currentMedia.id, videoRef.current?.duration || null);
-                
-                // 2. Додаємо id до масиву в sessionStorage
                 completed.push(currentMedia.id);
                 sessionStorage.setItem(completedVideosKey, JSON.stringify(completed));
                 console.log("✅ Completed videos:", completed);
 
-                // 3. ЗБЕРЕЖЕНО: Перевіряємо, чи всі відео тепер переглянуті
                 if (completed.length === data.mediaItems.length) {
-                    // Відправляємо фінальний івент "completion"
                     logEvent("completion", currentMedia.id, videoRef.current?.duration || null);
                     console.log("🎉 All videos completed!");
                 }
@@ -119,23 +123,16 @@ export default function PublicReelPage() {
         const handleTimeUpdate = () => {
             const video = videoRef.current;
             if (!video || !video.duration) return;
-
-            const percentageWatched = video.currentTime / video.duration;
-            if (percentageWatched >= VIEW_THRESHOLD) {
+            if (video.currentTime / video.duration >= VIEW_THRESHOLD) {
                 markVideoCompleted();
                 video.removeEventListener("timeupdate", handleTimeUpdate);
             }
         };
-
         const handleEnded = () => {
             markVideoCompleted();
             nextSlideHandler();
         };
-
-        const nextSlideHandler = () =>
-            setCurrentSlide(prev =>
-                prev === data.mediaItems.length - 1 ? 0 : prev + 1
-            );
+        const nextSlideHandler = () => setCurrentSlide(prev => (prev === data.mediaItems.length - 1 ? 0 : prev + 1));
 
         const videoElement = videoRef.current;
         if (videoElement) {
@@ -146,23 +143,49 @@ export default function PublicReelPage() {
                 videoElement.removeEventListener("ended", handleEnded);
             };
         }
-    }, [data, currentSlide, reelId]);
+    }, [data, currentSlide, reelId, logEvent]); // Додано logEvent в залежності
     
-    // --- Збереження позиції (без змін) ---
+    // --- НОВИЙ useEffect ДЛЯ ОБРОБКИ ВИХОДУ ЗІ СТОРІНКИ ---
     useEffect(() => {
-        const videoElement = videoRef.current;
-        const savePlaybackPosition = () => {
-            if (videoElement && reelId) {
-                sessionStorage.setItem(`reel_${reelId}_time`, videoElement.currentTime);
-                sessionStorage.setItem(`reel_${reelId}_slide`, currentSlide);
-            }
-        };
-        window.addEventListener('beforeunload', savePlaybackPosition);
+        if (!reelId || !data?.reelDbId) return;
+
+        const handlePageExit = () => {
+    // 1. Зберігаємо позицію відео
+    const videoElement = videoRef.current;
+    if (videoElement) {
+        sessionStorage.setItem(`reel_${reelId}_time`, videoElement.currentTime);
+        sessionStorage.setItem(`reel_${reelId}_slide`, currentSlide);
+    }
+
+    // 2. Логуємо тривалість сесії
+    const sessionStartTimeKey = `session_start_time_${data.reelDbId}`;
+    const startTime = sessionStorage.getItem(sessionStartTimeKey);
+
+    if (startTime) {
+        const endTime = Date.now();
+        // Розраховуємо тривалість і одразу віднімаємо 1
+        const durationSeconds = Math.round((endTime - parseInt(startTime, 10)) / 1000) - 1;
+
+        // Відправляємо івент, тільки якщо результат більший або дорівнює 0
+        if (durationSeconds >= 0) {
+            logEvent('session_duration', null, durationSeconds);
+        }
+
+        // Очищуємо, щоб таймер не спрацював знову
+        sessionStorage.removeItem(sessionStartTimeKey);
+    }
+};
+
+        // Спрацює при закритті вкладки/браузера
+        window.addEventListener('beforeunload', handlePageExit);
+
+        // Спрацює при розмонтуванні компонента (перехід на іншу сторінку)
         return () => {
-            window.removeEventListener('beforeunload', savePlaybackPosition);
-            savePlaybackPosition();
+            window.removeEventListener('beforeunload', handlePageExit);
+            handlePageExit(); // Викликаємо при переході на іншу сторінку сайту
         };
-    }, [currentSlide, reelId]);
+    }, [reelId, data, currentSlide, logEvent]); // Залежності для коректної роботи
+
 
     // --- Завантаження даних (без змін) ---
     useEffect(() => {
@@ -214,7 +237,7 @@ export default function PublicReelPage() {
 
     return (
         <div className="bg-white dark:bg-black text-black dark:text-white">
-            {/* Hero Section (без змін) */}
+            {/* ... решта JSX без змін ... */}
             <section className="relative w-full h-screen overflow-hidden">
                 <AnimatePresence initial={false}>
                     <motion.video ref={videoRef} key={currentSlide} src={currentMediaItem.videoUrl} autoPlay muted playsInline onLoadedMetadata={handleLoadedMetadata} className="absolute top-0 left-0 w-full h-full object-cover" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.5 }} />
@@ -243,7 +266,6 @@ export default function PublicReelPage() {
                 </div>
             </section>
 
-            {/* Work Grid Section (без змін) */}
             <section className="pt-20 pb-10 md:pt-32 md:pb-16 px-6 lg:px-8 bg-white dark:bg-black">
                 <div className="max-w-screen-2xl mx-auto">
                     <h2 className="text-3xl md:text-4xl font-bold uppercase mb-16 text-center md:text-left font-montserrat">Work</h2>
@@ -261,7 +283,6 @@ export default function PublicReelPage() {
                 </div>
             </section>
 
-            {/* Director Bio Section (без змін) */}
             {data.mediaItems[0]?.artists?.[0] && (
                 <section className="pt-10 pb-20 md:pt-16 md:pb-32 px-8 sm:px-12 lg:px-16 bg-white dark:bg-black">
                     <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-start">
