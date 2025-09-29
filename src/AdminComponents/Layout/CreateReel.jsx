@@ -456,34 +456,8 @@ const CreateReel = () => {
     const firstFile = validFiles[0];
     const otherFiles = validFiles.slice(1);
 
-    const isFirstFileImage = isImageFile(firstFile);
-    let compressedPreview = null;
-    if (isFirstFileImage) {
-        try {
-            compressedPreview = await compressImage(firstFile);
-        } catch (error) {
-            console.error("Failed to compress first file preview:", error);
-            compressedPreview = firstFile;
-        }
-    }
-
-    setReels(prev => prev.map(reel => {
-        if (reel.id === reelId) {
-            const fileNameWithoutExt = firstFile.name.substring(0, firstFile.name.lastIndexOf('.')) || firstFile.name;
-            const fileUrl = URL.createObjectURL(firstFile);
-            const customPreviewUrl = compressedPreview ? URL.createObjectURL(compressedPreview) : null;
-            return {
-                ...reel,
-                title: isEditMode ? reel.title : fileNameWithoutExt,
-                selectedFile: firstFile,
-                customPreviewFile: compressedPreview,
-                mainPreviewUrl: fileUrl,
-                customPreviewUrl: customPreviewUrl,
-            };
-        }
-        return reel;
-    }));
-
+    // 1. First, prepare the new reel objects for the "other" files
+    let newReels = [];
     if (otherFiles.length > 0 && !isEditMode) {
         const newReelsPromises = otherFiles.map(async (file) => {
             const fileNameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
@@ -509,10 +483,42 @@ const CreateReel = () => {
                 customPreviewUrl: customPreviewUrl,
             };
         });
-
-        const newReels = await Promise.all(newReelsPromises);
-        setReels(prev => [...prev, ...newReels]);
+        newReels = await Promise.all(newReelsPromises);
     }
+
+    // 2. Prepare the updates for the first file
+    const isFirstFileImage = isImageFile(firstFile);
+    let compressedPreviewForFirst = null;
+    if (isFirstFileImage) {
+        try {
+            compressedPreviewForFirst = await compressImage(firstFile);
+        } catch (error) {
+            console.error("Failed to compress first file preview:", error);
+            compressedPreviewForFirst = firstFile;
+        }
+    }
+
+    // 3. Perform a SINGLE state update for everything
+    setReels(prev => {
+        const updatedExistingReels = prev.map(reel => {
+            if (reel.id === reelId) {
+                const fileNameWithoutExt = firstFile.name.substring(0, firstFile.name.lastIndexOf('.')) || firstFile.name;
+                const fileUrl = URL.createObjectURL(firstFile);
+                const customPreviewUrl = compressedPreviewForFirst ? URL.createObjectURL(compressedPreviewForFirst) : null;
+                return {
+                    ...reel,
+                    title: isEditMode ? reel.title : fileNameWithoutExt,
+                    selectedFile: firstFile,
+                    customPreviewFile: compressedPreviewForFirst,
+                    mainPreviewUrl: fileUrl,
+                    customPreviewUrl: customPreviewUrl,
+                };
+            }
+            return reel;
+        });
+        // Return the updated existing reels combined with the newly created ones
+        return [...updatedExistingReels, ...newReels];
+    });
   };
 
   const handleAddReel = () => setReels(prev => [...prev, createNewReelState()]);
