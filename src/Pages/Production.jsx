@@ -16,7 +16,12 @@ const nameAnimation = {
 };
 
 // ✨ Зміни тут: оновлюємо оверлей, щоб він містив кнопку
-const VideoTitleOverlay = ({ title, projectSlug, index, isPreloaderActive }) => {
+const VideoTitleOverlay = ({
+  title,
+  projectSlug,
+  index,
+  isPreloaderActive,
+}) => {
   return (
     <div className="absolute inset-0 z-10 flex items-end justify-center text-center p-8 pb-24 text-white pointer-events-none">
       <motion.div
@@ -56,7 +61,9 @@ export default function Production() {
 
   useEffect(() => {
     document.body.style.overflow = isPreloaderActive ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [isPreloaderActive]);
 
   // --- Завантаження URL відео (без змін) ---
@@ -64,14 +71,19 @@ export default function Production() {
     const fetchVideoUrls = async () => {
       const gcsPaths = productionData.map((video) => video.src);
       try {
-        const response = await fetch('http://localhost:3001/generate-read-urls', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ gcsPaths }),
-        });
+        const response = await fetch(
+          'http://localhost:3001/generate-read-urls',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ gcsPaths }),
+          }
+        );
         if (!response.ok) throw new Error('Failed to fetch video URLs');
         setVideoUrls(await response.json());
-      } catch (error) { console.error('Error fetching production video URLs:', error); }
+      } catch (error) {
+        console.error('Error fetching production video URLs:', error);
+      }
     };
     fetchVideoUrls();
   }, []);
@@ -109,7 +121,10 @@ export default function Production() {
       </AnimatePresence>
 
       {!isPreloaderActive && (
-        <ScrollProgressBar currentIndex={currentIndex} totalItems={productionData.length} />
+        <ScrollProgressBar
+          currentIndex={currentIndex}
+          totalItems={productionData.length}
+        />
       )}
 
       {productionData.map((video, index) => {
@@ -117,7 +132,10 @@ export default function Production() {
         return (
           <div key={video.id} className="relative w-full h-screen snap-start">
             {signedUrl && (
-              <VideoContainer videoSrc={signedUrl} shouldPlay={!isPreloaderActive && currentIndex === index} />
+              <VideoContainer
+                videoSrc={signedUrl}
+                shouldPlay={!isPreloaderActive && currentIndex === index}
+              />
             )}
             {/* ✨ Зміни тут: передаємо projectSlug */}
             <VideoTitleOverlay

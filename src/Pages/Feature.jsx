@@ -10,7 +10,8 @@ const nameAnimation = {
 };
 
 export default function Feature() {
-  const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } = useAnimation();
+  const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } =
+    useAnimation();
   // ✨ NEW: Стан для збереження URL відео з GCS
   const [videoUrl, setVideoUrl] = useState('');
 
@@ -27,20 +28,26 @@ export default function Feature() {
 
   useEffect(() => {
     document.body.style.overflow = isPreloaderActive ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [isPreloaderActive]);
-  
+
   // ✨ NEW: Завантаження URL для відео з GCS під час роботи прелоадера
   useEffect(() => {
     const fetchVideoUrl = async () => {
       // Використовуємо той самий шлях до головного відео, що й на сторінці Main
-      const gcsPath = 'front-end/00-Main Page/SHOWREEL SINNERS AND SAINTS 2024.mp4';
+      const gcsPath =
+        'front-end/00-Main Page/SHOWREEL SINNERS AND SAINTS 2024.mp4';
       try {
-        const response = await fetch('http://localhost:3001/generate-read-urls', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ gcsPaths: [gcsPath] }),
-        });
+        const response = await fetch(
+          'http://localhost:3001/generate-read-urls',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ gcsPaths: [gcsPath] }),
+          }
+        );
         if (!response.ok) throw new Error('Failed to fetch video URL');
         const urlsMap = await response.json();
         if (urlsMap[gcsPath]) {
@@ -55,8 +62,9 @@ export default function Feature() {
 
   // --- Текст для банера ---
   const bannerTitle = 'From Script to Screen.';
-  const bannerDescription = 'Our feature film division specializes in packaging commercially viable projects with top-tier talent, financing strategies, and distribution plans. Whether building a festival hit or a streamer-ready series, we develop narratives with lasting impact.';
-  
+  const bannerDescription =
+    'Our feature film division specializes in packaging commercially viable projects with top-tier talent, financing strategies, and distribution plans. Whether building a festival hit or a streamer-ready series, we develop narratives with lasting impact.';
+
   const featureTitle = 'FEATURE FILMS & DOCUMENTARIES';
 
   return (

@@ -11,7 +11,6 @@ export default function Footer() {
     <footer className="bg-black text-gray-400 font-sans">
       <div className="max-w-screen-2xl mx-auto px-16">
         <div className="relative border-t border-gray-800 py-6 flex justify-between items-center gap-8">
-          
           {/* --- Ліва частина: Іконки соцмереж --- */}
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-5 text-lg">
@@ -43,9 +42,9 @@ export default function Footer() {
           {/* --- Центральна частина: Логотип --- */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
             {/* ✨ 3. Added a CSS filter to make the JPG logo appear light gray */}
-            <img 
-              src={certifiedLogo} 
-              alt="Certified WBENC" 
+            <img
+              src={certifiedLogo}
+              alt="Certified WBENC"
               className="h-8 w-auto filter grayscale brightness-150"
             />
           </div>
@@ -54,7 +53,7 @@ export default function Footer() {
           {/* ✨ 4. Removed specific gray color to inherit from the parent */}
           <div className="text-xs uppercase tracking-wider text-center md:text-right">
             <span>© 2025 SINNERS AND SAINTS LLC. ALL RIGHTS RESERVED.</span>
-            
+
             {/* ✨ 5. Hover color for the link changed to white */}
             <Link
               to="/privacy-policy"

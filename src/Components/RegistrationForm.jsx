@@ -54,7 +54,7 @@ const RegistrationForm = () => {
       setError('Passwords do not match.');
       return;
     }
-    
+
     if (!phone || !isValidPhoneNumber(phone)) {
       setError('Please enter a valid phone number.');
       return;
@@ -187,7 +187,7 @@ const RegistrationForm = () => {
             className="w-full bg-transparent text-black border-b border-gray-300 focus:outline-none py-2 text-sm text-gray-500"
           />
         </div>
-        
+
         {/* Phone Input */}
         <div>
           <label
@@ -255,7 +255,7 @@ const RegistrationForm = () => {
               required
               className="w-full bg-transparent text-black border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm pr-16"
             />
-             <button
+            <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute inset-y-0 right-0 flex items-center px-4 text-xs uppercase text-gray-500 hover:text-black focus:outline-none"

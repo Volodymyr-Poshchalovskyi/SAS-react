@@ -10,8 +10,9 @@ import Login from '../Pages/Login.jsx';
 import Assignment from '../Pages/Assignment.jsx';
 import Directors from '../Pages/Directors.jsx';
 import DirectorPage from '../Components/DirectorPage.jsx';
-import Photographers from '../Pages/Photographers.jsx'; 
-import PhotographerPage from '../Components/PhotographerPage.jsx';import Feature from '../Pages/Feature.jsx';
+import Photographers from '../Pages/Photographers.jsx';
+import PhotographerPage from '../Components/PhotographerPage.jsx';
+import Feature from '../Pages/Feature.jsx';
 import Management from '../Pages/Management.jsx';
 import Originals from '../Pages/Originals.jsx';
 import Production from '../Pages/Production.jsx';
@@ -53,7 +54,7 @@ export default function AppRouter() {
       <Route element={<Layout />}>
         <Route path="/" element={<Main />} />
         <Route path="/reel/:reelId" element={<PublicReelPage />} />
-        
+
         {/* Assignment Routes */}
         <Route path="/assignment" element={<Assignment />} />
         {/* ✨ This route reuses DirectorPage for the assignment detail view */}
@@ -64,8 +65,11 @@ export default function AppRouter() {
         <Route path="/directors/:directorSlug" element={<DirectorPage />} />
 
         <Route path="/photographers" element={<Photographers />} />
-        <Route path="/photographers/:photographerSlug" element={<PhotographerPage />} />
-        
+        <Route
+          path="/photographers/:photographerSlug"
+          element={<PhotographerPage />}
+        />
+
         <Route path="/projects/:projectSlug" element={<ProjectPage />} />
         <Route path="/feature" element={<Feature />} />
         <Route path="/management" element={<Management />} />
@@ -102,7 +106,10 @@ export default function AppRouter() {
               <Route path="library" element={<Library />} />
               <Route path="management" element={<ManagementPage />} />
               <Route path="analytics" element={<MyAnalytic />} />
-              <Route path="metadata-management" element={<MetaDataManagement />} />
+              <Route
+                path="metadata-management"
+                element={<MetaDataManagement />}
+              />
               <Route path="applications" element={<ApplicationsForAdmin />} />
               <Route path="user-management" element={<UserManagement />} />
             </Route>

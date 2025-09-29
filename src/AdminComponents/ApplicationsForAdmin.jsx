@@ -84,7 +84,7 @@ const Modal = ({
         onClose();
       }
     };
-    
+
     if (isOpen) {
       setActionStatus('idle');
       setErrorMessage('');
@@ -169,12 +169,12 @@ const Modal = ({
             <div className="mt-4 text-slate-600 dark:text-slate-300">
               {children}
             </div>
-            
+
             {actionStatus === 'error' && (
-                <div className="mt-4 flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-md">
-                    <AlertTriangle className="h-5 w-5 flex-shrink-0" />
-                    <span>{errorMessage}</span>
-                </div>
+              <div className="mt-4 flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-md">
+                <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
             )}
 
             <div className="mt-6 flex justify-end gap-3">
@@ -207,7 +207,6 @@ const Modal = ({
     </div>
   );
 };
-
 
 // =======================
 // Main Component
@@ -266,7 +265,8 @@ const ApplicationsForAdmin = () => {
         if (!searchTerm) return true;
         return (
           app.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (app.text && app.text.toLowerCase().includes(searchTerm.toLowerCase()))
+          (app.text &&
+            app.text.toLowerCase().includes(searchTerm.toLowerCase()))
         );
       });
   }, [applications, searchTerm, statusFilter]);
@@ -284,7 +284,9 @@ const ApplicationsForAdmin = () => {
       try {
         await updateApplicationStatus(id, newStatus, email);
         setApplications((apps) =>
-          apps.map((app) => (app.id === id ? { ...app, status: newStatus } : app))
+          apps.map((app) =>
+            app.id === id ? { ...app, status: newStatus } : app
+          )
         );
       } catch (err) {
         console.error(`Failed to ${actionText} application:`, err);
@@ -309,7 +311,7 @@ const ApplicationsForAdmin = () => {
   const handleShowMore = () => {
     setVisibleCount((prevCount) => prevCount + 5);
   };
-  
+
   // ✨ ЗМІНА: Додано `year: 'numeric'` до форматування дати
   const formatApplicationDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -349,16 +351,16 @@ const ApplicationsForAdmin = () => {
         <div className="flex items-center gap-4 flex-wrap">
           {/* ✨ ЗМІНА: Збільшено ширину контейнера для dropdown */}
           <div className="w-full sm:w-48">
-             <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className={inputClasses}
-              >
-                <option value="all">All Statuses</option>
-                <option value="in progress">In Progress</option>
-                <option value="approved">Approved</option>
-                <option value="denied">Denied</option>
-              </select>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className={inputClasses}
+            >
+              <option value="all">All Statuses</option>
+              <option value="in progress">In Progress</option>
+              <option value="approved">Approved</option>
+              <option value="denied">Denied</option>
+            </select>
           </div>
           <div className="w-full sm:w-64">
             <input
@@ -371,7 +373,7 @@ const ApplicationsForAdmin = () => {
           </div>
         </div>
       </div>
-      
+
       {filteredApplications.length === 0 ? (
         <div className="text-center p-8 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl bg-white dark:bg-slate-900/70">
           <p className="text-slate-500 dark:text-slate-400">
@@ -387,7 +389,9 @@ const ApplicationsForAdmin = () => {
               <thead className="text-slate-500 dark:text-slate-400">
                 <tr className="border-b border-slate-200 dark:border-slate-800">
                   <th className="p-4 font-medium text-left">Email</th>
-                  <th className="p-4 font-medium text-left">Application Text</th>
+                  <th className="p-4 font-medium text-left">
+                    Application Text
+                  </th>
                   <th className="p-4 font-medium text-left">Date</th>
                   <th className="p-4 font-medium text-center">Status</th>
                   <th className="p-4 font-medium text-center">Actions</th>

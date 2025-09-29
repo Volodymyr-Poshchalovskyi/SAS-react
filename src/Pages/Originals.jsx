@@ -7,7 +7,6 @@ import { useAnimation } from '../context/AnimationContext';
 import VideoContainer from '../Components/VideoContainer';
 import { Link } from 'react-router-dom';
 
-
 // Тепер цей компонент приймає 'item', який є об'єктом з originalsData
 const OriginalsVideoOverlay = ({ item }) => {
   return (
@@ -18,7 +17,7 @@ const OriginalsVideoOverlay = ({ item }) => {
           style={{ textShadow: '0 2px 6px rgba(0,0,0,0.5)' }}
         >
           {/* Використовуємо title з об'єкта */}
-          {item.title} 
+          {item.title}
         </p>
         {/* 2. Оновлюємо посилання на динамічний маршрут */}
         <Link to={`/projects/${item.slug}`}>

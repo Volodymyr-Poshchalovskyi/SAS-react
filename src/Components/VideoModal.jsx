@@ -49,7 +49,7 @@ export default function VideoModal({ video, onClose }) {
             autoPlay // Відео почне відтворюватися автоматично
           />
         </div>
-        
+
         {/* Назва відео */}
         <p className="text-white text-center pt-4 text-xl flex-shrink-0">
           {video.title}

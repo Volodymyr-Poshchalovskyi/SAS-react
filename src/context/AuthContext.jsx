@@ -27,7 +27,10 @@ const AuthProvider = ({ children }) => {
 
     const { data: listener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user.app_metadata.provider === 'google') {
+        if (
+          event === 'SIGNED_IN' &&
+          session?.user.app_metadata.provider === 'google'
+        ) {
           const userEmail = session.user.email;
           if (!userEmail.endsWith('@sinnersandsaints.la')) {
             await supabase.auth.signOut();
@@ -94,15 +97,15 @@ const AuthProvider = ({ children }) => {
   // ---------- Authentication Methods ----------
   const signInWithGoogle = async () =>
     await supabase.auth.signInWithOAuth({
-      provider: 'google'
-     
+      provider: 'google',
     });
 
   const signInWithPassword = async (email, password) => {
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { data: signInData, error: signInError } =
+      await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
     if (signInError) throw signInError;
     if (!signInData.user) throw new Error('Could not sign in.');
 
@@ -133,9 +136,12 @@ const AuthProvider = ({ children }) => {
 
   // ---------- Application Methods ----------
   const submitApplication = async ({ email, message }) => {
-    const { data, error } = await supabase.from('applications').insert({ email, message });
+    const { data, error } = await supabase
+      .from('applications')
+      .insert({ email, message });
     if (error) {
-      if (error.code === '23505') throw new Error('An application with this email already exists.');
+      if (error.code === '23505')
+        throw new Error('An application with this email already exists.');
       throw error;
     }
     return data;
@@ -150,17 +156,19 @@ const AuthProvider = ({ children }) => {
     phone,
   }) => {
     // 1. Оновлюємо пароль та метадані користувача в auth.users
-    const { data: authData, error: authError } = await supabase.auth.updateUser({
-      password: password,
-      data: {
-        // Ми оновлюємо метадані в auth, це можна залишити як є.
-        // Головне - виправити запит до public.user_profiles.
-        full_name: `${firstName} ${lastName}`.trim(),
-        location,
-        state,
-        phone,
-      },
-    });
+    const { data: authData, error: authError } = await supabase.auth.updateUser(
+      {
+        password: password,
+        data: {
+          // Ми оновлюємо метадані в auth, це можна залишити як є.
+          // Головне - виправити запит до public.user_profiles.
+          full_name: `${firstName} ${lastName}`.trim(),
+          location,
+          state,
+          phone,
+        },
+      }
+    );
 
     if (authError) {
       console.error('Supabase Auth Update Error:', authError);
@@ -173,12 +181,12 @@ const AuthProvider = ({ children }) => {
       .update({
         // ▼▼▼ ОСНОВНІ ЗМІНИ ТУТ ▼▼▼
         first_name: firstName, // Замінено "full_name" на правильні назви колонок
-        last_name: lastName,   // 
+        last_name: lastName, //
         // ▲▲▲ КІНЕЦЬ ЗМІН ▲▲▲
         location,
         state,
         phone,
-        status: 'active'
+        status: 'active',
       })
       .eq('id', authData.user.id)
       .select();
@@ -192,8 +200,8 @@ const AuthProvider = ({ children }) => {
 
     // 3. Вилогінюємо користувача, щоб він увійшов з новим паролем
     await supabase.auth.signOut();
-    
-    return authData; 
+
+    return authData;
   };
 
   const getApplications = async () => {
@@ -207,17 +215,24 @@ const AuthProvider = ({ children }) => {
 
   const updateApplicationStatus = async (applicationId, newStatus, email) => {
     if (newStatus === 'approved') {
-  const { error: inviteError } = await supabase.functions.invoke('invite-user', {
-    body: JSON.stringify({ email }), // <--- ОСЬ ЗМІНА
-  });
-      if (inviteError) throw new Error(`Failed to invite user: ${inviteError.message}`);
+      const { error: inviteError } = await supabase.functions.invoke(
+        'invite-user',
+        {
+          body: JSON.stringify({ email }), // <--- ОСЬ ЗМІНА
+        }
+      );
+      if (inviteError)
+        throw new Error(`Failed to invite user: ${inviteError.message}`);
 
       const { data, error } = await supabase
         .from('applications')
         .update({ status: 'approved' })
         .eq('id', applicationId);
 
-      if (error) throw new Error(`Failed to update application status: ${error.message}`);
+      if (error)
+        throw new Error(
+          `Failed to update application status: ${error.message}`
+        );
       return data;
     } else if (newStatus === 'denied') {
       const { data, error } = await supabase
@@ -225,7 +240,9 @@ const AuthProvider = ({ children }) => {
         .update({ status: 'denied' })
         .eq('id', applicationId);
       if (error) throw error;
-      console.log(`Application for ${email} denied. Email sending is currently disabled.`);
+      console.log(
+        `Application for ${email} denied. Email sending is currently disabled.`
+      );
       return data;
     }
   };
@@ -242,9 +259,12 @@ const AuthProvider = ({ children }) => {
   };
 
   const updateUserStatus = async (userId, newStatus) => {
-    const { data, error } = await supabase.functions.invoke('update-user-status', {
-      body: { userId, newStatus },
-    });
+    const { data, error } = await supabase.functions.invoke(
+      'update-user-status',
+      {
+        body: { userId, newStatus },
+      }
+    );
     if (error) throw error;
     return data;
   };

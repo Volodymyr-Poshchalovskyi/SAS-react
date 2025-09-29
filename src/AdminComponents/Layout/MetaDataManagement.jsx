@@ -11,7 +11,10 @@ const Highlight = ({ text, highlight }) => {
     <span>
       {parts.map((part, i) =>
         part.toLowerCase() === highlight.toLowerCase() ? (
-          <mark key={i} className="bg-yellow-200 dark:bg-yellow-600/40 text-black dark:text-white rounded px-0.5">
+          <mark
+            key={i}
+            className="bg-yellow-200 dark:bg-yellow-600/40 text-black dark:text-white rounded px-0.5"
+          >
             {part}
           </mark>
         ) : (
@@ -33,7 +36,7 @@ const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
       item.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [data, searchTerm]);
-  
+
   // Скидаємо лічильник видимих рядків при зміні пошукового запиту
   useEffect(() => {
     setVisibleCount(10);
@@ -45,7 +48,7 @@ const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
   }, [filteredData, visibleCount]);
 
   const handleShowMore = () => {
-    setVisibleCount(prevCount => prevCount + 10);
+    setVisibleCount((prevCount) => prevCount + 10);
   };
 
   return (
@@ -55,7 +58,10 @@ const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
         <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
           {title}
         </h2>
-        <button onClick={onAdd} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 rounded-md hover:bg-slate-700 dark:hover:bg-slate-300 transition-colors w-full sm:w-auto justify-center" >
+        <button
+          onClick={onAdd}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 rounded-md hover:bg-slate-700 dark:hover:bg-slate-300 transition-colors w-full sm:w-auto justify-center"
+        >
           <Plus className="w-4 h-4" />
           Add New
         </button>
@@ -63,7 +69,13 @@ const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
       <div className="p-4 border-b border-slate-200 dark:border-slate-800">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input type="text" placeholder={`Search in ${title}...`} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent pl-9 pr-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500" />
+          <input
+            type="text"
+            placeholder={`Search in ${title}...`}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent pl-9 pr-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500"
+          />
         </div>
       </div>
       <div className="p-2 overflow-y-auto flex-1">
@@ -71,15 +83,26 @@ const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
         {dataToDisplay.length > 0 ? (
           <ul className="divide-y divide-slate-100 dark:divide-slate-800">
             {dataToDisplay.map((item) => (
-              <li key={item.id} className="flex justify-between items-center p-2 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800/50" >
+              <li
+                key={item.id}
+                className="flex justify-between items-center p-2 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800/50"
+              >
                 <span className="text-sm text-slate-700 dark:text-slate-300">
                   <Highlight text={item.name} highlight={searchTerm} />
                 </span>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => onEdit(item)} className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors" aria-label="Edit" >
+                  <button
+                    onClick={() => onEdit(item)}
+                    className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                    aria-label="Edit"
+                  >
                     <Edit className="w-4 h-4" />
                   </button>
-                  <button onClick={() => onDelete(item)} className="p-1.5 text-red-500 hover:text-red-700 dark:hover:text-red-400 transition-colors" aria-label="Delete" >
+                  <button
+                    onClick={() => onDelete(item)}
+                    className="p-1.5 text-red-500 hover:text-red-700 dark:hover:text-red-400 transition-colors"
+                    aria-label="Delete"
+                  >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -92,7 +115,7 @@ const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
           </p>
         )}
       </div>
-      
+
       {/* ✨ НОВИЙ БЛОК: Кнопка "Показати ще" */}
       {filteredData.length > visibleCount && (
         <div className="p-4 border-t border-slate-200 dark:border-slate-800 mt-auto">
@@ -122,8 +145,16 @@ const MetaDataManagement = () => {
   const [newItemName, setNewItemName] = useState('');
 
   const dataMap = {
-    'Content Types': { data: contentTypes, setData: setContentTypes, tableName: 'content_types' },
-    Categories: { data: categories, setData: setCategories, tableName: 'categories' },
+    'Content Types': {
+      data: contentTypes,
+      setData: setContentTypes,
+      tableName: 'content_types',
+    },
+    Categories: {
+      data: categories,
+      setData: setCategories,
+      tableName: 'categories',
+    },
     Crafts: { data: crafts, setData: setCrafts, tableName: 'crafts' },
   };
 
@@ -132,9 +163,18 @@ const MetaDataManagement = () => {
       setLoading(true);
       try {
         const [typesRes, categoriesRes, craftsRes] = await Promise.all([
-          supabase.from('content_types').select('*').order('created_at', { ascending: false }),
-          supabase.from('categories').select('*').order('created_at', { ascending: false }),
-          supabase.from('crafts').select('*').order('created_at', { ascending: false }),
+          supabase
+            .from('content_types')
+            .select('*')
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('categories')
+            .select('*')
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('crafts')
+            .select('*')
+            .order('created_at', { ascending: false }),
         ]);
 
         if (typesRes.error) throw typesRes.error;
@@ -144,9 +184,8 @@ const MetaDataManagement = () => {
         setContentTypes(typesRes.data);
         setCategories(categoriesRes.data);
         setCrafts(craftsRes.data);
-
       } catch (error) {
-        console.error("Error fetching metadata:", error);
+        console.error('Error fetching metadata:', error);
       } finally {
         setLoading(false);
       }
@@ -168,9 +207,22 @@ const MetaDataManagement = () => {
     setIsEditModalOpen(true);
   };
 
-  const closeEditModal = () => { setIsEditModalOpen(false); setCurrentTable(null); setCurrentItem(null); setNewItemName(''); };
-  const openDeleteModal = (table, item) => { setCurrentTable(table); setCurrentItem(item); setIsDeleteModalOpen(true); };
-  const closeDeleteModal = () => { setIsDeleteModalOpen(false); setCurrentTable(null); setCurrentItem(null); };
+  const closeEditModal = () => {
+    setIsEditModalOpen(false);
+    setCurrentTable(null);
+    setCurrentItem(null);
+    setNewItemName('');
+  };
+  const openDeleteModal = (table, item) => {
+    setCurrentTable(table);
+    setCurrentItem(item);
+    setIsDeleteModalOpen(true);
+  };
+  const closeDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setCurrentTable(null);
+    setCurrentItem(null);
+  };
 
   const handleSave = async () => {
     if (!newItemName.trim() || !currentTable) return;
@@ -178,13 +230,24 @@ const MetaDataManagement = () => {
     const trimmedName = newItemName.trim();
     try {
       if (modalMode === 'add') {
-        const { data, error } = await supabase.from(tableName).insert({ name: trimmedName }).select().single();
+        const { data, error } = await supabase
+          .from(tableName)
+          .insert({ name: trimmedName })
+          .select()
+          .single();
         if (error) throw error;
         setData((prevData) => [data, ...prevData]);
       } else if (modalMode === 'edit' && currentItem) {
-        const { data, error } = await supabase.from(tableName).update({ name: trimmedName }).eq('id', currentItem.id).select().single();
+        const { data, error } = await supabase
+          .from(tableName)
+          .update({ name: trimmedName })
+          .eq('id', currentItem.id)
+          .select()
+          .single();
         if (error) throw error;
-        setData((prevData) => prevData.map((item) => (item.id === currentItem.id ? data : item)));
+        setData((prevData) =>
+          prevData.map((item) => (item.id === currentItem.id ? data : item))
+        );
       }
       closeEditModal();
     } catch (error) {
@@ -197,18 +260,23 @@ const MetaDataManagement = () => {
     if (!currentItem || !currentTable) return;
     const { setData, tableName } = dataMap[currentTable];
     try {
-      const { error } = await supabase.from(tableName).delete().eq('id', currentItem.id);
+      const { error } = await supabase
+        .from(tableName)
+        .delete()
+        .eq('id', currentItem.id);
       if (error) throw error;
-      setData((prevData) => prevData.filter((item) => item.id !== currentItem.id));
+      setData((prevData) =>
+        prevData.filter((item) => item.id !== currentItem.id)
+      );
       closeDeleteModal();
-    } catch (error)
-    {
+    } catch (error) {
       console.error('Error deleting item:', error);
       alert(`Error: ${error.message}`);
     }
   };
-  
-  const inputClasses = 'flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500';
+
+  const inputClasses =
+    'flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500';
 
   return (
     <div className="w-full p-4 sm:p-6 lg:p-8">
@@ -220,7 +288,9 @@ const MetaDataManagement = () => {
       </p>
 
       {loading ? (
-        <p className="text-center text-slate-500 dark:text-slate-400">Loading metadata...</p>
+        <p className="text-center text-slate-500 dark:text-slate-400">
+          Loading metadata...
+        </p>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:items-start">
           <DataTable
@@ -235,7 +305,7 @@ const MetaDataManagement = () => {
             data={categories}
             onAdd={() => openEditModal('Categories', 'add')}
             onEdit={(item) => openEditModal('Categories', 'edit', item)}
-            onDelete={(item) => openDeleteModal('Categories',item)}
+            onDelete={(item) => openDeleteModal('Categories', item)}
           />
           <DataTable
             title="Crafts"
@@ -257,23 +327,43 @@ const MetaDataManagement = () => {
                   {modalMode === 'add' ? 'Add' : 'Edit'}{' '}
                   {currentTable?.replace(/s$/, '')}
                 </h3>
-                <button onClick={closeEditModal} className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 -mt-1 -mr-1">
+                <button
+                  onClick={closeEditModal}
+                  className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 -mt-1 -mr-1"
+                >
                   <X className="h-5 w-5 text-slate-500" />
                 </button>
               </div>
 
               <div>
-                <label htmlFor="itemName" className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                <label
+                  htmlFor="itemName"
+                  className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300"
+                >
                   Name
                 </label>
-                <input id="itemName" type="text" value={newItemName} onChange={(e) => setNewItemName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSave()} className={inputClasses} autoFocus />
+                <input
+                  id="itemName"
+                  type="text"
+                  value={newItemName}
+                  onChange={(e) => setNewItemName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+                  className={inputClasses}
+                  autoFocus
+                />
               </div>
 
               <div className="mt-6 flex justify-end gap-3">
-                <button onClick={closeEditModal} className="px-4 py-2 text-sm font-semibold rounded-md border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700">
+                <button
+                  onClick={closeEditModal}
+                  className="px-4 py-2 text-sm font-semibold rounded-md border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700"
+                >
                   Cancel
                 </button>
-                <button onClick={handleSave} className="px-4 py-2 text-sm font-semibold rounded-md bg-slate-900 text-white dark:bg-slate-200 dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-300">
+                <button
+                  onClick={handleSave}
+                  className="px-4 py-2 text-sm font-semibold rounded-md bg-slate-900 text-white dark:bg-slate-200 dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-300"
+                >
                   Save
                 </button>
               </div>
@@ -288,7 +378,10 @@ const MetaDataManagement = () => {
             <div className="p-6">
               <div className="flex items-start">
                 <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/40 sm:mx-0 sm:h-10 sm:w-10">
-                  <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" aria-hidden="true" />
+                  <AlertTriangle
+                    className="h-6 w-6 text-red-600 dark:text-red-400"
+                    aria-hidden="true"
+                  />
                 </div>
                 <div className="ml-4 text-left">
                   <h3 className="text-lg leading-6 font-medium text-slate-900 dark:text-slate-50">
@@ -306,10 +399,16 @@ const MetaDataManagement = () => {
                 </div>
               </div>
               <div className="mt-6 flex justify-end gap-3">
-                <button onClick={closeDeleteModal} className="px-4 py-2 text-sm font-semibold rounded-md border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700">
+                <button
+                  onClick={closeDeleteModal}
+                  className="px-4 py-2 text-sm font-semibold rounded-md border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700"
+                >
                   Cancel
                 </button>
-                <button onClick={handleDeleteConfirm} className="px-4 py-2 text-sm font-semibold rounded-md bg-red-600 text-white hover:bg-red-700">
+                <button
+                  onClick={handleDeleteConfirm}
+                  className="px-4 py-2 text-sm font-semibold rounded-md bg-red-600 text-white hover:bg-red-700"
+                >
                   Delete
                 </button>
               </div>

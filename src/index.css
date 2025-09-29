@@ -5,9 +5,6 @@
 @tailwind components;
 @tailwind utilities;
 
-
-
-
 @font-face {
   font-family: 'helvetica';
   src: url('./assets/fonts/HelveticaNeueRoman.otf') format('opentype');
@@ -77,13 +74,10 @@ body {
   font-family: 'helvetica', Arial, sans-serif;
 }
 
-
 .footer-column a,
 .form-group input {
   font-family: 'helvetica', Arial, sans-serif;
 }
-
-
 
 .scroll-snap-enabled {
   @apply snap-y snap-proximity;

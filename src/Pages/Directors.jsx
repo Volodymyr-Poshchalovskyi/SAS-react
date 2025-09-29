@@ -16,7 +16,8 @@ const MotionLink = motion(Link);
 
 export default function Directors() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } = useAnimation();
+  const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } =
+    useAnimation();
   const [videoUrls, setVideoUrls] = useState({});
 
   useLayoutEffect(() => {
@@ -32,13 +33,16 @@ export default function Directors() {
 
   useEffect(() => {
     const fetchVideoUrls = async () => {
-      const gcsPaths = directorsData.map(director => director.videos[0].src);
+      const gcsPaths = directorsData.map((director) => director.videos[0].src);
       try {
-        const response = await fetch('http://localhost:3001/generate-read-urls', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ gcsPaths }),
-        });
+        const response = await fetch(
+          'http://localhost:3001/generate-read-urls',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ gcsPaths }),
+          }
+        );
         if (!response.ok) throw new Error('Failed to fetch video URLs');
         const urlsMap = await response.json();
         setVideoUrls(urlsMap);
@@ -51,7 +55,9 @@ export default function Directors() {
 
   useEffect(() => {
     document.body.style.overflow = isPreloaderActive ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [isPreloaderActive]);
 
   useEffect(() => {
@@ -69,8 +75,10 @@ export default function Directors() {
     };
   }, [isPreloaderActive]);
 
-  const bannerTitle = 'VISIONARY STORYTELLERS. COMMERCIAL REBELS. GLOBAL CREATORS.';
-  const bannerDescription = 'From award-winning filmmakers to fashion-forward image makers, our directors and hybrid talent deliver world-class content across commercials, music videos, branded series, and global campaigns.';
+  const bannerTitle =
+    'VISIONARY STORYTELLERS. COMMERCIAL REBELS. GLOBAL CREATORS.';
+  const bannerDescription =
+    'From award-winning filmmakers to fashion-forward image makers, our directors and hybrid talent deliver world-class content across commercials, music videos, branded series, and global campaigns.';
 
   return (
     <div className="bg-black">
@@ -85,16 +93,25 @@ export default function Directors() {
       </AnimatePresence>
 
       {!isPreloaderActive && (
-        <ScrollProgressBar currentIndex={currentIndex} totalItems={directorsData.length} />
+        <ScrollProgressBar
+          currentIndex={currentIndex}
+          totalItems={directorsData.length}
+        />
       )}
 
       {directorsData.map((director, index) => {
         const gcsPath = director.videos[0].src;
         const signedUrl = videoUrls[gcsPath];
         return (
-          <div key={director.id} className="relative w-full h-screen snap-start">
+          <div
+            key={director.id}
+            className="relative w-full h-screen snap-start"
+          >
             {signedUrl && (
-              <VideoContainer videoSrc={signedUrl} shouldPlay={!isPreloaderActive && currentIndex === index} />
+              <VideoContainer
+                videoSrc={signedUrl}
+                shouldPlay={!isPreloaderActive && currentIndex === index}
+              />
             )}
             <div className="absolute top-[80%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full text-center">
               <MotionLink
@@ -102,7 +119,9 @@ export default function Directors() {
                 className="text-white font-chanel font-normal uppercase text-4xl sm:text-6xl md:text-[5rem] tracking-[-0.3rem] md:tracking-[-0.6rem] transition-opacity duration-500 hover:opacity-50"
                 variants={nameAnimation}
                 initial="hidden"
-                animate={index === 0 && !isPreloaderActive ? 'visible' : undefined}
+                animate={
+                  index === 0 && !isPreloaderActive ? 'visible' : undefined
+                }
                 whileInView={index > 0 ? 'visible' : undefined}
                 viewport={{ once: true, amount: 0.5 }}
               >

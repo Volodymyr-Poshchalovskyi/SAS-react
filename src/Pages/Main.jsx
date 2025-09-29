@@ -6,8 +6,9 @@ import VideoContainer from '../Components/VideoContainer';
 
 function Main() {
   // 1. Використовуємо шлях до файлу в GCS
-  const GCS_VIDEO_PATH = 'front-end/00-Main Page/SHOWREEL SINNERS AND SAINTS 2024.mp4';
-  
+  const GCS_VIDEO_PATH =
+    'front-end/00-Main Page/SHOWREEL SINNERS AND SAINTS 2024.mp4';
+
   // 2. Стан для збереження URL, статусу завантаження та помилок
   const [videoUrl, setVideoUrl] = React.useState('');
   const [error, setError] = React.useState(null);
@@ -35,11 +36,14 @@ function Main() {
   React.useEffect(() => {
     const fetchVideoUrl = async () => {
       try {
-        const response = await fetch('http://localhost:3001/generate-read-urls', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ gcsPaths: [GCS_VIDEO_PATH] }),
-        });
+        const response = await fetch(
+          'http://localhost:3001/generate-read-urls',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ gcsPaths: [GCS_VIDEO_PATH] }),
+          }
+        );
         if (!response.ok) {
           throw new Error('Failed to get video URL from server.');
         }
@@ -51,7 +55,7 @@ function Main() {
           throw new Error('Video URL not found in the server response.');
         }
       } catch (err) {
-        console.error("Error fetching main page video:", err);
+        console.error('Error fetching main page video:', err);
         setError(err.message);
       }
     };
@@ -88,12 +92,14 @@ function Main() {
     <div className="relative w-full h-screen text-white" ref={videoSectionRef}>
       {/* 4. Передаємо динамічно завантажений URL в VideoContainer */}
       {/* Відображаємо відео, тільки якщо URL успішно отримано */}
-      {videoUrl && <VideoContainer videoSrc={videoUrl} shouldPlay={shouldPlayVideo} />}
-      
+      {videoUrl && (
+        <VideoContainer videoSrc={videoUrl} shouldPlay={shouldPlayVideo} />
+      )}
+
       {/* Відображаємо помилку, якщо вона виникла */}
       {error && (
         <div className="absolute inset-0 flex items-center justify-center bg-black z-20">
-            <p className="text-red-500">Could not load video: {error}</p>
+          <p className="text-red-500">Could not load video: {error}</p>
         </div>
       )}
 

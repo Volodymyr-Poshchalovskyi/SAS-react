@@ -4,14 +4,16 @@ import { photographersData } from '../Data/PhotographersData';
 
 export default function PhotographerPage() {
   const { photographerSlug } = useParams();
-  
-  const photographer = photographersData.find((p) => p.slug === photographerSlug);
+
+  const photographer = photographersData.find(
+    (p) => p.slug === photographerSlug
+  );
 
   const galleryImages = Array(8).fill(photographer?.coverImage);
-  
+
   const sliderRef = useRef(null);
   const collageSectionRef = useRef(null);
-  
+
   const [scrollY, setScrollY] = useState(0);
 
   useEffect(() => {
@@ -28,7 +30,7 @@ export default function PhotographerPage() {
     window.scrollTo(0, 0);
   }, []);
 
- const collageImagesData = [
+  const collageImagesData = [
     { width: 411, height: 732, left: 120, top: 2256 },
     { width: 363, height: 510, left: 710, top: 2271 },
     { width: 363, height: 491, left: 935, top: 2494 }, // 3-й елемент
@@ -43,7 +45,7 @@ export default function PhotographerPage() {
   const topOffset = 2150;
 
   const containerHeight = Math.max(
-    ...collageImagesData.map(img => (img.top - topOffset) + img.height)
+    ...collageImagesData.map((img) => img.top - topOffset + img.height)
   );
 
   const handlePrev = () => {
@@ -74,15 +76,20 @@ export default function PhotographerPage() {
           <div className="absolute left-0 h-full flex items-center pl-12 md:pl-32">
             <Link
               to="/photographers"
-              className="flex items-center justify-center w-16 h-16 text-black rounded-full transition-colors group" 
+              className="flex items-center justify-center w-16 h-16 text-black rounded-full transition-colors group"
             >
-              <svg 
-                  className="h-12 w-12 transition-colors "
-                  fill="none" 
-                  viewBox="0 0 24 24" 
-                  stroke="currentColor"
+              <svg
+                className="h-12 w-12 transition-colors "
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
               >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
               </svg>
             </Link>
           </div>
@@ -100,7 +107,7 @@ export default function PhotographerPage() {
           className="w-full h-full object-cover"
         />
       </section>
-      
+
       {/* Секція: Заголовок та опис 1 */}
       <section className="bg-white py-20">
         <div className="max-w-2xl mx-auto text-center px-4">
@@ -108,7 +115,16 @@ export default function PhotographerPage() {
             Lorem Ipsum
           </h2>
           <p className="text-[12px] leading-relaxed text-gray-700 text-justify">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua, et quidem faciunt, ut aut reiciendis voluptatibus maiores alias consequatur aut perferendis doloribus asperiores repellat. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus. Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet ut et voluptates repudiandae sint et molestiae non recusandae.
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+            eiusmod tempor incididunt ut labore et dolore magna aliqua, et
+            quidem faciunt, ut aut reiciendis voluptatibus maiores alias
+            consequatur aut perferendis doloribus asperiores repellat. Nam
+            libero tempore, cum soluta nobis est eligendi optio cumque nihil
+            impedit quo minus id quod maxime placeat facere possimus, omnis
+            voluptas assumenda est, omnis dolor repellendus. Temporibus autem
+            quibusdam et aut officiis debitis aut rerum necessitatibus saepe
+            eveniet ut et voluptates repudiandae sint et molestiae non
+            recusandae.
           </p>
         </div>
       </section>
@@ -120,8 +136,18 @@ export default function PhotographerPage() {
           className="absolute left-5 top-1/2 -translate-y-1/2 z-10 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300"
           aria-label="Previous image"
         >
-          <svg className="w-12 h-12 drop-shadow-lg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          <svg
+            className="w-12 h-12 drop-shadow-lg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
           </svg>
         </button>
         <button
@@ -129,16 +155,26 @@ export default function PhotographerPage() {
           className="absolute right-5 top-1/2 -translate-y-1/2 z-10 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300"
           aria-label="Next image"
         >
-          <svg className="w-12 h-12 drop-shadow-lg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          <svg
+            className="w-12 h-12 drop-shadow-lg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 5l7 7-7 7"
+            />
           </svg>
         </button>
-        <div 
+        <div
           ref={sliderRef}
           className="flex flex-row gap-24 h-[100vh] overflow-x-auto scrollbar-hide"
         >
           {galleryImages.map((imageSrc, index) => (
-            <div 
+            <div
               key={index}
               className={`flex-shrink-0 ${
                 index % 3 === 0 ? 'md:w-[39.5%]' : 'md:w-[35%]'
@@ -153,26 +189,27 @@ export default function PhotographerPage() {
           ))}
         </div>
       </section>
-      
+
       {/* Секція: Колаж з зображень */}
-      <section 
+      <section
         ref={collageSectionRef}
         className="w-full bg-white py-[50px] flex justify-center"
       >
-        <div 
-          className="relative" 
-          style={{ 
+        <div
+          className="relative"
+          style={{
             width: '1440px',
-            height: `${containerHeight}px` 
+            height: `${containerHeight}px`,
           }}
         >
           {collageImagesData.map((img, index) => {
             if (index === 2 || index === 6) {
               const parallaxStrength = 0.2;
               let backgroundOffsetY = 0;
-              
+
               if (collageSectionRef.current) {
-                const elementTop = collageSectionRef.current.offsetTop + (img.top - topOffset);
+                const elementTop =
+                  collageSectionRef.current.offsetTop + (img.top - topOffset);
                 const scrollRelativeToElement = scrollY - elementTop;
                 backgroundOffsetY = scrollRelativeToElement * parallaxStrength;
               }
@@ -204,7 +241,7 @@ export default function PhotographerPage() {
                   height: `${img.height}px`,
                   left: `${img.left}px`,
                   top: `${img.top - topOffset}px`,
-                  zIndex: index === 7 ? 1 : 0, 
+                  zIndex: index === 7 ? 1 : 0,
                 }}
               >
                 <img
@@ -225,7 +262,13 @@ export default function PhotographerPage() {
             Vestibulum Ante
           </h2>
           <p className="text-[12px] leading-relaxed text-gray-700 text-justify">
-            Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit.
+            Sed ut perspiciatis unde omnis iste natus error sit voluptatem
+            accusantium doloremque laudantium, totam rem aperiam, eaque ipsa
+            quae ab illo inventore veritatis et quasi architecto beatae vitae
+            dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit
+            aspernatur aut odit aut fugit, sed quia consequuntur magni dolores
+            eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est,
+            qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit.
           </p>
         </div>
       </section>

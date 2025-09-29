@@ -39,11 +39,23 @@ const generateSmoothPath = (data, getX, getY) => {
 };
 
 const formatDate = (dateString) => {
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
   const date = new Date(dateString);
   return `${date.getDate()} ${months[date.getMonth()]}`;
 };
-
 
 // --- Component ---
 
@@ -61,7 +73,11 @@ const WeeklyViewsChart = ({ data = [], isLoading }) => {
           No data available for the selected period.
         </div>
       ) : (
-        <ChartContent data={data} hoveredIndex={hoveredIndex} setHoveredIndex={setHoveredIndex} />
+        <ChartContent
+          data={data}
+          hoveredIndex={hoveredIndex}
+          setHoveredIndex={setHoveredIndex}
+        />
       )}
     </div>
   );
@@ -84,50 +100,62 @@ const ChartContent = ({ data, hoveredIndex, setHoveredIndex }) => {
     const evenlySpacedPoints = [];
     const step = (data.length - 1) / (desiredPoints - 1);
     for (let i = 0; i < desiredPoints; i++) {
-        const index = Math.round(i * step);
-        evenlySpacedPoints.push(data[index]);
+      const index = Math.round(i * step);
+      evenlySpacedPoints.push(data[index]);
     }
 
     // Крок 2: Знаходимо абсолютний пік за весь період
-    const overallPeak = data.reduce((max, current) => (current.views > max.views ? current : max), data[0]);
+    const overallPeak = data.reduce(
+      (max, current) => (current.views > max.views ? current : max),
+      data[0]
+    );
 
     // Крок 3: Перевіряємо, чи є пік серед кандидатів. Якщо ні - додаємо його.
-    const isPeakIncluded = evenlySpacedPoints.some(p => p.date === overallPeak.date);
-    
+    const isPeakIncluded = evenlySpacedPoints.some(
+      (p) => p.date === overallPeak.date
+    );
+
     if (!isPeakIncluded && overallPeak.views > 0) {
-        // Знаходимо індекс піку в оригінальному масиві
-        const peakIndexInData = data.findIndex(p => p.date === overallPeak.date);
+      // Знаходимо індекс піку в оригінальному масиві
+      const peakIndexInData = data.findIndex(
+        (p) => p.date === overallPeak.date
+      );
 
-        // Знаходимо найближчого "сусіда" серед кандидатів, щоб його замінити
-        let closestPointIndex = -1;
-        let minDistance = Infinity;
+      // Знаходимо найближчого "сусіда" серед кандидатів, щоб його замінити
+      let closestPointIndex = -1;
+      let minDistance = Infinity;
 
-        evenlySpacedPoints.forEach((point, index) => {
-            const pointIndexInData = data.findIndex(p => p.date === point.date);
-            const distance = Math.abs(peakIndexInData - pointIndexInData);
-            if (distance < minDistance) {
-                minDistance = distance;
-                closestPointIndex = index;
-            }
-        });
-        
-        // Замінюємо найближчого сусіда на наш пік
-        if (closestPointIndex !== -1) {
-             evenlySpacedPoints[closestPointIndex] = overallPeak;
+      evenlySpacedPoints.forEach((point, index) => {
+        const pointIndexInData = data.findIndex((p) => p.date === point.date);
+        const distance = Math.abs(peakIndexInData - pointIndexInData);
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestPointIndex = index;
         }
+      });
+
+      // Замінюємо найближчого сусіда на наш пік
+      if (closestPointIndex !== -1) {
+        evenlySpacedPoints[closestPointIndex] = overallPeak;
+      }
     }
-    
+
     // Сортуємо фінальний масив за датою, щоб лінія графіка була коректною
-    chartPoints = evenlySpacedPoints.sort((a, b) => new Date(a.date) - new Date(b.date));
+    chartPoints = evenlySpacedPoints.sort(
+      (a, b) => new Date(a.date) - new Date(b.date)
+    );
   }
-  
+
   const maxViews = Math.max(...chartPoints.map((d) => d.views), 0);
   const niceMaxViews = getNiceUpperBound(maxViews);
   const minViews = 0;
   const viewRange = niceMaxViews - minViews;
 
   const getX = (index) =>
-    ((width - paddingX * 2) / (chartPoints.length > 1 ? chartPoints.length - 1 : 1)) * index + paddingX;
+    ((width - paddingX * 2) /
+      (chartPoints.length > 1 ? chartPoints.length - 1 : 1)) *
+      index +
+    paddingX;
 
   const getY = (views) =>
     height -
@@ -150,7 +178,7 @@ const ChartContent = ({ data, hoveredIndex, setHoveredIndex }) => {
       onMouseLeave={() => setHoveredIndex(null)}
       className="text-xs"
     >
-        {/* ... решта SVG-коду без змін (defs, осі, тултіпи і т.д.) ... */}
+      {/* ... решта SVG-коду без змін (defs, осі, тултіпи і т.д.) ... */}
       <defs>
         <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="hsl(var(--p))" stopOpacity={0.4} />
@@ -170,7 +198,13 @@ const ChartContent = ({ data, hoveredIndex, setHoveredIndex }) => {
               className="opacity-20"
               strokeWidth="1"
             />
-            <text x={paddingX - 8} y={getY(labelValue)} textAnchor="end" dominantBaseline="middle" fill="currentColor">
+            <text
+              x={paddingX - 8}
+              y={getY(labelValue)}
+              textAnchor="end"
+              dominantBaseline="middle"
+              fill="currentColor"
+            >
               {formatNumber(labelValue)}
             </text>
           </g>
@@ -184,18 +218,18 @@ const ChartContent = ({ data, hoveredIndex, setHoveredIndex }) => {
 
       <g className="text-primary">
         {chartPoints.map((point, index) => (
-            <circle
-              key={point.date} // Використовуємо дату як унікальний ключ
-              cx={getX(index)}
-              cy={getY(point.views)}
-              r="4"
-              fill="transparent"
-              stroke="currentColor"
-              strokeWidth="2"
-            />
+          <circle
+            key={point.date} // Використовуємо дату як унікальний ключ
+            cx={getX(index)}
+            cy={getY(point.views)}
+            r="4"
+            fill="transparent"
+            stroke="currentColor"
+            strokeWidth="2"
+          />
         ))}
       </g>
-      
+
       <g>
         {chartPoints.map((point, index) => (
           <rect
@@ -210,44 +244,57 @@ const ChartContent = ({ data, hoveredIndex, setHoveredIndex }) => {
         ))}
       </g>
 
-      <g className="text-base-content/60 cursor-default select-none" textAnchor="middle">
+      <g
+        className="text-base-content/60 cursor-default select-none"
+        textAnchor="middle"
+      >
         {chartPoints.map((point, index) => (
-            <text key={point.date} x={getX(index)} y={height - 5} fill="currentColor">
-              {formatDate(point.date)}
-            </text>
+          <text
+            key={point.date}
+            x={getX(index)}
+            y={height - 5}
+            fill="currentColor"
+          >
+            {formatDate(point.date)}
+          </text>
         ))}
       </g>
 
-      {hoveredIndex !== null && chartPoints[hoveredIndex] && (() => {
-        const point = chartPoints[hoveredIndex];
-        const x = getX(hoveredIndex);
-        const y = getY(point.views);
-        const viewsText = `${point.views.toLocaleString('en-US')} views`;
-        const textWidth = viewsText.length * 5 + 24;
+      {hoveredIndex !== null &&
+        chartPoints[hoveredIndex] &&
+        (() => {
+          const point = chartPoints[hoveredIndex];
+          const x = getX(hoveredIndex);
+          const y = getY(point.views);
+          const viewsText = `${point.views.toLocaleString('en-US')} views`;
+          const textWidth = viewsText.length * 5 + 24;
 
-        return (
-          <g transform={`translate(${x}, ${y - 12})`} style={{ pointerEvents: 'none' }}>
-            <rect
-              x={-textWidth / 2}
-              y={-14}
-              width={textWidth}
-              height={22}
-              rx="5"
-              className="fill-gray-900 dark:fill-gray-800" 
-            />
-            <text
-              x="0"
-              y="0"
-              textAnchor="middle"
-              dominantBaseline="middle"
-              fontSize="11"
-              className="font-semibold fill-white"
+          return (
+            <g
+              transform={`translate(${x}, ${y - 12})`}
+              style={{ pointerEvents: 'none' }}
             >
-              {viewsText}
-            </text>
-          </g>
-        );
-      })()}
+              <rect
+                x={-textWidth / 2}
+                y={-14}
+                width={textWidth}
+                height={22}
+                rx="5"
+                className="fill-gray-900 dark:fill-gray-800"
+              />
+              <text
+                x="0"
+                y="0"
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fontSize="11"
+                className="font-semibold fill-white"
+              >
+                {viewsText}
+              </text>
+            </g>
+          );
+        })()}
     </svg>
   );
 };

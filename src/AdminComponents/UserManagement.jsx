@@ -2,7 +2,13 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { Loader2, CheckCircle, AlertTriangle, ArrowUp, ArrowDown } from 'lucide-react';
+import {
+  Loader2,
+  CheckCircle,
+  AlertTriangle,
+  ArrowUp,
+  ArrowDown,
+} from 'lucide-react';
 
 // =======================
 // Modal Component (No changes)
@@ -28,7 +34,7 @@ const Modal = ({
         onClose();
       }
     };
-    
+
     if (isOpen) {
       setActionStatus('idle');
       setErrorMessage('');
@@ -113,12 +119,12 @@ const Modal = ({
             <div className="mt-4 text-slate-600 dark:text-slate-300">
               {children}
             </div>
-            
+
             {actionStatus === 'error' && (
-                <div className="mt-4 flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-md">
-                    <AlertTriangle className="h-5 w-5 flex-shrink-0" />
-                    <span>{errorMessage}</span>
-                </div>
+              <div className="mt-4 flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-md">
+                <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
             )}
 
             <div className="mt-6 flex justify-end gap-3">
@@ -151,7 +157,6 @@ const Modal = ({
     </div>
   );
 };
-
 
 // =======================
 // Status Badge Component (No changes)
@@ -220,7 +225,10 @@ const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [visibleCount, setVisibleCount] = useState(8);
   const [statusFilter, setStatusFilter] = useState('all');
-  const [sortConfig, setSortConfig] = useState({ key: 'registered_at', direction: 'desc' });
+  const [sortConfig, setSortConfig] = useState({
+    key: 'registered_at',
+    direction: 'desc',
+  });
 
   const [modalConfig, setModalConfig] = useState({
     isOpen: false,
@@ -269,23 +277,25 @@ const UserManagement = () => {
 
     // 1. Фільтрація за статусом
     if (statusFilter !== 'all') {
-      sortableUsers = sortableUsers.filter(user => user.state === statusFilter);
+      sortableUsers = sortableUsers.filter(
+        (user) => user.state === statusFilter
+      );
     }
-    
+
     // 2. Фільтрація за пошуковим терміном
     if (searchTerm) {
-        const term = searchTerm.toLowerCase();
-        sortableUsers = sortableUsers.filter(
-            (user) =>
-            user.firstName.toLowerCase().includes(term) ||
-            user.lastName.toLowerCase().includes(term) ||
-            user.email.toLowerCase().includes(term) ||
-            (user.phone && user.phone.toLowerCase().includes(term)) ||
-            (user.location && user.location.toLowerCase().includes(term)) ||
-            user.state.toLowerCase().includes(term)
-        );
+      const term = searchTerm.toLowerCase();
+      sortableUsers = sortableUsers.filter(
+        (user) =>
+          user.firstName.toLowerCase().includes(term) ||
+          user.lastName.toLowerCase().includes(term) ||
+          user.email.toLowerCase().includes(term) ||
+          (user.phone && user.phone.toLowerCase().includes(term)) ||
+          (user.location && user.location.toLowerCase().includes(term)) ||
+          user.state.toLowerCase().includes(term)
+      );
     }
-    
+
     // 3. Сортування
     if (sortConfig.key) {
       sortableUsers.sort((a, b) => {
@@ -320,7 +330,7 @@ const UserManagement = () => {
         throw err;
       }
     };
-    
+
     setModalConfig({
       isOpen: true,
       title: `Confirm ${action.charAt(0).toUpperCase() + action.slice(1)}`,
@@ -332,18 +342,18 @@ const UserManagement = () => {
         ? 'bg-red-600 hover:bg-red-700 focus-visible:ring-red-500'
         : 'bg-green-600 hover:bg-green-700 focus-visible:ring-green-500',
       successTitle: `User ${action}d`,
-      successMessage: `User "${userToUpdate.firstName} ${userToUpdate.lastName}" has been successfully ${action}d.`
+      successMessage: `User "${userToUpdate.firstName} ${userToUpdate.lastName}" has been successfully ${action}d.`,
     });
   };
 
   const handleShowMore = () => {
     setVisibleCount((prevCount) => prevCount + 5);
   };
-  
+
   const handleSort = (key) => {
-    setSortConfig(prevConfig => ({
-        key,
-        direction: prevConfig.direction === 'asc' ? 'desc' : 'asc'
+    setSortConfig((prevConfig) => ({
+      key,
+      direction: prevConfig.direction === 'asc' ? 'desc' : 'asc',
     }));
   };
 
@@ -396,17 +406,17 @@ const UserManagement = () => {
           User Management
         </h1>
         <div className="flex items-center gap-4 flex-wrap">
-           <div className="w-full sm:w-48">
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className={inputClasses}
-              >
-                <option value="all">All Statuses</option>
-                <option value="active">Active</option>
-                <option value="deactivated">Deactivated</option>
-                <option value="pending">Pending</option>
-              </select>
+          <div className="w-full sm:w-48">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className={inputClasses}
+            >
+              <option value="all">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="deactivated">Deactivated</option>
+              <option value="pending">Pending</option>
+            </select>
           </div>
           <div className="w-full sm:w-72">
             <input
@@ -435,15 +445,23 @@ const UserManagement = () => {
               <thead className="text-slate-500 dark:text-slate-400">
                 <tr className="border-b border-slate-200 dark:border-slate-800">
                   <th className="p-4 font-medium text-left">User</th>
-                  <th className="p-4 font-medium text-left">Contact Information</th>
+                  <th className="p-4 font-medium text-left">
+                    Contact Information
+                  </th>
                   <th className="p-4 font-medium text-left">Location</th>
                   {/* ✨ ЗМІНА: Порядок колонок змінено */}
                   <th className="p-4 font-medium text-left">
-                    <button onClick={() => handleSort('registered_at')} className="flex items-center gap-1 hover:text-slate-800 dark:hover:text-slate-200">
-                        Registration Date
-                        {sortConfig.key === 'registered_at' && (
-                            sortConfig.direction === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />
-                        )}
+                    <button
+                      onClick={() => handleSort('registered_at')}
+                      className="flex items-center gap-1 hover:text-slate-800 dark:hover:text-slate-200"
+                    >
+                      Registration Date
+                      {sortConfig.key === 'registered_at' &&
+                        (sortConfig.direction === 'asc' ? (
+                          <ArrowUp size={14} />
+                        ) : (
+                          <ArrowDown size={14} />
+                        ))}
                     </button>
                   </th>
                   <th className="p-4 font-medium text-center">Status</th>
@@ -463,7 +481,9 @@ const UserManagement = () => {
                       />
                     </td>
                     <td className="p-4 text-left">
-                      <div><Highlight text={user.email} highlight={searchTerm} /></div>
+                      <div>
+                        <Highlight text={user.email} highlight={searchTerm} />
+                      </div>
                       <div className="text-slate-500 dark:text-slate-400">
                         <Highlight text={user.phone} highlight={searchTerm} />
                       </div>
@@ -481,7 +501,9 @@ const UserManagement = () => {
                     <td className="p-4 text-center">
                       {user.state === 'active' ? (
                         <button
-                          onClick={() => handleUpdateStatus(user.id, 'deactivated')}
+                          onClick={() =>
+                            handleUpdateStatus(user.id, 'deactivated')
+                          }
                           className={`${baseButtonClasses} ${deactivateButtonClasses}`}
                         >
                           Deactivate
@@ -507,7 +529,8 @@ const UserManagement = () => {
                 onClick={handleShowMore}
                 className="py-2 px-4 text-sm font-medium rounded-md border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
-                Show More ({Math.min(5, filteredAndSortedUsers.length - visibleCount)}{' '}
+                Show More (
+                {Math.min(5, filteredAndSortedUsers.length - visibleCount)}{' '}
                 more)
               </button>
             </div>

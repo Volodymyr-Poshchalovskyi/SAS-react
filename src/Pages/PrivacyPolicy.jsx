@@ -19,7 +19,8 @@ const policyData = [
     ],
   },
   {
-    title: '2. Personal Information we collect and how your Personal Information is collected',
+    title:
+      '2. Personal Information we collect and how your Personal Information is collected',
     content: [
       'You may enter the Website and browse its contents without submitting any Personal Information. However, if you communicate with us we may at that time require that you provide Personal Information. Although our Website does not collect Personal Information about individuals, we may collect aggregated information regarding users of the Website that does not identify individual users.',
       'We may also collect technical information which includes information about your computer (for example your internet protocol (IP) address, your login data, browser type and version, time zone setting and location, browser plug-in types and versions, operating system and platform, and other technology on the devices you use to access the Website).',
@@ -38,20 +39,48 @@ const policyData = [
           'We have your consent.',
         ],
       },
-      { type: 'paragraph', text: 'If we contact you or provide any materials or information to you, you always will be given the opportunity to unsubscribe from further emails in any promotional messages we send you.' },
-      { type: 'paragraph', text: 'We will not disclose, rent, sell or share any Personal Information to unaffiliated third parties for marketing purposes.' },
-      { type: 'paragraph', text: 'We contract with companies or individuals to provide certain services including email and hosting services, software development, career or personnel services, etc. We call them our “Service Providers.” We may share your Personal Information with Service Providers solely as appropriate for them to perform their functions.' },
-      { type: 'paragraph', text: 'We may share your Personal Information with analytics providers, such as Google Analytics and Tag Manager services, to tell us how the Website is doing, such as to which part interest visitors and how long they visit before leaving.' },
-      { type: 'paragraph', text: 'Usage Data may be used in aggregate (anonymized) form for internal business purposes, such as generating statistics and developing marketing plans.' },
+      {
+        type: 'paragraph',
+        text: 'If we contact you or provide any materials or information to you, you always will be given the opportunity to unsubscribe from further emails in any promotional messages we send you.',
+      },
+      {
+        type: 'paragraph',
+        text: 'We will not disclose, rent, sell or share any Personal Information to unaffiliated third parties for marketing purposes.',
+      },
+      {
+        type: 'paragraph',
+        text: 'We contract with companies or individuals to provide certain services including email and hosting services, software development, career or personnel services, etc. We call them our “Service Providers.” We may share your Personal Information with Service Providers solely as appropriate for them to perform their functions.',
+      },
+      {
+        type: 'paragraph',
+        text: 'We may share your Personal Information with analytics providers, such as Google Analytics and Tag Manager services, to tell us how the Website is doing, such as to which part interest visitors and how long they visit before leaving.',
+      },
+      {
+        type: 'paragraph',
+        text: 'Usage Data may be used in aggregate (anonymized) form for internal business purposes, such as generating statistics and developing marketing plans.',
+      },
       { type: 'paragraph', text: 'Finally, we may share your Information:' },
-      { type: 'paragraph', text: 'In response to subpoenas, court orders, or other legal process; to establish or exercise our legal rights; to defend against legal claims; or as otherwise required by law.' },
-      { type: 'paragraph', text: 'When we believe it is appropriate to investigate, prevent, or take action regarding illegal or suspected illegal activities; to protect and defend the rights, property, or safety of our company, our users, or others; and in connection with our Terms of Use and other agreements.' },
-      { type: 'paragraph', text: 'In connection with a corporate transaction, such as a divestiture, merger, consolidation, or asset sale, or in the unlikely event of bankruptcy.' },
-      { type: 'paragraph', text: 'Please contact us if you need details about the specific legal ground we are relying on to process your personal data.' },
+      {
+        type: 'paragraph',
+        text: 'In response to subpoenas, court orders, or other legal process; to establish or exercise our legal rights; to defend against legal claims; or as otherwise required by law.',
+      },
+      {
+        type: 'paragraph',
+        text: 'When we believe it is appropriate to investigate, prevent, or take action regarding illegal or suspected illegal activities; to protect and defend the rights, property, or safety of our company, our users, or others; and in connection with our Terms of Use and other agreements.',
+      },
+      {
+        type: 'paragraph',
+        text: 'In connection with a corporate transaction, such as a divestiture, merger, consolidation, or asset sale, or in the unlikely event of bankruptcy.',
+      },
+      {
+        type: 'paragraph',
+        text: 'Please contact us if you need details about the specific legal ground we are relying on to process your personal data.',
+      },
     ],
   },
   {
-    title: '4. Data Retention – How long will we use your Personal Information?',
+    title:
+      '4. Data Retention – How long will we use your Personal Information?',
     content: [
       'We will only retain your personal data for as long as reasonably necessary to fulfil the purposes we collected it for as specified in this Policy, including for the purposes of satisfying any legal, regulatory, tax, accounting or reporting requirements.',
       'To determine the appropriate retention period, we consider the amount, nature, and sensitivity of the data, the potential risk of harm from unauthorized use or disclosure, and the applicable legal requirements.',
@@ -133,29 +162,36 @@ export default function PrivacyPolicyPage() {
         <div className="font-['Inter'] text-xs leading-tight">
           {policyData.map((section, sectionIndex) => (
             <React.Fragment key={sectionIndex}>
-              {section.title && (
-                <p className="mb-4">{section.title}</p>
-              )}
-              
+              {section.title && <p className="mb-4">{section.title}</p>}
+
               {section.content.map((item, itemIndex) => {
                 const uniqueKey = `${sectionIndex}-${itemIndex}`;
 
                 if (typeof item === 'string') {
-                   return (
-                    <p key={uniqueKey} className="mb-4">{item}</p>
+                  return (
+                    <p key={uniqueKey} className="mb-4">
+                      {item}
+                    </p>
                   );
                 }
 
                 switch (item.type) {
                   case 'paragraph':
                     return (
-                      <p key={uniqueKey} className="mb-4">{item.text}</p>
+                      <p key={uniqueKey} className="mb-4">
+                        {item.text}
+                      </p>
                     );
                   case 'list':
                     return (
-                      <ul key={uniqueKey} className="list-disc pl-5 mb-4 space-y-2">
+                      <ul
+                        key={uniqueKey}
+                        className="list-disc pl-5 mb-4 space-y-2"
+                      >
                         {item.items.map((listItem, listItemIndex) => (
-                          <li key={`${uniqueKey}-${listItemIndex}`}>{listItem}</li>
+                          <li key={`${uniqueKey}-${listItemIndex}`}>
+                            {listItem}
+                          </li>
                         ))}
                       </ul>
                     );
@@ -167,7 +203,9 @@ export default function PrivacyPolicyPage() {
                       <p
                         key={uniqueKey}
                         className="mb-4"
-                        dangerouslySetInnerHTML={{ __html: item.content.join('') }}
+                        dangerouslySetInnerHTML={{
+                          __html: item.content.join(''),
+                        }}
                       />
                     );
                   default:

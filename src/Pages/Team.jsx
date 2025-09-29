@@ -6,7 +6,7 @@ import PreloaderBanner from '../Components/PreloaderBanner';
 import { useAnimation } from '../context/AnimationContext';
 import { X } from 'lucide-react';
 // ✨ ЗМІНА: Імпортуємо дані з нового файлу
-import { teamData } from '../Data/TeamData'; 
+import { teamData } from '../Data/TeamData';
 import sinnersLogoBlack from '../assets/Logo/Sinners logo black.png';
 
 // --- Анімації (без змін) ---
@@ -28,7 +28,6 @@ const tabsData = [
   { id: 'contact', label: 'CONTACT', title: 'CONTACT' },
 ];
 
-
 // ===================================
 // ✨ REVISED: Модальне вікно учасника команди (приймає динамічні дані)
 // ===================================
@@ -47,8 +46,16 @@ const TeamMemberModal = ({ member, photoUrl, onClose }) => {
 
   const modalVariants = {
     hidden: { x: '-100%', opacity: 0.8 },
-    visible: { x: '0%', opacity: 1, transition: { duration: 0.5, ease: [0.25, 1, 0.5, 1] } },
-    exit: { x: '-100%', opacity: 0.8, transition: { duration: 0.4, ease: [0.5, 0, 0.75, 0] } },
+    visible: {
+      x: '0%',
+      opacity: 1,
+      transition: { duration: 0.5, ease: [0.25, 1, 0.5, 1] },
+    },
+    exit: {
+      x: '-100%',
+      opacity: 0.8,
+      transition: { duration: 0.4, ease: [0.5, 0, 0.75, 0] },
+    },
   };
 
   return (
@@ -68,9 +75,17 @@ const TeamMemberModal = ({ member, photoUrl, onClose }) => {
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex-shrink-0 p-8 grid grid-cols-3 items-center z-20">
-          <div /> 
-          <img src={sinnersLogoBlack} alt="Sinners and Saints Logo" className="h-6 justify-self-center" />
-          <button onClick={onClose} className="text-black dark:text-white hover:opacity-70 transition-opacity justify-self-end" aria-label="Close">
+          <div />
+          <img
+            src={sinnersLogoBlack}
+            alt="Sinners and Saints Logo"
+            className="h-6 justify-self-center"
+          />
+          <button
+            onClick={onClose}
+            className="text-black dark:text-white hover:opacity-70 transition-opacity justify-self-end"
+            aria-label="Close"
+          >
             <X size={32} />
           </button>
         </header>
@@ -84,7 +99,11 @@ const TeamMemberModal = ({ member, photoUrl, onClose }) => {
             <div className="w-full md:w-2/5 flex-shrink-0">
               {/* ЗМІНЕНО: Динамічне фото */}
               {photoUrl ? (
-                <img src={photoUrl} alt={`${member.firstName} ${member.lastName}`} className="w-full aspect-square object-cover" />
+                <img
+                  src={photoUrl}
+                  alt={`${member.firstName} ${member.lastName}`}
+                  className="w-full aspect-square object-cover"
+                />
               ) : (
                 <div className="w-full aspect-square bg-gray-200 dark:bg-gray-800" /> // Placeholder while loading
               )}
@@ -109,7 +128,6 @@ const TeamMemberModal = ({ member, photoUrl, onClose }) => {
   );
 };
 
-
 // ===================================
 // ✨ REVISED: Сітка з учасниками команди (приймає динамічні дані)
 // ===================================
@@ -128,17 +146,25 @@ const TeamGrid = ({ teamMembers, photoUrls, onSelectMember }) => {
           const memberPhotoUrl = photoUrls[member.photoSrc];
           return (
             <div key={member.id} className="grid grid-cols-1 md:grid-cols-2">
-              <div className={`w-full h-[50vw] ${isReversed ? 'md:order-last' : ''}`}>
+              <div
+                className={`w-full h-[50vw] ${isReversed ? 'md:order-last' : ''}`}
+              >
                 {/* ЗМІНЕНО: Динамічне фото */}
                 {memberPhotoUrl ? (
-                  <img src={memberPhotoUrl} alt={`${member.firstName} ${member.lastName}`} className="w-full h-full object-cover" />
+                  <img
+                    src={memberPhotoUrl}
+                    alt={`${member.firstName} ${member.lastName}`}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   <div className="w-full h-full bg-gray-200 dark:bg-gray-800" /> // Placeholder while loading
                 )}
               </div>
               <div className="w-full flex flex-col items-center justify-center text-center p-8">
                 {/* ЗМІНЕНО: Динамічні дані */}
-                <p className="text-sm uppercase tracking-[0.2em] mb-3">{member.category}</p>
+                <p className="text-sm uppercase tracking-[0.2em] mb-3">
+                  {member.category}
+                </p>
                 <h2 className="text-4xl font-chanel font-semibold uppercase mb-6">{`${member.firstName} ${member.lastName}`}</h2>
                 <button
                   onClick={() => onSelectMember(member)}
@@ -154,7 +180,6 @@ const TeamGrid = ({ teamMembers, photoUrls, onSelectMember }) => {
     </motion.div>
   );
 };
-
 
 // ===================================
 // Компонент секції контактів (без змін)
@@ -173,7 +198,10 @@ const ContactInfoSection = () => {
     { label: 'EMAIL', value: 'CONTACT@SINNERSANDSAINTS.COM' },
     {
       label: 'FACILITIES / OFFICES',
-      value: ['MAIN CAMPUS – LUX ANGELES STUDIOS', 'TUNNEL POST ANNEX – SANTA MONICA'],
+      value: [
+        'MAIN CAMPUS – LUX ANGELES STUDIOS',
+        'TUNNEL POST ANNEX – SANTA MONICA',
+      ],
     },
   ];
 
@@ -231,7 +259,6 @@ const ContactInfoSection = () => {
   );
 };
 
-
 // ===================================
 // ✨ REVISED: ГОЛОВНИЙ КОМПОНЕНТ СТОРІНКИ
 // ===================================
@@ -242,18 +269,23 @@ export default function Team() {
   // ✨ НОВЕ: Стан для зберігання підписаних URL-адрес фотографій
   const [photoUrls, setPhotoUrls] = useState({});
 
-  useLayoutEffect(() => { window.scrollTo(0, 0); }, []);
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   // ✨ НОВЕ: useEffect для завантаження URL-адрес з GCS
   useEffect(() => {
     const fetchPhotoUrls = async () => {
-      const gcsPaths = teamData.map(member => member.photoSrc);
+      const gcsPaths = teamData.map((member) => member.photoSrc);
       try {
-        const response = await fetch('http://localhost:3001/generate-read-urls', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ gcsPaths }),
-        });
+        const response = await fetch(
+          'http://localhost:3001/generate-read-urls',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ gcsPaths }),
+          }
+        );
         if (!response.ok) throw new Error('Failed to fetch photo URLs');
         const urlsMap = await response.json();
         setPhotoUrls(urlsMap);
@@ -266,16 +298,21 @@ export default function Team() {
   }, []); // Пустий масив залежностей означає, що ефект виконається один раз при монтуванні
 
   useEffect(() => {
-    document.body.style.overflow = isPreloaderActive || selectedMember ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
+    document.body.style.overflow =
+      isPreloaderActive || selectedMember ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [isPreloaderActive, selectedMember]);
 
   const handleBannerAnimationComplete = () => setIsPreloaderActive(false);
   const handleOpenModal = (member) => setSelectedMember(member);
   const handleCloseModal = () => setSelectedMember(null);
 
-  const bannerTitle = 'VISIONARY STORYTELLERS. COMMERCIAL REBELS. GLOBAL CREATORS.';
-  const bannerDescription = 'From award-winning filmmakers to fashion-forward image makers, our directors and hybrid talent deliver world-class content across commercials, music videos, branded series, and global campaigns.';
+  const bannerTitle =
+    'VISIONARY STORYTELLERS. COMMERCIAL REBELS. GLOBAL CREATORS.';
+  const bannerDescription =
+    'From award-winning filmmakers to fashion-forward image makers, our directors and hybrid talent deliver world-class content across commercials, music videos, branded series, and global campaigns.';
 
   const currentTabData = tabsData.find((tab) => tab.id === activeTab);
 
@@ -290,14 +327,14 @@ export default function Team() {
           />
         )}
       </AnimatePresence>
-      
+
       <AnimatePresence>
         {/* ЗМІНЕНО: Передача URL фото до модального вікна */}
         {selectedMember && (
-          <TeamMemberModal 
-            member={selectedMember} 
+          <TeamMemberModal
+            member={selectedMember}
             photoUrl={photoUrls[selectedMember.photoSrc]}
-            onClose={handleCloseModal} 
+            onClose={handleCloseModal}
           />
         )}
       </AnimatePresence>
@@ -322,7 +359,11 @@ export default function Team() {
                     <motion.div
                       className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-black dark:bg-white"
                       layoutId="underline"
-                      transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                      transition={{
+                        type: 'spring',
+                        stiffness: 380,
+                        damping: 30,
+                      }}
                     />
                   )}
                 </button>
@@ -350,13 +391,13 @@ export default function Team() {
       <main>
         <AnimatePresence mode="wait">
           {activeTab === 'team' ? (
-             // ✨ ЗМІНА: Передача динамічних даних до сітки
-             <TeamGrid 
-                key="team-content" 
-                teamMembers={teamData}
-                photoUrls={photoUrls}
-                onSelectMember={handleOpenModal} 
-              />
+            // ✨ ЗМІНА: Передача динамічних даних до сітки
+            <TeamGrid
+              key="team-content"
+              teamMembers={teamData}
+              photoUrls={photoUrls}
+              onSelectMember={handleOpenModal}
+            />
           ) : (
             <ContactInfoSection key="contact-content" />
           )}

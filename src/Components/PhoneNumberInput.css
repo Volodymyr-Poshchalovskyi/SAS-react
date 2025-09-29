@@ -20,7 +20,7 @@
 }
 
 /* ПОВНІСТЮ ПРИБИРАЄМО СИНЄ ВИДІЛЕННЯ З УСІХ ЕЛЕМЕНТІВ */
-.PhoneInputInput:focus, 
+.PhoneInputInput:focus,
 .PhoneInputCountrySelect:focus {
   outline: none !important;
   box-shadow: none !important; /* На випадок, якщо outline заданий через box-shadow */
@@ -31,7 +31,7 @@
   border: none !important;
   background-color: transparent !important;
   padding: 0 !important;
-  margin-left: 0.5rem; 
+  margin-left: 0.5rem;
   width: 100%;
 }
 
@@ -53,7 +53,9 @@
   border-width: 4px 4px 0 4px;
   border-color: #6b7280 transparent transparent transparent; /* text-gray-500 */
   opacity: 1;
-  transition: color 0.2s, transform 0.2s;
+  transition:
+    color 0.2s,
+    transform 0.2s;
 }
 
 /* Колір стрілки при наведенні або фокусі */

@@ -72,7 +72,8 @@ const DateRangePicker = ({ initialRange, onRangeChange }) => {
       const isInRange =
         range.from && range.to && date > range.from && date < range.to;
 
-      let classes = 'w-10 h-10 flex items-center justify-center rounded-lg transition-colors cursor-pointer';
+      let classes =
+        'w-10 h-10 flex items-center justify-center rounded-lg transition-colors cursor-pointer';
       if (isSelectedStart || isSelectedEnd) {
         classes += ' bg-white text-slate-900';
       } else if (isInRange) {
@@ -85,7 +86,11 @@ const DateRangePicker = ({ initialRange, onRangeChange }) => {
       }
 
       days.push(
-        <button key={day} onClick={() => handleDayClick(date)} className={classes}>
+        <button
+          key={day}
+          onClick={() => handleDayClick(date)}
+          className={classes}
+        >
           {day}
         </button>
       );
@@ -122,18 +127,33 @@ const DateRangePicker = ({ initialRange, onRangeChange }) => {
       {isOpen && (
         <div className="absolute top-12 right-0 z-10 w-80 bg-slate-800 border border-slate-700 rounded-xl shadow-lg p-4 text-white">
           <div className="flex items-center justify-between mb-4">
-            <button onClick={handlePrevMonth} className="p-2 rounded-full hover:bg-slate-700">
+            <button
+              onClick={handlePrevMonth}
+              className="p-2 rounded-full hover:bg-slate-700"
+            >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <span className="font-semibold text-sm">
-              {currentMonth.toLocaleString('en-US', { month: 'long', year: 'numeric' })}
+              {currentMonth.toLocaleString('en-US', {
+                month: 'long',
+                year: 'numeric',
+              })}
             </span>
-            <button onClick={handleNextMonth} className="p-2 rounded-full hover:bg-slate-700">
+            <button
+              onClick={handleNextMonth}
+              className="p-2 rounded-full hover:bg-slate-700"
+            >
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
           <div className="grid grid-cols-7 gap-y-1 text-center text-xs text-slate-400 mb-2">
-            <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+            <span>Su</span>
+            <span>Mo</span>
+            <span>Tu</span>
+            <span>We</span>
+            <span>Th</span>
+            <span>Fr</span>
+            <span>Sa</span>
           </div>
           <div className="grid grid-cols-7 gap-y-1 text-sm">{renderDays()}</div>
         </div>

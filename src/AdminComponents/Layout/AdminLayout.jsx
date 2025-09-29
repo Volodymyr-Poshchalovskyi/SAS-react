@@ -41,14 +41,22 @@ function AdminLayout() {
 
   const navItems = [
     { to: `${basePath}/dashboard`, label: 'Dashboard', icon: LayoutDashboard },
-    { to: `${basePath}/upload-media`, label: 'Upload media', icon: Clapperboard },
+    {
+      to: `${basePath}/upload-media`,
+      label: 'Upload media',
+      icon: Clapperboard,
+    },
     { to: `${basePath}/library`, label: 'Library', icon: Library },
     {
       to: `${basePath}/management`,
       label: 'Artists / Clients',
       icon: BookUser,
     },
-    { to: `${basePath}/analytics`, label: 'Showreels Analytics', icon: BarChart },
+    {
+      to: `${basePath}/analytics`,
+      label: 'Showreels Analytics',
+      icon: BarChart,
+    },
   ];
 
   const adminNavItems = [

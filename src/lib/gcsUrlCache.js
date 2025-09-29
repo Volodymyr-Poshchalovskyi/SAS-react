@@ -48,7 +48,7 @@ export const getSignedUrls = async (gcsPaths) => {
     } catch (err) {
       console.error('Error fetching signed URLs:', err);
       // У випадку помилки повертаємо порожні URL для шляхів, що не завантажились
-      pathsToFetch.forEach(path => {
+      pathsToFetch.forEach((path) => {
         finalUrls[path] = null;
       });
     }

@@ -12,12 +12,16 @@ const DirectorVideoBlock = ({ video, signedUrl, onExpand }) => {
 
   useEffect(() => {
     const observer = new IntersectionObserver(
-      ([entry]) => { setShouldPlay(entry.isIntersecting); },
+      ([entry]) => {
+        setShouldPlay(entry.isIntersecting);
+      },
       { threshold: 0.5 }
     );
     const currentRef = videoRef.current;
     if (currentRef) observer.observe(currentRef);
-    return () => { if (currentRef) observer.unobserve(currentRef); };
+    return () => {
+      if (currentRef) observer.unobserve(currentRef);
+    };
   }, []);
 
   return (
@@ -25,7 +29,9 @@ const DirectorVideoBlock = ({ video, signedUrl, onExpand }) => {
       {signedUrl ? (
         <VideoContainer videoSrc={signedUrl} shouldPlay={shouldPlay} />
       ) : (
-        <div className="w-full h-full flex items-center justify-center text-white">Loading...</div>
+        <div className="w-full h-full flex items-center justify-center text-white">
+          Loading...
+        </div>
       )}
       <div className="absolute inset-0 z-10 flex items-end justify-center">
         <div className="flex flex-col items-center text-white pb-24">
@@ -35,7 +41,9 @@ const DirectorVideoBlock = ({ video, signedUrl, onExpand }) => {
             disabled={!signedUrl}
             className="bg-white text-black py-4 px-6 text-xs font-semibold uppercase tracking-wider flex items-center gap-2 transition-transform hover:scale-105 disabled:opacity-50"
           >
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M8 5v14l11-7z" />
+            </svg>
             Expand Video
           </button>
         </div>
@@ -44,7 +52,6 @@ const DirectorVideoBlock = ({ video, signedUrl, onExpand }) => {
   );
 };
 
-
 export default function DirectorPage() {
   const { directorSlug } = useParams();
   const location = useLocation();
@@ -52,7 +59,7 @@ export default function DirectorPage() {
   const isAssignmentPage = location.pathname.startsWith('/assignment');
   const dataSource = isAssignmentPage ? assignmentData : directorsData;
   const backLink = isAssignmentPage ? '/assignment' : '/directors';
-  
+
   const director = dataSource.find((d) => d.slug === directorSlug);
 
   const [expandedVideo, setExpandedVideo] = useState(null);
@@ -68,27 +75,29 @@ export default function DirectorPage() {
     const fetchMediaUrls = async () => {
       if (!director) return;
 
-      const videoGcsPaths = director.videos.map(video => video.src);
+      const videoGcsPaths = director.videos.map((video) => video.src);
       const allGcsPaths = [...videoGcsPaths];
       if (director.photoSrc) {
         allGcsPaths.push(director.photoSrc);
       }
 
       try {
-        const response = await fetch('http://localhost:3001/generate-read-urls', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ gcsPaths: allGcsPaths }),
-        });
+        const response = await fetch(
+          'http://localhost:3001/generate-read-urls',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ gcsPaths: allGcsPaths }),
+          }
+        );
         if (!response.ok) throw new Error('Failed to fetch media URLs');
-        
+
         const urlsMap = await response.json();
-        
+
         if (director.photoSrc && urlsMap[director.photoSrc]) {
           setPhotoUrl(urlsMap[director.photoSrc]);
         }
         setVideoUrls(urlsMap);
-
       } catch (error) {
         console.error('Error fetching director media URLs:', error);
       }
@@ -111,8 +120,23 @@ export default function DirectorPage() {
   return (
     <div className="bg-white">
       <section className="bg-white text-black h-[40vh] flex items-center justify-center relative pt-20 md:pt-28">
-        <Link to={backLink} className="absolute left-8 md:left-20 top-1/2 -translate-y-1/2 flex items-center justify-center w-12 h-12 border-2 border-black text-black hover:bg-black hover:text-white transition-colors">
-          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+        <Link
+          to={backLink}
+          className="absolute left-8 md:left-20 top-1/2 -translate-y-1/2 flex items-center justify-center w-12 h-12 border-2 border-black text-black hover:bg-black hover:text-white transition-colors"
+        >
+          <svg
+            className="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
         </Link>
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-chanel font-semibold uppercase text-center px-4">
           {director.name}

@@ -49,18 +49,26 @@ export default function Header() {
     location.pathname === '/table-top-studio' ||
     location.pathname === '/post-production' ||
     location.pathname === '/privacy-policy' ||
-    location.pathname === '/about'; 
+    location.pathname === '/about';
 
   // --- УМОВИ ---
   // isPreloaderActive тепер єдине джерело правди про стан прелоадера
   const shouldHaveBackground = isHovered || isSpecialPage || isPreloaderActive;
   const isNavExpanded = isHovered || isSpecialPage || isPreloaderActive;
 
-  const [indicatorStyle, setIndicatorStyle] = useState({ opacity: 0, left: 0, width: 0 });
+  const [indicatorStyle, setIndicatorStyle] = useState({
+    opacity: 0,
+    left: 0,
+    width: 0,
+  });
 
   const handleLinkMouseEnter = (e) => {
     const linkElement = e.currentTarget;
-    setIndicatorStyle({ opacity: 1, left: linkElement.offsetLeft, width: linkElement.offsetWidth });
+    setIndicatorStyle({
+      opacity: 1,
+      left: linkElement.offsetLeft,
+      width: linkElement.offsetWidth,
+    });
   };
 
   const handleNavMouseLeave = () => {
@@ -71,8 +79,10 @@ export default function Header() {
     <motion.header
       className="fixed top-0 left-0 w-full z-[1000]"
       style={{
-        backgroundColor: shouldHaveBackground ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0)',
-        transition: 'background-color 0.8s ease-in-out'
+        backgroundColor: shouldHaveBackground
+          ? 'rgba(255, 255, 255, 1)'
+          : 'rgba(255, 255, 255, 0)',
+        transition: 'background-color 0.8s ease-in-out',
       }}
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
@@ -88,7 +98,6 @@ export default function Header() {
             src={shouldHaveBackground ? sinnersLogoBlack : sinnersLogoWhite}
             alt="Sinners Logo"
             className="w-32 h-auto "
-            
           />
         </Link>
 
@@ -148,7 +157,8 @@ export default function Header() {
             className="absolute bottom-0 h-[3px] bg-black"
             style={{
               ...indicatorStyle,
-              transition: 'left 0.2s ease-out, width 0.2s ease-out, opacity 0.2s ease-out',
+              transition:
+                'left 0.2s ease-out, width 0.2s ease-out, opacity 0.2s ease-out',
             }}
           />
         </div>

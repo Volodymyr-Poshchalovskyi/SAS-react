@@ -1,6 +1,9 @@
 [
   {
-    "origin": ["http://localhost:5173", "https://sas-frontend-zhgs.onrender.com/"],
+    "origin": [
+      "http://localhost:5173",
+      "https://sas-frontend-zhgs.onrender.com/"
+    ],
     "method": ["GET", "PUT", "OPTIONS"],
     "responseHeader": ["Content-Type", "Access-Control-Allow-Origin"],
     "maxAgeSeconds": 3600

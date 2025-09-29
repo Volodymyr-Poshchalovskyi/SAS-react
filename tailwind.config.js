@@ -13,11 +13,9 @@ export default {
 
       // Сюди додаємо налаштування для розмиття
       backdropBlur: {
-        'xs': '2px', // Це створить новий клас: backdrop-blur-xs
+        xs: '2px', // Це створить новий клас: backdrop-blur-xs
       },
     },
   },
-  plugins: [
-    require('tailwind-scrollbar-hide')
-  ],
+  plugins: [require('tailwind-scrollbar-hide')],
 };

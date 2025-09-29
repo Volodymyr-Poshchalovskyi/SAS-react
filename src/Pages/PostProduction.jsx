@@ -8,7 +8,8 @@ import { useAnimation } from '../context/AnimationContext';
 const videoURL = '/video/SHOWREEL SINNERS AND SAINTS 2024_1.mp4';
 
 const PostProduction = () => {
-  const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } = useAnimation();
+  const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } =
+    useAnimation();
 
   // ✨ ОСНОВНА ЛОГІКА: Цей блок запускає прелоадер при завантаженні сторінки.
   useEffect(() => {
@@ -16,14 +17,17 @@ const PostProduction = () => {
       setIsPreloaderActive(true);
     }
   }, [onPreloaderPage, setIsPreloaderActive]);
-  
+
   useEffect(() => {
     document.body.style.overflow = isPreloaderActive ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [isPreloaderActive]);
 
   const bannerTitle = 'Innovation. Finish. Storytelling Refined.';
-  const bannerDescription = 'Our post-production team blends motion control, AI-enhanced editing, CG/VFX, and color finishing to deliver bold, elevated storytelling. Every project is refined frame by flawless frame — ensuring beauty, product, and performance content resonates across every platform.';
+  const bannerDescription =
+    'Our post-production team blends motion control, AI-enhanced editing, CG/VFX, and color finishing to deliver bold, elevated storytelling. Every project is refined frame by flawless frame — ensuring beauty, product, and performance content resonates across every platform.';
 
   return (
     <div className="bg-white text-black min-h-screen pt-36">

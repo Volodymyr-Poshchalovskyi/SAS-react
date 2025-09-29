@@ -15,7 +15,8 @@ const MotionLink = motion(Link);
 
 export default function Photographers() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } = useAnimation();
+  const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } =
+    useAnimation();
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
@@ -30,7 +31,9 @@ export default function Photographers() {
 
   useEffect(() => {
     document.body.style.overflow = isPreloaderActive ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [isPreloaderActive]);
 
   useEffect(() => {
@@ -49,7 +52,8 @@ export default function Photographers() {
   }, [isPreloaderActive]);
 
   const bannerTitle = 'Masters of Light. Architects of Image.';
-  const bannerDescription = 'From iconic portraiture to fashion-driven campaigns, our photographers capture the essence of story through stills that resonate. Whether shooting luxury editorials, celebrity features, or global campaigns, they deliver timeless imagery that elevates every brand narrative.';
+  const bannerDescription =
+    'From iconic portraiture to fashion-driven campaigns, our photographers capture the essence of story through stills that resonate. Whether shooting luxury editorials, celebrity features, or global campaigns, they deliver timeless imagery that elevates every brand narrative.';
 
   return (
     <div className="bg-black">
@@ -64,11 +68,17 @@ export default function Photographers() {
       </AnimatePresence>
 
       {!isPreloaderActive && (
-        <ScrollProgressBar currentIndex={currentIndex} totalItems={photographersData.length} />
+        <ScrollProgressBar
+          currentIndex={currentIndex}
+          totalItems={photographersData.length}
+        />
       )}
 
       {photographersData.map((photographer, index) => (
-        <div key={photographer.id} className="relative w-full h-screen snap-start bg-black">
+        <div
+          key={photographer.id}
+          className="relative w-full h-screen snap-start bg-black"
+        >
           <div
             className="absolute inset-0 w-full h-full bg-cover bg-center"
             style={{ backgroundImage: `url(${photographer.coverImage})` }}
@@ -80,7 +90,9 @@ export default function Photographers() {
               className="text-white font-chanel font-normal uppercase text-4xl sm:text-6xl md:text-[5rem] tracking-[-0.3rem] md:tracking-[-0.6rem] transition-opacity duration-500 hover:opacity-50"
               variants={nameAnimation}
               initial="hidden"
-              animate={index === 0 && !isPreloaderActive ? 'visible' : undefined}
+              animate={
+                index === 0 && !isPreloaderActive ? 'visible' : undefined
+              }
               whileInView={index > 0 ? 'visible' : undefined}
               viewport={{ once: true, amount: 0.5 }}
             >
