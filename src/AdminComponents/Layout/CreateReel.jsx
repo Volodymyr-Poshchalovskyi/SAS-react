@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { supabase } from '../../lib/supabaseClient';
-import { X, Trash2, Loader2 } from 'lucide-react';
+import { X, Trash2, Loader2, CheckCircle2 } from 'lucide-react';
 
 const compressImage = (file, maxSize = 800) => {
   return new Promise((resolve, reject) => {
@@ -56,19 +56,19 @@ const compressImage = (file, maxSize = 800) => {
   });
 };
 
-// --- Іконки та базові компоненти (без змін) ---
+// --- Іконки та базові компоненти ---
 const UploadIcon = () => ( <svg className="w-12 h-12 text-slate-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16" > <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2" /> </svg> );
 const CalendarIcon = () => ( <svg className="w-5 h-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" > <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /> </svg> );
 const FormSection = ({ title, children, hasSeparator = true }) => ( <div className="bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl p-6"> {title && ( <h2 className="text-base font-semibold text-slate-500 dark:text-slate-400 mb-4 uppercase tracking-wider"> {title} </h2> )} {children} {hasSeparator && ( <div className="mt-6 border-t border-slate-200 dark:border-slate-800"></div> )} </div> );
 const FormField = ({ label, children, required = false }) => ( <div className="mb-4"> <label className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300"> {label} {required && <span className="text-red-500">*</span>} </label> {children} </div> );
 const inputClasses = 'flex h-10 w-full rounded-md border border-slate-300 bg-white dark:bg-slate-800 px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500 disabled:cursor-not-allowed disabled:bg-slate-100 dark:disabled:bg-slate-800/50';
 
-// --- Компоненти для вибору (без змін) ---
+// --- Компоненти для вибору ---
 const SingleSearchableSelect = ({ label, options, value, onChange, placeholder, required = false }) => { const [inputValue, setInputValue] = useState(value || ''); const [isOpen, setIsOpen] = useState(false); const wrapperRef = useRef(null); const filteredOptions = useMemo(() => options.filter(option => option.name.toLowerCase().includes((inputValue || '').toLowerCase())), [inputValue, options]); useEffect(() => { function handleClickOutside(event) { if (wrapperRef.current && !wrapperRef.current.contains(event.target)) setIsOpen(false); } document.addEventListener("mousedown", handleClickOutside); return () => document.removeEventListener("mousedown", handleClickOutside); }, []); useEffect(() => { if (!isOpen) { const isValid = options.some(opt => opt.name === inputValue); if (!isValid) setInputValue(value || ''); } }, [isOpen, value, options, inputValue]); useEffect(() => { setInputValue(value || ''); }, [value]); const handleSelectOption = (optionName) => { onChange(optionName); setInputValue(optionName); setIsOpen(false); }; return ( <FormField label={label} required={required}> <div className="relative" ref={wrapperRef}> <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onFocus={() => setIsOpen(true)} placeholder={placeholder} className={inputClasses} required={required} /> {isOpen && ( <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md shadow-lg max-h-60 overflow-y-auto"> {filteredOptions.length > 0 ? ( <ul> {filteredOptions.map((option) => ( <li key={option.id} onMouseDown={() => handleSelectOption(option.name)} className="px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"> {option.name} </li> ))} </ul> ) : ( <div className="px-3 py-2 text-sm text-slate-500">No matches found.</div> )} </div> )} </div> </FormField> ); };
 const MultiSelectCategories = ({ label, options, selectedOptions, onChange, placeholder, limit = 10 }) => { const [inputValue, setInputValue] = useState(''); const [isOpen, setIsOpen] = useState(false); const wrapperRef = useRef(null); const availableOptions = useMemo(() => options.filter(opt => !selectedOptions.includes(opt.name)).filter(opt => opt.name.toLowerCase().includes(inputValue.toLowerCase())), [options, selectedOptions, inputValue]); const handleSelect = (optionName) => { if (selectedOptions.length < limit) onChange([...selectedOptions, optionName]); setInputValue(''); setIsOpen(false); }; const handleRemove = (optionName) => onChange(selectedOptions.filter(opt => opt !== optionName)); useEffect(() => { function handleClickOutside(event) { if (wrapperRef.current && !wrapperRef.current.contains(event.target)) setIsOpen(false); } document.addEventListener("mousedown", handleClickOutside); return () => document.removeEventListener("mousedown", handleClickOutside); }, [wrapperRef]); return ( <FormField label={`${label} (${selectedOptions.length}/${limit})`}> <div className="relative" ref={wrapperRef}> <div className="flex flex-wrap items-center gap-2 p-2 min-h-[40px] border border-slate-300 dark:border-slate-700 rounded-md" onClick={() => setIsOpen(true)}> {selectedOptions.map(option => ( <span key={option} className="flex items-center bg-teal-100 dark:bg-teal-900/50 text-teal-800 dark:text-teal-200 text-sm font-medium px-2.5 py-1 rounded-full"> {option} <button type="button" onClick={(e) => { e.stopPropagation(); handleRemove(option); }} className="ml-2 -mr-1 p-0.5 text-teal-600 dark:text-teal-300 hover:bg-teal-200 dark:hover:bg-teal-700 rounded-full"> <X size={14} /> </button> </span> ))} {selectedOptions.length < limit && ( <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onFocus={() => setIsOpen(true)} placeholder={placeholder} className="flex-grow bg-transparent focus:outline-none p-1 text-sm" /> )} </div> {isOpen && ( <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md shadow-lg max-h-60 overflow-y-auto"> {availableOptions.length > 0 ? ( <ul> {availableOptions.map((option) => ( <li key={option.id} onMouseDown={() => handleSelect(option.name)} className="px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"> {option.name} </li> ))} </ul> ) : ( <div className="px-3 py-2 text-sm text-slate-500">No available options.</div> )} </div> )} </div> </FormField> ); };
 const MultiCreatableSelect = ({ label, options, selectedOptions, onChange, placeholder, limit = 10, required = false }) => { const [inputValue, setInputValue] = useState(''); const [isOpen, setIsOpen] = useState(false); const wrapperRef = useRef(null); const availableOptions = useMemo(() => options.filter(opt => !selectedOptions.includes(opt.name) && opt.name.toLowerCase().includes(inputValue.toLowerCase())), [options, selectedOptions, inputValue]); const handleAdd = (itemName) => { const trimmedItem = itemName.trim(); if (trimmedItem && selectedOptions.length < limit && !selectedOptions.find(opt => opt.toLowerCase() === trimmedItem.toLowerCase())) { onChange([...selectedOptions, trimmedItem]); } setInputValue(''); setIsOpen(false); }; const handleRemove = (itemName) => onChange(selectedOptions.filter(opt => opt !== itemName)); const handleKeyDown = (e) => { if (e.key === 'Enter' && inputValue) { e.preventDefault(); handleAdd(inputValue); } }; useEffect(() => { function handleClickOutside(event) { if (wrapperRef.current && !wrapperRef.current.contains(event.target)) { setIsOpen(false); setInputValue(''); } } document.addEventListener("mousedown", handleClickOutside); return () => document.removeEventListener("mousedown", handleClickOutside); }, [wrapperRef]); const canAddCustom = inputValue.trim() && !options.some(opt => opt.name.toLowerCase() === inputValue.trim().toLowerCase()) && !selectedOptions.some(opt => opt.toLowerCase() === inputValue.trim().toLowerCase()); return ( <FormField label={`${label} (${selectedOptions.length}/${limit})`} required={required}> <input type="text" value={selectedOptions.join(',')} required={required} className="hidden" onChange={() => {}}/> <div className="relative" ref={wrapperRef}> <div className="flex flex-wrap items-center gap-2 p-2 min-h-[40px] border border-slate-300 dark:border-slate-700 rounded-md" onClick={() => { setIsOpen(true); wrapperRef.current.querySelector('input[type=text]:not(.hidden)').focus(); }}> {selectedOptions.map(option => ( <span key={option} className="flex items-center bg-teal-100 dark:bg-teal-900/50 text-teal-800 dark:text-teal-200 text-sm font-medium px-2.5 py-1 rounded-full"> {option} <button type="button" onClick={(e) => { e.stopPropagation(); handleRemove(option); }} className="ml-2 -mr-1 p-0.5 text-teal-600 dark:text-teal-300 hover:bg-teal-200 dark:hover:bg-teal-700 rounded-full"> <X size={14} /> </button> </span> ))} {selectedOptions.length < limit && ( <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={handleKeyDown} onFocus={() => setIsOpen(true)} placeholder={placeholder} className="flex-grow bg-transparent focus:outline-none p-1 text-sm" /> )} </div> {isOpen && ( <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md shadow-lg max-h-60 overflow-y-auto"> <ul onMouseDown={(e) => e.preventDefault()}> { canAddCustom && ( <li onClick={() => handleAdd(inputValue)} className="px-3 py-2 text-sm text-teal-600 dark:text-teal-400 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer italic"> Add "{inputValue.trim()}" </li> )} {availableOptions.map((option) => ( <li key={option.id} onClick={() => handleAdd(option.name)} className="px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"> {option.name} </li> ))} {!canAddCustom && availableOptions.length === 0 && ( <div className="px-3 py-2 text-sm text-slate-500">No available options</div> )} </ul> </div> )} </div> </FormField> ); };
 
-// --- Компонент ReelPartialForm (без змін) ---
+// --- Компонент ReelPartialForm ---
 const ReelPartialForm = ({ reel, onUpdate, onFilesSelected }) => {
     const { id, title, selectedFile, customPreviewFile, mainPreviewUrl, customPreviewUrl } = reel;
     const [isDragging, setIsDragging] = useState(false);
@@ -298,8 +298,14 @@ const CreateReel = () => {
   const [categories, setCategories] = useState([]);
   const [crafts, setCrafts] = useState([]);
   const [isLoadingOptions, setIsLoadingOptions] = useState(true);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadMessage, setUploadMessage] = useState('');
+  
+  const [uploadStatus, setUploadStatus] = useState({
+    isActive: false,
+    message: '',
+    files: {},
+    error: null,
+    isSuccess: false,
+  });
   
   const [toast, setToast] = useState({ message: '', visible: false });
 
@@ -358,7 +364,6 @@ const CreateReel = () => {
     if (isEditMode) {
       const fetchItemData = async () => {
         setIsLoadingOptions(true);
-        setUploadMessage('Loading item data...');
         try {
           const response = await fetch(`http://localhost:3001/media-items/${itemId}`);
           if (!response.ok) throw new Error('Failed to fetch media item data.');
@@ -402,11 +407,8 @@ const CreateReel = () => {
 
         } catch (error) {
           console.error(error);
-          setUploadMessage(`Error: ${error.message}`);
-          setTimeout(() => navigate('/library'), 3000);
         } finally {
           setIsLoadingOptions(false);
-           if(!isUploading) setUploadMessage('');
         }
       };
       fetchItemData();
@@ -456,7 +458,6 @@ const CreateReel = () => {
     const firstFile = validFiles[0];
     const otherFiles = validFiles.slice(1);
 
-    // 1. First, prepare the new reel objects for the "other" files
     let newReels = [];
     if (otherFiles.length > 0 && !isEditMode) {
         const newReelsPromises = otherFiles.map(async (file) => {
@@ -486,7 +487,6 @@ const CreateReel = () => {
         newReels = await Promise.all(newReelsPromises);
     }
 
-    // 2. Prepare the updates for the first file
     const isFirstFileImage = isImageFile(firstFile);
     let compressedPreviewForFirst = null;
     if (isFirstFileImage) {
@@ -498,7 +498,6 @@ const CreateReel = () => {
         }
     }
 
-    // 3. Perform a SINGLE state update for everything
     setReels(prev => {
         const updatedExistingReels = prev.map(reel => {
             if (reel.id === reelId) {
@@ -516,7 +515,6 @@ const CreateReel = () => {
             }
             return reel;
         });
-        // Return the updated existing reels combined with the newly created ones
         return [...updatedExistingReels, ...newReels];
     });
   };
@@ -525,13 +523,9 @@ const CreateReel = () => {
   const handleCommonFormChange = (field, value) => setCommonFormData(prev => ({ ...prev, [field]: value }));
   const isSchedulingDisabled = commonFormData.publishOption === 'now';
 
-  // ======================================================================== //
-  // ✨ ПОЧАТОК ЗМІН: Оновлена функція uploadFileToGCS
-  // ======================================================================== //
-  const uploadFileToGCS = async (file, role) => {
+  const uploadFileToGCS = async (file, role, onProgress) => {
     if (!file) return null;
-    setUploadMessage(`Getting upload URL for ${file.name}...`);
-    
+
     const response = await fetch('http://localhost:3001/generate-upload-url', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -542,25 +536,35 @@ const CreateReel = () => {
         const errorData = await response.json();
         throw new Error(`Failed to get signed URL: ${errorData.details || errorData.error}`);
     }
-
     const { signedUrl, gcsPath } = await response.json();
-    setUploadMessage(`Uploading ${file.name}...`);
     
-    const uploadResponse = await fetch(signedUrl, {
-      method: 'PUT',
-      headers: { 'Content-Type': file.type },
-      body: file,
-    });
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', signedUrl);
+        xhr.setRequestHeader('Content-Type', file.type);
 
-    if (!uploadResponse.ok) {
-      const errorText = await uploadResponse.text();
-      throw new Error(`Failed to upload to GCS: ${errorText}`);
-    }
-    return gcsPath;
+        xhr.upload.onprogress = (event) => {
+            if (event.lengthComputable) {
+                const percentComplete = Math.round((event.loaded / event.total) * 100);
+                onProgress(percentComplete);
+            }
+        };
+
+        xhr.onload = () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                onProgress(100);
+                resolve(gcsPath);
+            } else {
+                reject(new Error(`Upload failed: ${xhr.statusText}`));
+            }
+        };
+
+        xhr.onerror = () => reject(new Error('Upload failed due to a network error.'));
+        xhr.ontimeout = () => reject(new Error('Upload timed out.'));
+
+        xhr.send(file);
+    });
   };
-  // ======================================================================== //
-  // ✨ КІНЕЦЬ ЗМІН
-  // ======================================================================== //
   
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -570,27 +574,57 @@ const CreateReel = () => {
     }
     if (!commonFormData.craft) { alert('Please select a Craft.'); return; }
 
-    setIsUploading(true);
-    setUploadMessage(isEditMode ? 'Applying changes...' : 'Starting upload process...');
+    const filesToUpload = [];
+    if (isEditMode) {
+        const reel = reels[0];
+        if (reel.selectedFile) filesToUpload.push({ file: reel.selectedFile, role: 'main' });
+        if (reel.customPreviewFile) filesToUpload.push({ file: reel.customPreviewFile, role: 'preview' });
+    } else {
+        reels.forEach(reel => {
+            if (reel.selectedFile) filesToUpload.push({ file: reel.selectedFile, role: 'main' });
+            if (reel.customPreviewFile) filesToUpload.push({ file: reel.customPreviewFile, role: 'preview' });
+        });
+    }
+
+    const initialFileStatus = {};
+    filesToUpload.forEach(({ file }) => {
+        initialFileStatus[file.name] = { progress: 0, status: 'pending' };
+    });
+
+    setUploadStatus({
+        isActive: true,
+        message: 'Starting upload...',
+        files: initialFileStatus,
+        error: null,
+        isSuccess: false,
+    });
 
     try {
+        const onProgress = (fileName) => (progress) => {
+            setUploadStatus(prev => ({
+                ...prev,
+                files: {
+                    ...prev.files,
+                    [fileName]: { ...prev.files[fileName], progress, status: 'uploading' }
+                }
+            }));
+        };
+
         if (isEditMode) {
             const reelToUpdate = reels[0];
             let videoPath = reelToUpdate.original_video_path;
             let previewPath = reelToUpdate.original_preview_path;
 
-            // ======================================================================== //
-            // ✨ ПОЧАТОК ЗМІН: Передача ролі 'main' та 'preview'
-            // ======================================================================== //
+            setUploadStatus(prev => ({ ...prev, message: 'Uploading content...' }));
             if (reelToUpdate.selectedFile instanceof File) {
-                videoPath = await uploadFileToGCS(reelToUpdate.selectedFile, 'main');
+                videoPath = await uploadFileToGCS(reelToUpdate.selectedFile, 'main', onProgress(reelToUpdate.selectedFile.name));
             }
             if (reelToUpdate.customPreviewFile instanceof File) {
-                previewPath = await uploadFileToGCS(reelToUpdate.customPreviewFile, 'preview');
+                 setUploadStatus(prev => ({ ...prev, message: 'Uploading preview...' }));
+                previewPath = await uploadFileToGCS(reelToUpdate.customPreviewFile, 'preview', onProgress(reelToUpdate.customPreviewFile.name));
             }
-            // ======================================================================== //
-            // ✨ КІНЕЦЬ ЗМІН
-            // ======================================================================== //
+            
+            setUploadStatus(prev => ({ ...prev, message: 'Saving changes...' }));
 
             const recordToUpdate = {
                 title: reelToUpdate.title,
@@ -616,7 +650,7 @@ const CreateReel = () => {
                 const errData = await response.json();
                 throw new Error(errData.details || 'Failed to update media item.');
             }
-            setUploadMessage('✅ Success! Changes have been applied.');
+            setUploadStatus(prev => ({ ...prev, message: 'Success!', isSuccess: true }));
             
             const returnPath = location.pathname.startsWith('/adminpanel') ? '/adminpanel/library' : '/userpanel/library';
             setTimeout(() => navigate(returnPath), 2000);
@@ -625,21 +659,15 @@ const CreateReel = () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error("User not found.");
 
-            // ======================================================================== //
-            // ✨ ПОЧАТОК ЗМІН: Передача ролі 'main' та 'preview' в циклі
-            // ======================================================================== //
             const uploadPromises = reels.map(async (reel) => {
-                setUploadMessage(`Processing ${reel.title}...`);
-                const content_gcs_path = await uploadFileToGCS(reel.selectedFile, 'main');
-                const preview_gcs_path = reel.customPreviewFile ? await uploadFileToGCS(reel.customPreviewFile, 'preview') : null;
+                setUploadStatus(prev => ({...prev, message: `Uploading ${reel.title}...`}));
+                const content_gcs_path = await uploadFileToGCS(reel.selectedFile, 'main', onProgress(reel.selectedFile.name));
+                const preview_gcs_path = reel.customPreviewFile ? await uploadFileToGCS(reel.customPreviewFile, 'preview', onProgress(reel.customPreviewFile.name)) : null;
                 return { reelData: reel, content_gcs_path, preview_gcs_path };
             });
-            // ======================================================================== //
-            // ✨ КІНЕЦЬ ЗМІН
-            // ======================================================================== //
 
-            setUploadMessage('Uploading files to storage...');
             const uploadResults = await Promise.all(uploadPromises);
+            
             const recordsToInsert = uploadResults.map(result => ({
                 user_id: user.id,
                 title: result.reelData.title,
@@ -655,22 +683,23 @@ const CreateReel = () => {
                 craft: commonFormData.craft,
                 allow_download: commonFormData.allowDownload,
             }));
-            setUploadMessage('Saving metadata to database...');
+
+            setUploadStatus(prev => ({ ...prev, message: 'Saving metadata...' }));
             const { error: insertError } = await supabase.from('media_items').insert(recordsToInsert);
             if (insertError) {
                 throw new Error(`Database error: ${insertError.message}`);
             }
-            setUploadMessage('✅ Success! All media has been uploaded.');
+
+            setUploadStatus(prev => ({ ...prev, message: 'All media uploaded!', isSuccess: true }));
             setReels([createNewReelState()]);
             setCommonFormData(initialCommonFormData);
         }
     } catch (err) {
       console.error('An error occurred:', err);
-      setUploadMessage(`❌ Error: ${err.message}`);
+      setUploadStatus(prev => ({ ...prev, message: 'Upload Failed!', error: err.message, isSuccess: false }));
     } finally {
       setTimeout(() => {
-        setIsUploading(false);
-        setUploadMessage('');
+        setUploadStatus({ isActive: false, message: '', files: {}, error: null, isSuccess: false });
       }, 5000);
     }
   };
@@ -766,18 +795,37 @@ const CreateReel = () => {
       </FormSection>
 
       <div className="fixed bottom-6 right-6 z-50">
-        <div className="relative">
-          {isUploading && (
-            <div className="absolute -top-12 right-0 w-max bg-slate-800 text-white text-sm rounded-md px-3 py-1.5 shadow-lg">
-                <div className="flex items-center">
-                    <Loader2 className="animate-spin mr-2" size={16} />
-                    <span>{uploadMessage}</span>
+        {uploadStatus.isActive && (
+            <div className="w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl p-4 transition-all">
+                <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-sm text-slate-800 dark:text-slate-200 flex items-center">
+                        {uploadStatus.isSuccess ? <CheckCircle2 size={18} className="mr-2 text-teal-500" /> : <Loader2 size={18} className="animate-spin mr-2" />}
+                        {uploadStatus.message}
+                    </h3>
+                    {uploadStatus.error && <span className="text-xs text-red-500">Error</span>}
+                </div>
+                <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
+                    {Object.entries(uploadStatus.files).map(([fileName, status]) => (
+                        <div key={fileName}>
+                            <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 mb-1">
+                                <span className="truncate w-4/5 font-medium">{fileName}</span>
+                                <span className="font-mono">{status.progress}%</span>
+                            </div>
+                            <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full">
+                                <div
+                                    className={`h-1.5 rounded-full transition-all duration-300 ${status.progress === 100 ? 'bg-teal-500' : 'bg-slate-800 dark:bg-slate-200'}`}
+                                    style={{ width: `${status.progress}%` }}
+                                ></div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
-          )}
-          <button type="submit" disabled={isUploading} className="px-4 py-2 bg-teal-600 text-white text-sm font-semibold rounded-lg shadow-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-75 transition-all transform hover:scale-105 disabled:bg-slate-400 disabled:cursor-not-allowed disabled:scale-100">
-            {isUploading ? (isEditMode ? 'Applying...' : 'Uploading...') : (isEditMode ? 'Apply Changes' : 'Deploy & Upload All')}
-          </button>
+        )}
+        <div className={`mt-4 flex justify-end ${uploadStatus.isActive ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+            <button type="submit" disabled={uploadStatus.isActive} className="px-4 py-2 bg-teal-600 text-white text-sm font-semibold rounded-lg shadow-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-75 transition-all transform hover:scale-105 disabled:bg-slate-400 disabled:cursor-not-allowed disabled:scale-100">
+                {isEditMode ? 'Apply Changes' : 'Deploy & Upload All'}
+            </button>
         </div>
       </div>
     </form>
