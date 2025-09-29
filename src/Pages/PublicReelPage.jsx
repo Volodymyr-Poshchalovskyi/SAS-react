@@ -27,6 +27,134 @@ const SliderArrow = ({ direction, onClick }) => (
     </button>
 );
 
+// --- ✨ ПОЧАТОК ЗМІН: Оновлений компонент DownloadModal з прямими кутами ---
+const DownloadModal = ({ isOpen, onClose, mediaItems }) => {
+    const [selectedItems, setSelectedItems] = useState(new Set());
+    const [isDownloading, setIsDownloading] = useState(false);
+
+    useEffect(() => {
+        if (isOpen) {
+            setSelectedItems(new Set());
+        }
+    }, [isOpen]);
+
+    if (!isOpen) return null;
+
+    const handleToggleSelection = (itemId) => {
+        setSelectedItems(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(itemId)) {
+                newSet.delete(itemId);
+            } else {
+                newSet.add(itemId);
+            }
+            return newSet;
+        });
+    };
+
+    const handleDownload = async () => {
+        const itemsToDownload = mediaItems.filter(item => selectedItems.has(item.id));
+        if (itemsToDownload.length === 0) return;
+        
+        setIsDownloading(true);
+
+        for (const item of itemsToDownload) {
+            try {
+                const response = await fetch(item.videoUrl);
+                if (!response.ok) throw new Error(`Network response was not ok for ${item.title}`);
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                
+                const link = document.createElement('a');
+                link.href = url;
+                
+                const urlPath = new URL(item.videoUrl).pathname;
+                const originalFileName = urlPath.substring(urlPath.lastIndexOf('/') + 1);
+                const decodedFileName = decodeURIComponent(originalFileName);
+                const userFriendlyFileName = decodedFileName.includes('-') 
+                    ? decodedFileName.substring(decodedFileName.indexOf('-') + 1)
+                    : decodedFileName;
+
+                link.setAttribute('download', userFriendlyFileName || `sinners-media-${item.id}`);
+                document.body.appendChild(link);
+                link.click();
+                
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+            } catch (error) {
+                console.error("Download failed for:", item.title, error);
+                alert(`Could not download ${item.title}. Please check the console for more details.`);
+            }
+        }
+        setIsDownloading(false);
+        onClose();
+    };
+
+    return (
+        <div 
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4" 
+            onClick={onClose}
+        >
+            <div 
+                className="bg-white dark:bg-black border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-lg text-left flex flex-col" 
+                onClick={e => e.stopPropagation()}
+            >
+                {/* --- Заголовок модального вікна --- */}
+                <div className="flex justify-between items-center p-6 border-b border-slate-200 dark:border-slate-800">
+                    <h3 className="text-lg font-semibold uppercase font-montserrat tracking-widest text-black dark:text-white">
+                        Download Media
+                    </h3>
+                    <button onClick={onClose} className="text-slate-500 hover:text-black dark:hover:text-white transition-colors" aria-label="Close">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                
+                {/* --- Список медіа для завантаження --- */}
+                <div className="space-y-2 p-4 max-h-[60vh] overflow-y-auto">
+                    {mediaItems.map(item => (
+                        <div 
+                            key={item.id} 
+                            className={`flex items-center gap-4 p-3 transition-colors ${!item.allow_download 
+                                ? 'opacity-50 cursor-not-allowed' 
+                                : 'cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-900'
+                            }`} 
+                            onClick={() => item.allow_download && handleToggleSelection(item.id)}
+                        >
+                            <input
+                                type="checkbox"
+                                id={`download-${item.id}`}
+                                checked={selectedItems.has(item.id)}
+                                readOnly
+                                disabled={!item.allow_download}
+                                className="h-5 w-5 border-2 border-slate-300 dark:border-slate-700 text-black dark:text-white focus:ring-black dark:focus:ring-white accent-black dark:accent-white shrink-0 cursor-pointer disabled:cursor-not-allowed"
+                            />
+                            <img src={item.previewUrl} alt={item.title} className="w-24 h-14 object-cover shrink-0" />
+                            <div className="flex-grow min-w-0">
+                                <p className="font-semibold text-black dark:text-white truncate">{item.title}</p>
+                                <p className="text-sm text-slate-500 dark:text-slate-400 truncate">{item.client}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* --- Футер з кнопкою завантаження --- */}
+                <div className="p-6 mt-auto border-t border-slate-200 dark:border-slate-800 flex justify-end">
+                    <button 
+                        onClick={handleDownload}
+                        disabled={selectedItems.size === 0 || isDownloading}
+                        className="w-48 text-center px-5 py-3 text-sm font-semibold uppercase tracking-wider bg-black dark:bg-white text-white dark:text-black hover:bg-slate-800 dark:hover:bg-slate-200 disabled:bg-slate-400 dark:disabled:bg-slate-700 disabled:cursor-not-allowed transition-colors"
+                    >
+                        {isDownloading ? 'Downloading...' : `Download (${selectedItems.size})`}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+// --- ✨ КІНЕЦЬ ЗМІН ---
+
 
 export default function PublicReelPage() {
     const { reelId } = useParams();
@@ -42,6 +170,7 @@ export default function PublicReelPage() {
     const [isVideoPlaying, setIsVideoPlaying] = useState(false);
     const [isFullImageLoaded, setIsFullImageLoaded] = useState(false);
     const [isInitialPlay, setIsInitialPlay] = useState(true);
+    const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
 
     // --- Refs ---
     const videoRef = useRef(null);
@@ -68,6 +197,10 @@ export default function PublicReelPage() {
             return videoExtensions.some(ext => url.pathname.toLowerCase().endsWith(ext));
         } catch { return false; }
     }, [currentMediaItem]);
+
+    const isAnyMediaDownloadable = useMemo(() => {
+        return data?.mediaItems?.some(item => item.allow_download);
+    }, [data]);
 
     const isReadyToPlay = !loading && !preloading;
 
@@ -281,6 +414,23 @@ export default function PublicReelPage() {
                 )}
             </AnimatePresence>
             
+            <AnimatePresence>
+                {isDownloadModalOpen && data && (
+                     <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                    >
+                        <DownloadModal 
+                            isOpen={isDownloadModalOpen}
+                            onClose={() => setIsDownloadModalOpen(false)}
+                            mediaItems={data.mediaItems}
+                        />
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {nextMediaItem && (
                 isNextItemVideo ? (
                     <video ref={preloadVideoRef} key={nextMediaItem.id} src={nextMediaItem.videoUrl} preload="auto" style={{ display: 'none' }} muted playsInline />
@@ -380,7 +530,19 @@ export default function PublicReelPage() {
                     
                     <section className="pt-20 pb-10 md:pt-32 md:pb-16 px-6 lg:px-8 bg-white dark:bg-black">
                         <div className="max-w-screen-2xl mx-auto">
-                            <h2 className="text-3xl md:text-4xl font-bold uppercase mb-16 text-center md:text-left font-montserrat">Work</h2>
+                            {/* ✨ ПОЧАТОК ЗМІН: Оновлений заголовок секції "Work" з кнопкою без заокруглення */}
+                            <div className="flex justify-between items-center mb-16 flex-wrap gap-4">
+                                <h2 className="text-3xl md:text-4xl font-bold uppercase text-left font-montserrat">Work</h2>
+                                {isAnyMediaDownloadable && (
+                                    <button
+                                        onClick={() => setIsDownloadModalOpen(true)}
+                                        className="px-6 py-2.5 text-xs font-semibold uppercase tracking-widest bg-transparent border border-black dark:border-white text-black dark:text-white hover:bg-black dark:hover:bg-white hover:text-white dark:hover:text-black transition-colors"
+                                    >
+                                        Download Media
+                                    </button>
+                                )}
+                            </div>
+                            {/* ✨ КІНЕЦЬ ЗМІН */}
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
                                 {data.mediaItems.map((item, index) => (
                                     <div key={item.id} className="group relative cursor-pointer overflow-hidden" onClick={() => setCurrentSlide(index)}>

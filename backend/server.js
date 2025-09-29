@@ -40,9 +40,6 @@ function generateShortId(length = 5) {
 // API-ЕНДПОІНТИ ДЛЯ GOOGLE CLOUD STORAGE
 // ========================================================================== //
 
-// ======================================================================== //
-// ✨ ПОЧАТОК ЗМІН: Оновлений ендпоінт для завантаження файлів
-// ======================================================================== //
 app.post('/generate-upload-url', async (req, res) => {
   try {
     const { fileName, fileType, destination, role } = req.body;
@@ -57,7 +54,6 @@ app.post('/generate-upload-url', async (req, res) => {
     } else if (role === 'preview') {
       destinationFolder = 'back-end/previews';
     } else {
-      // Fallback to old logic if role is not specified
       destinationFolder = fileType.startsWith('video/') ? 'back-end/videos' : 'back-end/previews';
     }
     
@@ -72,9 +68,6 @@ app.post('/generate-upload-url', async (req, res) => {
     res.status(500).json({ error: 'Failed to generate upload URL.', details: error.message });
   }
 });
-// ======================================================================== //
-// ✨ КІНЕЦЬ ЗМІН
-// ======================================================================== //
 
 
 app.post('/generate-read-urls', async (req, res) => {
@@ -526,7 +519,9 @@ app.get('/reels/public/:short_link', async (req, res) => {
     try {
         const { data: reel, error: reelError } = await supabase
             .from('reels')
-            .select(`id, title, status, reel_media_items(display_order, media_items(id, title, client, artists, video_gcs_path, preview_gcs_path, craft))`)
+            // ✨ ПОЧАТОК ЗМІН: Додано `allow_download` до запиту
+            .select(`id, title, status, reel_media_items(display_order, media_items(id, title, client, artists, video_gcs_path, preview_gcs_path, craft, allow_download))`)
+            // ✨ КІНЕЦЬ ЗМІН
             .eq('short_link', req.params.short_link)
             .single();
 
