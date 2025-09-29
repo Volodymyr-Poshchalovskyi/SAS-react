@@ -6,7 +6,7 @@ import PreloaderBanner from '../Components/PreloaderBanner';
 import { useAnimation } from '../context/AnimationContext';
 import VideoContainer from '../Components/VideoContainer';
 import { Link } from 'react-router-dom';
-import { originalsData } from '../Data/OriginalsData'; // <-- 1. Імпортуйте дані
+
 
 // Тепер цей компонент приймає 'item', який є об'єктом з originalsData
 const OriginalsVideoOverlay = ({ item }) => {
