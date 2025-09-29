@@ -15,6 +15,7 @@ import {
   Loader2,
   CheckCircle,
   Copy,
+  Pin,
 } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -97,7 +98,7 @@ const ExistingReelsList = ({ reels, onCopy, signedUrls, isLoading }) => {
 
   const filteredReels = useMemo(() => {
     if (!searchTerm) return reels;
-    return reels.filter(reel => 
+    return reels.filter(reel =>
       reel.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (reel.user_profiles?.first_name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
       (reel.user_profiles?.last_name || '').toLowerCase().includes(searchTerm.toLowerCase())
@@ -149,7 +150,7 @@ const ReelCreatorSidebar = ({ allItems, activeTab, setActiveTab, reelItems, setR
   const [isLoadingReels, setIsLoadingReels] = useState(false);
   const [signedSidebarUrls, setSignedSidebarUrls] = useState({});
   const navigate = useNavigate();
-  
+
   const isEditing = !!editingReel;
 
   const draggedItemIndex = useRef(null);
@@ -164,7 +165,7 @@ const ReelCreatorSidebar = ({ allItems, activeTab, setActiveTab, reelItems, setR
           if (!response.ok) throw new Error('Failed to fetch reels');
           const data = await response.json();
           setExistingReels(data);
-        } catch (error) { console.error("Error fetching existing reels:", error); } 
+        } catch (error) { console.error("Error fetching existing reels:", error); }
         finally { setIsLoadingReels(false); }
       }
     };
@@ -181,8 +182,8 @@ const ReelCreatorSidebar = ({ allItems, activeTab, setActiveTab, reelItems, setR
       }
     };
     if (existingReels.length > 0) fetchAndCacheUrls();
-  }, [existingReels]);
-  
+  }, [existingReels, signedSidebarUrls]);
+
   const handleDragOverContainer = (e) => { e.preventDefault(); setIsDraggingOver(true); };
   const handleDragLeaveContainer = () => setIsDraggingOver(false);
   const handleDropIntoContainer = (e) => {
@@ -191,9 +192,9 @@ const ReelCreatorSidebar = ({ allItems, activeTab, setActiveTab, reelItems, setR
     const newItems = allItems.filter(item => draggedItemIds.includes(item.id)).filter(item => !reelItems.some(reelItem => reelItem.id === item.id));
     if (newItems.length > 0) setReelItems(prev => [...prev, ...newItems]);
   };
-  
+
   const handleRemoveItem = (id) => setReelItems(prev => prev.filter(item => item.id !== id));
-  
+
   const handleSortDragStart = (e, index) => {
     draggedItemIndex.current = index;
     e.currentTarget.classList.add('opacity-50');
@@ -202,7 +203,7 @@ const ReelCreatorSidebar = ({ allItems, activeTab, setActiveTab, reelItems, setR
   const handleSortDragEnter = (e, index) => {
     draggedOverItemIndex.current = index;
   };
-  
+
   const handleSortDragEnd = (e) => {
     e.currentTarget.classList.remove('opacity-50');
     draggedItemIndex.current = null;
@@ -216,7 +217,7 @@ const ReelCreatorSidebar = ({ allItems, activeTab, setActiveTab, reelItems, setR
     e.preventDefault();
     const fromIndex = draggedItemIndex.current;
     const toIndex = draggedOverItemIndex.current;
-    
+
     if (fromIndex === null || toIndex === null || fromIndex === toIndex) return;
 
     const itemsCopy = [...reelItems];
@@ -225,7 +226,7 @@ const ReelCreatorSidebar = ({ allItems, activeTab, setActiveTab, reelItems, setR
 
     setReelItems(itemsCopy);
   };
-  
+
   const handleSortDragOver = (e) => {
       e.preventDefault();
       document.querySelectorAll('.drag-sort-item').forEach(el => {
@@ -238,7 +239,7 @@ const ReelCreatorSidebar = ({ allItems, activeTab, setActiveTab, reelItems, setR
 
   const handleSubmitReel = async () => {
     if (reelItems.length === 0 || !reelTitle.trim()) return;
-    
+
     const status = isEditing ? 'updating' : 'creating';
     setModalState({ isOpen: true, status });
 
@@ -264,9 +265,9 @@ const ReelCreatorSidebar = ({ allItems, activeTab, setActiveTab, reelItems, setR
         setExistingReels(prev => [newReel, ...prev]);
         setModalState({ isOpen: true, status: 'success', title: 'Reel Created!', message: `Your reel "<strong>${newReel.title}</strong>" was created.` });
       }
-    } catch (err) { 
+    } catch (err) {
       const title = isEditing ? 'Update Failed' : 'Creation Failed';
-      setModalState({ isOpen: true, status: 'error', title, message: err.message }); 
+      setModalState({ isOpen: true, status: 'error', title, message: err.message });
     }
   };
 
@@ -289,20 +290,20 @@ const ReelCreatorSidebar = ({ allItems, activeTab, setActiveTab, reelItems, setR
     }
     setModalState({ isOpen: false, status: 'idle' });
   };
-  
+
   const TabButton = ({ name, label }) => (<button onClick={() => setActiveTab(name)} className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors w-1/2 ${activeTab === name ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800'}`}>{label}</button>);
 
   const submitButtonText = isEditing ? 'Update' : 'Deliver';
   const loadingButtonText = isEditing ? 'Updating...' : 'Creating...';
-  
+
   return (
     <>
       <CreationStatusModal {...modalState} onClose={handleCloseModal} />
       <div className="w-96 shrink-0 space-y-4">
         <div className="p-1 bg-slate-100 dark:bg-slate-900 rounded-lg flex items-center">
             <TabButton name="new" label={isEditing ? 'Editing Reel' : 'New Reel'} />
-            <button 
-              onClick={() => setActiveTab('existing')} 
+            <button
+              onClick={() => setActiveTab('existing')}
               disabled={isEditing}
               className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors w-1/2 ${activeTab === 'existing' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800'} disabled:opacity-50 disabled:cursor-not-allowed`}
             >
@@ -311,9 +312,9 @@ const ReelCreatorSidebar = ({ allItems, activeTab, setActiveTab, reelItems, setR
         </div>
         <div onDragOver={handleDragOverContainer} onDrop={handleDropIntoContainer} onDragLeave={handleDragLeaveContainer} className={`flex flex-col p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 transition-all duration-300 min-h-[400px] ${isDraggingOver ? 'border-2 border-blue-500 ring-4 ring-blue-500/20' : 'border border-slate-200 dark:border-slate-800'}`}>
           {activeTab === 'new' ? (
-            reelItems.length === 0 ? 
-            <div className="flex flex-col items-center justify-center text-center py-16 pointer-events-none h-full"><Layers className="h-12 w-12 text-slate-400 dark:text-slate-500 mb-4" /><h3 className="font-semibold text-slate-800 dark:text-slate-200">Drag work here</h3><p className="text-sm text-slate-500 dark:text-slate-400 mt-1">TO CREATE A REEL</p></div> 
-            : 
+            reelItems.length === 0 ?
+            <div className="flex flex-col items-center justify-center text-center py-16 pointer-events-none h-full"><Layers className="h-12 w-12 text-slate-400 dark:text-slate-500 mb-4" /><h3 className="font-semibold text-slate-800 dark:text-slate-200">Drag work here</h3><p className="text-sm text-slate-500 dark:text-slate-400 mt-1">TO CREATE A REEL</p></div>
+            :
             <div className="flex flex-col h-full">
               <div className="mb-4">
                   <label htmlFor="reel-title" className="text-xs font-medium text-slate-500 dark:text-slate-400">TITLE</label>
@@ -372,7 +373,7 @@ const ItemActionsDropdown = ({ onOpenDeleteModal, onClose, onEdit, isLastItem })
 
 
 // =======================
-// ОСНОВНИЙ КОМПОНЕНТ Library
+// MAIN Library COMPONENT
 // =======================
 const Library = () => {
   const navigate = useNavigate();
@@ -388,31 +389,68 @@ const Library = () => {
   const [signedUrls, setSignedUrls] = useState({});
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [itemToDelete, setItemToDelete] = useState(null);
-  
+
+  const [pinnedItemIds, setPinnedItemIds] = useState(new Set());
+  const [currentUserId, setCurrentUserId] = useState(null);
+
+  const isInitialMount = useRef(true);
+
   const headerCheckboxRef = useRef(null);
   const itemsPerPage = 10;
 
-  // СТАН, ПІДНЯТИЙ ІЗ САЙДБАРУ
+  // State lifted from Sidebar
   const [activeTab, setActiveTab] = useState('new');
   const [reelItems, setReelItems] = useState([]);
   const [reelTitle, setReelTitle] = useState(`Draft: Showreel (${new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })})`);
   const [editingReel, setEditingReel] = useState(null);
 
+  // Fetch media items and load pins from localStorage
   useEffect(() => {
-    const fetchMediaItems = async () => {
-      setLoading(true); setError(null);
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
       try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) throw new Error("User not authenticated.");
+        setCurrentUserId(user.id);
+
         const { data, error } = await supabase.from('media_items').select(`*, user_profiles:public_user_profiles(first_name, last_name)`).order('created_at', { ascending: false });
         if (error) throw error;
         setItems(data || []);
+
+        // Load pins from localStorage
+        const storedPinsRaw = localStorage.getItem('userPinnedItems');
+        if (storedPinsRaw) {
+            const allUsersPins = JSON.parse(storedPinsRaw);
+            const userPins = allUsersPins[user.id] || [];
+            setPinnedItemIds(new Set(userPins));
+        }
+
       } catch (e) {
-        setError(e.message); setItems([]);
+        setError(e.message);
+        setItems([]);
       } finally {
         setLoading(false);
       }
     };
-    fetchMediaItems();
+    fetchData();
   }, []);
+
+  // Save pins to localStorage whenever they change
+  useEffect(() => {
+    if (isInitialMount.current) {
+        isInitialMount.current = false;
+        return;
+    }
+
+    if (currentUserId) {
+        const storedPinsRaw = localStorage.getItem('userPinnedItems');
+        const allUsersPins = storedPinsRaw ? JSON.parse(storedPinsRaw) : {};
+        allUsersPins[currentUserId] = Array.from(pinnedItemIds);
+        localStorage.setItem('userPinnedItems', JSON.stringify(allUsersPins));
+    }
+  }, [pinnedItemIds, currentUserId]);
+
 
   useEffect(() => {
     const reelToCopy = location.state?.reelToCopy;
@@ -431,23 +469,23 @@ const Library = () => {
           setEditingReel(null);
           setReelTitle(`Copy: ${reelToCopy.title}`);
         }
-        
+
         setActiveTab('new');
-        
+
         const processItems = async () => {
           const pathsToFetch = rawItemsToProcess.map(item => item.preview_gcs_path).filter(path => path && !signedUrls[path]);
-          
+
           let newUrls = {};
           if (pathsToFetch.length > 0) {
             newUrls = await getSignedUrls(pathsToFetch);
             setSignedUrls(prev => ({ ...prev, ...newUrls }));
           }
-          
+
           const finalItemsWithUrls = rawItemsToProcess.map(item => ({
             ...item,
             previewUrl: newUrls[item.preview_gcs_path] || signedUrls[item.preview_gcs_path] || null
           }));
-          
+
           setReelItems(finalItemsWithUrls);
         };
 
@@ -471,25 +509,45 @@ const Library = () => {
 
   const filteredItems = useMemo(() => {
     let processItems = [...items];
-    if (sortConfig.key) {
-      processItems.sort((a, b) => {
-        const valA = a[sortConfig.key] || ''; const valB = b[sortConfig.key] || '';
-        if (valA < valB) return sortConfig.direction === 'ascending' ? -1 : 1;
-        if (valA > valB) return sortConfig.direction === 'ascending' ? 1 : -1;
-        return 0;
-      });
-    }
+
     if (searchTerm) {
         const term = searchTerm.toLowerCase();
         processItems = processItems.filter(item => Object.values(item).some(value => String(value).toLowerCase().includes(term)));
     }
+
+    processItems.sort((a, b) => {
+        const isAPinned = pinnedItemIds.has(a.id);
+        const isBPinned = pinnedItemIds.has(b.id);
+
+        // Primary sort: pinned items first
+        if (isAPinned && !isBPinned) return -1;
+        if (!isAPinned && isBPinned) return 1;
+
+        // Secondary sort: by selected column
+        const valA = a[sortConfig.key] || '';
+        const valB = b[sortConfig.key] || '';
+        if (valA < valB) return sortConfig.direction === 'ascending' ? -1 : 1;
+        if (valA > valB) return sortConfig.direction === 'ascending' ? 1 : -1;
+
+        return 0;
+    });
+
     return processItems;
-  }, [items, sortConfig, searchTerm]);
+  }, [items, sortConfig, searchTerm, pinnedItemIds]);
 
   const currentItems = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
     return filteredItems.slice(start, start + itemsPerPage);
   }, [filteredItems, currentPage]);
+
+  // ***FIXED***: Moved this hook up with the other hooks
+  const pinActionText = useMemo(() => {
+    if (selectedItems.size === 0) return "Pin";
+    const selectedIds = Array.from(selectedItems);
+    const allSelectedArePinned = selectedIds.every(id => pinnedItemIds.has(id));
+    return allSelectedArePinned ? "Unpin Selected" : "Pin Selected";
+  }, [selectedItems, pinnedItemIds]);
+
 
   useEffect(() => {
     const fetchUrlsForCurrentPage = async () => {
@@ -510,66 +568,50 @@ const Library = () => {
     }
   }, [selectedItems, currentItems]);
 
+  const handleTogglePin = (itemIdsToToggle) => {
+    const newPinnedIds = new Set(pinnedItemIds);
+    itemIdsToToggle.forEach(id => {
+        if (newPinnedIds.has(id)) {
+            newPinnedIds.delete(id);
+        } else {
+            newPinnedIds.add(id);
+        }
+    });
+    setPinnedItemIds(newPinnedIds);
+    setSelectedItems(new Set());
+  };
+
   const handleSort = (key) => setSortConfig(prev => ({ key, direction: prev.key === key && prev.direction === 'ascending' ? 'descending' : 'ascending' }));
   const handleSelectAll = (e) => setSelectedItems(e.target.checked ? new Set(currentItems.map(item => item.id)) : new Set());
   const handleRowCheck = (id) => setSelectedItems(prev => { const newSet = new Set(prev); newSet.has(id) ? newSet.delete(id) : newSet.add(id); return newSet; });
   const handleDragStart = (e, item) => { const ids = selectedItems.has(item.id) ? [...selectedItems] : [item.id]; e.dataTransfer.setData('application/json', JSON.stringify(ids)); };
   const formatDateTime = (date) => new Date(date).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
   const handleEditItem = (id) => navigate((location.pathname.startsWith('/adminpanel') ? '/adminpanel' : '/userpanel') + `/upload-media/${id}`);
-  
+
   const handleRowDoubleClick = (item) => {
-    console.log("Double-clicked item:", item);
-  
-    // Шлях до повнорозмірного файлу
     const fullResolutionAssetPath = item.video_gcs_path;
-    if (!fullResolutionAssetPath) {
-      console.error("Error: 'video_gcs_path' is missing for item:", item);
-      return;
-    }
-  
-    // Отримуємо URL для цього файлу з кешу
+    if (!fullResolutionAssetPath) return;
     const assetUrl = signedUrls[fullResolutionAssetPath];
-    if (!assetUrl) {
-      console.error(`Error: Signed URL not found for path '${fullResolutionAssetPath}'. Check if it was fetched.`);
-      return;
-    }
-  
-    // Визначаємо тип
     let assetType = item.type;
-  
-    // Якщо тип не вказано, спробуємо вгадати за розширенням файлу
     if (!assetType) {
-      console.warn("Item type is missing. Guessing from file extension.");
       const extension = fullResolutionAssetPath.split('.').pop().toLowerCase();
-      if (['mp4', 'mov', 'webm', 'avi'].includes(extension)) {
-        assetType = 'video';
-      } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension)) {
-        assetType = 'image';
-      }
+      if (['mp4', 'mov', 'webm', 'avi'].includes(extension)) assetType = 'video';
+      else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension)) assetType = 'image';
     }
-  
-    if (assetUrl && assetType) {
-      console.log(`Opening modal with URL: ${assetUrl} and Type: ${assetType}`);
-      setModalMedia({
-        url: assetUrl,
-        type: assetType,
-      });
-    } else {
-      console.error(`Failed to open modal. URL: ${assetUrl}, Type: ${assetType}`);
-    }
+    if (assetUrl && assetType) setModalMedia({ url: assetUrl, type: assetType });
   };
-  
+
   const handleConfirmDelete = async () => {
     if (!itemToDelete) return;
     const res = await fetch(`http://localhost:3001/media-items/${itemToDelete.id}`, { method: 'DELETE' });
     if (!res.ok) throw new Error(await res.text());
     setItems(prev => prev.filter(item => item.id !== itemToDelete.id));
   };
-  
+
   const handleUpdateSuccess = (updatedReel) => {
     console.log('Reel updated, data could be refreshed here.', updatedReel);
   };
-  
+
   if (loading) return <div className="p-8 text-center text-slate-500">Loading library... ⏳</div>;
   if (error) return <div className="p-8 text-center text-red-500">Error: {error}</div>;
   const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
@@ -581,7 +623,18 @@ const Library = () => {
       <div className="flex items-start gap-8 p-6 min-h-screen">
         <div className="flex-1">
           <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">Media Library</h1>
+             <div className="flex items-center gap-4">
+                 <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">Media Library</h1>
+                 {selectedItems.size > 0 && (
+                    <button
+                        onClick={() => handleTogglePin(Array.from(selectedItems))}
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                    >
+                        <Pin size={16} />
+                        {pinActionText} ({selectedItems.size})
+                    </button>
+                 )}
+            </div>
             <div className="w-full sm:w-72"><input type="text" placeholder="Search library..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm"/></div>
           </div>
           <div className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden">
@@ -590,6 +643,7 @@ const Library = () => {
                 <thead className="text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/50 text-[11px] uppercase">
                   <tr>
                     <th className="p-4 w-12 text-left"><input type="checkbox" ref={headerCheckboxRef} onChange={handleSelectAll} className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-blue-600" /></th>
+                    <th className="p-4 w-12 text-center"><Pin size={14} /></th>
                     <SortableHeader sortKey="title" sortConfig={sortConfig} onSort={handleSort} className="w-[30%]">Title</SortableHeader>
                     <SortableHeader sortKey="artists" sortConfig={sortConfig} onSort={handleSort} className="w-[15%]">Artists</SortableHeader>
                     <SortableHeader sortKey="client" sortConfig={sortConfig} onSort={handleSort} className="w-[15%]">Client</SortableHeader>
@@ -599,19 +653,19 @@ const Library = () => {
                     <th className="p-4 w-16 text-right"></th>
                   </tr>
                 </thead>
-                <tbody className="text-slate-800 dark:text-slate-200 text-xs">{currentItems.map((item, index) => { const addedBy = item.user_profiles ? `${item.user_profiles.first_name || ''} ${item.user_profiles.last_name || ''}`.trim() : 'System'; const previewUrl = item.preview_gcs_path ? signedUrls[item.preview_gcs_path] : null; const isLastItemOnPage = index === currentItems.length - 1; return (<tr key={item.id} draggable="true" onDragStart={(e) => handleDragStart(e, item)} className={`border-b border-slate-100 dark:border-slate-800 transition-colors cursor-pointer ${selectedItems.has(item.id) ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`} onClick={() => handleRowCheck(item.id)} onDoubleClick={() => handleRowDoubleClick(item)}><td className="p-4 align-top pt-6"><input type="checkbox" checked={selectedItems.has(item.id)} onChange={(e) => { e.stopPropagation(); handleRowCheck(item.id); }} onClick={(e) => e.stopPropagation()} className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-blue-600 cursor-pointer" /></td><td className="p-4 align-top"><div className="flex items-start gap-4"><div className="w-16 h-10 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">{previewUrl ? <img src={previewUrl} alt="preview" className="w-full h-full object-cover rounded-md" /> : <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800"><ImageIcon className="w-5 h-5 text-slate-400" /></div>}</div><div className='min-w-0'><div className="text-blue-600 dark:text-blue-400 text-[10px] font-medium uppercase">{item.client}</div><div className="font-semibold text-slate-900 dark:text-slate-50 whitespace-normal break-words">{item.title}</div></div></div></td><td className="p-4 align-top truncate">{item.artists}</td><td className="p-4 align-top truncate">{item.client}</td><td className="p-4 align-top truncate">{item.categories}</td><td className="p-4 align-top truncate">{addedBy}</td><td className="p-4 align-top text-slate-500 dark:text-slate-400">{formatDateTime(item.created_at)}</td><td className="p-4 align-top text-right relative"><button onClick={(e) => { e.stopPropagation(); setActiveDropdown(prev => (prev?.id === item.id ? null : { id: item.id })); }} className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><Settings className="h-4 w-4 text-slate-500" /></button>{activeDropdown?.id === item.id && (<ItemActionsDropdown onClose={() => setActiveDropdown(null)} onOpenDeleteModal={() => { setItemToDelete(item); setActiveDropdown(null); }} onEdit={() => handleEditItem(item.id)} isLastItem={isLastItemOnPage} />)}</td></tr>);})}</tbody>
+                <tbody className="text-slate-800 dark:text-slate-200 text-xs">{currentItems.map((item, index) => { const isPinned = pinnedItemIds.has(item.id); const addedBy = item.user_profiles ? `${item.user_profiles.first_name || ''} ${item.user_profiles.last_name || ''}`.trim() : 'System'; const previewUrl = item.preview_gcs_path ? signedUrls[item.preview_gcs_path] : null; const isLastItemOnPage = index === currentItems.length - 1; return (<tr key={item.id} draggable="true" onDragStart={(e) => handleDragStart(e, item)} className={`border-b border-slate-100 dark:border-slate-800 transition-colors cursor-pointer ${selectedItems.has(item.id) ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`} onClick={() => handleRowCheck(item.id)} onDoubleClick={() => handleRowDoubleClick(item)}><td className="p-4 align-top pt-6"><input type="checkbox" checked={selectedItems.has(item.id)} onChange={(e) => { e.stopPropagation(); handleRowCheck(item.id); }} onClick={(e) => e.stopPropagation()} className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-blue-600 cursor-pointer" /></td><td className="p-4 align-top pt-6 text-center"><button onClick={(e) => { e.stopPropagation(); handleTogglePin([item.id]); }} className={`p-1 rounded-full ${isPinned ? 'text-blue-600' : 'text-slate-300 dark:text-slate-600 hover:text-slate-500'}`}>{isPinned ? <Pin size={16} /> : <Pin size={16} />}</button></td><td className="p-4 align-top"><div className="flex items-start gap-4"><div className="w-16 h-10 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">{previewUrl ? <img src={previewUrl} alt="preview" className="w-full h-full object-cover rounded-md" /> : <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800"><ImageIcon className="w-5 h-5 text-slate-400" /></div>}</div><div className='min-w-0'><div className="text-blue-600 dark:text-blue-400 text-[10px] font-medium uppercase">{item.client}</div><div className="font-semibold text-slate-900 dark:text-slate-50 whitespace-normal break-words">{item.title}</div></div></div></td><td className="p-4 align-top truncate">{item.artists}</td><td className="p-4 align-top truncate">{item.client}</td><td className="p-4 align-top truncate">{item.categories}</td><td className="p-4 align-top truncate">{addedBy}</td><td className="p-4 align-top text-slate-500 dark:text-slate-400">{formatDateTime(item.created_at)}</td><td className="p-4 align-top text-right relative"><button onClick={(e) => { e.stopPropagation(); setActiveDropdown(prev => (prev?.id === item.id ? null : { id: item.id })); }} className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><Settings className="h-4 w-4 text-slate-500" /></button>{activeDropdown?.id === item.id && (<ItemActionsDropdown onClose={() => setActiveDropdown(null)} onOpenDeleteModal={() => { setItemToDelete(item); setActiveDropdown(null); }} onEdit={() => handleEditItem(item.id)} isLastItem={isLastItemOnPage} />)}</td></tr>);})}</tbody>
               </table>
             </div>
             {totalPages > 1 && (<div className="p-4 flex items-center justify-between text-sm text-slate-600 dark:text-slate-400"><p>Page {currentPage} of {totalPages}</p><div className="flex items-center gap-2"><button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1.5 border rounded-md disabled:opacity-50 border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"><ChevronLeft size={16} /></button><button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1.5 border rounded-md disabled:opacity-50 border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"><ChevronRight size={16} /></button></div></div>)}
           </div>
         </div>
-        <ReelCreatorSidebar 
-          allItems={allItemsWithUrls} 
-          activeTab={activeTab} 
-          setActiveTab={setActiveTab} 
-          reelItems={reelItems} 
-          setReelItems={setReelItems} 
-          reelTitle={reelTitle} 
+        <ReelCreatorSidebar
+          allItems={allItemsWithUrls}
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          reelItems={reelItems}
+          setReelItems={setReelItems}
+          reelTitle={reelTitle}
           setReelTitle={setReelTitle}
           editingReel={editingReel}
           onUpdateSuccess={handleUpdateSuccess}

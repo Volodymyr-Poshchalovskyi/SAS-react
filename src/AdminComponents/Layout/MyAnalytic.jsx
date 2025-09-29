@@ -22,8 +22,16 @@ import {
   Power,
   PowerOff,
   Edit,
+  Pin, // PIN UPDATE: Import Pin icon
 } from 'lucide-react';
 import { getSignedUrls } from '../../lib/gcsUrlCache';
+
+// Припускаємо, що у вас є Supabase клієнт, якщо ні, його потрібно ініціалізувати
+// import { createClient } from '@supabase/supabase-js';
+// const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+// const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 
 // =======================
 // HELPER FUNCTIONS & UTILITIES
@@ -111,8 +119,6 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
   );
 };
 
-// ... (початок файлу MyAnalytics.jsx без змін)
-
 const EditReelModal = ({ isOpen, onClose, reel, onSaveSuccess, onCopy }) => {
   const [formData, setFormData] = useState({ title: '' });
   const [status, setStatus] = useState('idle');
@@ -174,10 +180,8 @@ const EditReelModal = ({ isOpen, onClose, reel, onSaveSuccess, onCopy }) => {
     }
   };
 
-  // ✨ ЗМІНА: Класи для кнопок для консистентності
   const primaryButtonClasses = "w-full justify-center px-4 py-2 text-sm font-medium rounded-md bg-blue-600 text-white hover:bg-blue-700 disabled:bg-blue-400 flex items-center";
   const secondaryButtonClasses = "w-full justify-center px-4 py-2 text-sm font-medium rounded-md border border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 disabled:opacity-50";
-
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50" onClick={status === 'idle' ? onClose : undefined}>
@@ -203,47 +207,17 @@ const EditReelModal = ({ isOpen, onClose, reel, onSaveSuccess, onCopy }) => {
             {status === 'error' && <p className="text-sm text-red-500">{errorMessage}</p>}
           </div>
           
-          {/* ✨ ЗМІНА: Повністю оновлений блок кнопок з використанням grid */}
           <div className="mt-6 grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={handleChangeMedia}
-                className={secondaryButtonClasses}
-              >
-                <Layers className="h-4 w-4" />
-                Edit Media
-              </button>
-              <button
-                type="button"
-                onClick={handleCopyClick}
-                className={secondaryButtonClasses}
-              >
-                <Copy className="h-4 w-4" />
-                Make a Copy
-              </button>
-              <button 
-                type="button" 
-                onClick={onClose} 
-                disabled={status === 'saving'} 
-                className={secondaryButtonClasses}
-              >
-                Cancel
-              </button>
-              <button 
-                type="submit" 
-                disabled={status === 'saving'} 
-                className={primaryButtonClasses}
-              >
-                {status === 'saving' ? <><Loader2 className="animate-spin h-4 w-4 mr-2" /> Saving...</> : 'Save Changes'}
-              </button>
+              <button type="button" onClick={handleChangeMedia} className={secondaryButtonClasses}><Layers className="h-4 w-4" />Edit Media</button>
+              <button type="button" onClick={handleCopyClick} className={secondaryButtonClasses}><Copy className="h-4 w-4" />Make a Copy</button>
+              <button type="button" onClick={onClose} disabled={status === 'saving'} className={secondaryButtonClasses}>Cancel</button>
+              <button type="submit" disabled={status === 'saving'} className={primaryButtonClasses}>{status === 'saving' ? <><Loader2 className="animate-spin h-4 w-4 mr-2" /> Saving...</> : 'Save Changes'}</button>
           </div>
         </form>
       </div>
     </div>
   );
 };
-
-
 
 const ReelActionsDropdown = ({ reel, onEdit, onCopy, onDelete, onToggleStatus, onClose, isLastItem }) => {
   const dropdownRef = useRef(null);
@@ -286,31 +260,80 @@ const MyAnalytics = () => {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [copiedLink, setCopiedLink] = useState(null);
   const itemsPerPage = 10;
+  
+  // PIN UPDATE: State for pins, selection, and user ID
+  const [selectedReels, setSelectedReels] = useState(new Set());
+  const [pinnedReelIds, setPinnedReelIds] = useState(new Set());
+  const [currentUserId, setCurrentUserId] = useState(null);
+  const isInitialMount = useRef(true);
+  const headerCheckboxRef = useRef(null);
 
+  // PIN UPDATE: Fetch reels and load pins from localStorage
   useEffect(() => {
     const fetchReels = async () => {
       setLoading(true);
       try {
+        // We need the user to scope the pins in localStorage.
+        // Assuming a Supabase client `supabase.auth.getUser()`
+        // If you get user from another endpoint, adjust it.
+        // const { data: { user } } = await supabase.auth.getUser();
+        // For now, let's assume a mock user fetch if no supabase client
+        const user = { id: 'mock-user-id-123' }; // Replace with your actual user fetching
+        if (user) setCurrentUserId(user.id);
+
         const response = await fetch('http://localhost:3001/reels');
         if (!response.ok) throw new Error('Failed to fetch reels data.');
         const data = await response.json();
         setReelsData(data);
+        
+        // Load pins from localStorage
+        if(user) {
+            const storedPinsRaw = localStorage.getItem('userPinnedReels');
+            if (storedPinsRaw) {
+                const allUsersPins = JSON.parse(storedPinsRaw);
+                const userPins = allUsersPins[user.id] || [];
+                setPinnedReelIds(new Set(userPins));
+            }
+        }
       } catch (error) { console.error(error); } 
       finally { setLoading(false); }
     };
     fetchReels();
   }, []);
   
+  // PIN UPDATE: Save pins to localStorage whenever they change
+  useEffect(() => {
+    if (isInitialMount.current) {
+        isInitialMount.current = false;
+        return;
+    }
+    if (currentUserId) {
+        const storedPinsRaw = localStorage.getItem('userPinnedReels');
+        const allUsersPins = storedPinsRaw ? JSON.parse(storedPinsRaw) : {};
+        allUsersPins[currentUserId] = Array.from(pinnedReelIds);
+        localStorage.setItem('userPinnedReels', JSON.stringify(allUsersPins));
+    }
+  }, [pinnedReelIds, currentUserId]);
+
   useEffect(() => {
     const reelIdToOpen = location.state?.openModalForReelId;
     if (reelIdToOpen && !loading && reelsData.length > 0) {
       const reel = reelsData.find(r => r.id === reelIdToOpen);
       if (reel) {
         setReelToEdit(reel);
-        navigate(location.pathname, { replace: true });
+        navigate(location.pathname, { replace: true, state: {} });
       }
     }
   }, [location.state, reelsData, loading, navigate, location.pathname]);
+
+  const handleTogglePin = (reelIdsToToggle) => {
+    const newPinnedIds = new Set(pinnedReelIds);
+    reelIdsToToggle.forEach(id => {
+        newPinnedIds.has(id) ? newPinnedIds.delete(id) : newPinnedIds.add(id);
+    });
+    setPinnedReelIds(newPinnedIds);
+    setSelectedReels(new Set());
+  };
 
   const handleToggleStatus = async (id, currentStatus) => {
     const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
@@ -359,8 +382,14 @@ const MyAnalytics = () => {
 
   const sortedData = useMemo(() => {
     let sortableItems = [...reelsData];
-    if (sortConfig.key) {
-      sortableItems.sort((a, b) => {
+    sortableItems.sort((a, b) => {
+      const isAPinned = pinnedReelIds.has(a.id);
+      const isBPinned = pinnedReelIds.has(b.id);
+      
+      if (isAPinned && !isBPinned) return -1;
+      if (!isAPinned && isBPinned) return 1;
+
+      if (sortConfig.key) {
         let aValue = a[sortConfig.key] ?? 0;
         let bValue = b[sortConfig.key] ?? 0;
         if (sortConfig.key === 'created_by') {
@@ -370,11 +399,11 @@ const MyAnalytics = () => {
         if (typeof aValue === 'string' && typeof bValue === 'string') return sortConfig.direction === 'ascending' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
         if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
         if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
-        return 0;
-      });
-    }
+      }
+      return 0;
+    });
     return sortableItems;
-  }, [reelsData, sortConfig]);
+  }, [reelsData, sortConfig, pinnedReelIds]);
 
   const filteredData = useMemo(() => {
     if (!searchTerm) return sortedData;
@@ -401,8 +430,27 @@ const MyAnalytics = () => {
     };
     if (currentData.length > 0) fetchAndCacheUrls();
   }, [currentData]);
-
+  
   const handleSort = (key) => setSortConfig(prev => ({ key, direction: prev.key === key && prev.direction === 'ascending' ? 'descending' : 'ascending' }));
+  
+  const handleSelectAll = (e) => setSelectedReels(e.target.checked ? new Set(currentData.map(item => item.id)) : new Set());
+  const handleRowCheck = (id) => setSelectedReels(prev => { const newSet = new Set(prev); newSet.has(id) ? newSet.delete(id) : newSet.add(id); return newSet; });
+  
+  useEffect(() => {
+    if (headerCheckboxRef.current) {
+      const numSelected = selectedReels.size;
+      const numOnPage = currentData.length;
+      headerCheckboxRef.current.checked = numSelected === numOnPage && numOnPage > 0;
+      headerCheckboxRef.current.indeterminate = numSelected > 0 && numSelected < numOnPage;
+    }
+  }, [selectedReels, currentData]);
+
+  const pinActionText = useMemo(() => {
+    if (selectedReels.size === 0) return "Pin";
+    const allSelectedArePinned = Array.from(selectedReels).every(id => pinnedReelIds.has(id));
+    return allSelectedArePinned ? "Unpin Selected" : "Pin Selected";
+  }, [selectedReels, pinnedReelIds]);
+  
   const formatNumber = (num) => new Intl.NumberFormat('en-US').format(num);
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
@@ -414,8 +462,16 @@ const MyAnalytics = () => {
       <EditReelModal onCopy={handleCopy} isOpen={!!reelToEdit} onClose={() => setReelToEdit(null)} reel={reelToEdit} onSaveSuccess={handleSaveSuccess} />
       
       <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">Analytics</h1>
+        <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+          <div className="flex items-center gap-4">
+            <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">Analytics</h1>
+            {selectedReels.size > 0 && (
+              <button onClick={() => handleTogglePin(Array.from(selectedReels))} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                <Pin size={16} />
+                {pinActionText} ({selectedReels.size})
+              </button>
+            )}
+          </div>
           <div className="w-full sm:w-72"><input type="text" placeholder="Search analytics..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={inputClasses} /></div>
         </div>
         <div className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden">
@@ -423,6 +479,8 @@ const MyAnalytics = () => {
             <table className="w-full text-sm">
               <thead className="text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900">
                 <tr className="border-b border-slate-200 dark:border-slate-800">
+                  <th className="p-4 w-12 text-left"><input type="checkbox" ref={headerCheckboxRef} onChange={handleSelectAll} className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-blue-600" /></th>
+                  <th className="p-4 w-12 text-center"><Pin size={14} /></th>
                   <SortableHeader sortKey="title" sortConfig={sortConfig} onSort={handleSort} className="w-[23%]">Reel</SortableHeader>
                   <SortableHeader sortKey="total_views" sortConfig={sortConfig} onSort={handleSort} className="w-[8%] text-center">Views</SortableHeader>
                   <SortableHeader sortKey="completion_rate" sortConfig={sortConfig} onSort={handleSort} className="w-[12%] text-center">Completion</SortableHeader>
@@ -436,13 +494,16 @@ const MyAnalytics = () => {
               </thead>
               <tbody className="text-slate-800 dark:text-slate-200 divide-y divide-slate-100 dark:divide-slate-800">
                 {currentData.map((reel, index) => {
+                  const isPinned = pinnedReelIds.has(reel.id);
                   const previewUrl = reel.preview_gcs_path ? signedUrls[reel.preview_gcs_path] : null;
                   const completionRate = Math.round(reel.completion_rate || 0);
                   const createdBy = reel.user_profiles ? `${reel.user_profiles.first_name || ''} ${reel.user_profiles.last_name || ''}`.trim() : 'N/A';
                   const createdAtDateTime = reel.created_at ? new Date(reel.created_at).toLocaleString('uk-UA', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'N/A';
                   const isLastItem = index === currentData.length - 1;
                   return (
-                    <tr key={reel.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                    <tr key={reel.id} onClick={() => handleRowCheck(reel.id)} className={`transition-colors cursor-pointer ${selectedReels.has(reel.id) ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/30'}`}>
+                      <td className="p-4 text-left"><input type="checkbox" checked={selectedReels.has(reel.id)} onChange={e => e.stopPropagation()} onClick={e => e.stopPropagation()} className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-blue-600 cursor-pointer" /></td>
+                      <td className="p-4 text-center"><button onClick={(e) => { e.stopPropagation(); handleTogglePin([reel.id]); }} className={`p-1 rounded-full ${isPinned ? 'text-blue-600' : 'text-slate-300 dark:text-slate-600 hover:text-slate-500'}`}><Pin size={16} /></button></td>
                       <td className="p-4 text-left"><div className="flex items-center gap-4"><div className="w-20 h-12 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">{previewUrl ? <img src={previewUrl} alt={reel.title} className="w-full h-full object-cover rounded-md" /> : <ImageIcon className="w-6 h-6 text-slate-400" />}</div><span className="font-medium text-slate-900 dark:text-slate-50"><Highlight text={reel.title} highlight={searchTerm} /></span></div></td>
                       <td className="p-4 text-center"><div className="flex items-center justify-center gap-2 text-slate-600 dark:text-slate-400"><Eye className="h-4 w-4" /><span className="font-medium text-slate-800 dark:text-slate-200">{formatNumber(reel.total_views || 0)}</span></div></td>
                       <td className="p-4 text-center"><div className="flex flex-col items-center justify-center gap-1.5"><span className="font-semibold text-slate-900 dark:text-slate-50">{completionRate}%</span><div className="w-24 bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 overflow-hidden"><div className="bg-slate-900 dark:bg-slate-400 h-1.5" style={{ width: `${completionRate}%` }}></div></div><span className="text-xs text-slate-500 dark:text-slate-400">{formatNumber(reel.completed_views || 0)} to end</span></div></td>
@@ -456,12 +517,8 @@ const MyAnalytics = () => {
                             <Highlight text={reel.short_link} highlight={searchTerm} />
                             <LinkIcon className="h-3 w-3" />
                           </a>
-                          <button onClick={() => handleCopyLink(reel.short_link)} title="Copy Link" className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700">
-                             {copiedLink === reel.short_link ? (
-                               <CheckCircle className="h-4 w-4 text-green-500" />
-                            ) : (
-                               <Copy className="h-4 w-4 text-slate-500" />
-                            )}
+                          <button onClick={(e) => { e.stopPropagation(); handleCopyLink(reel.short_link); }} title="Copy Link" className="p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700">
+                             {copiedLink === reel.short_link ? <CheckCircle className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4 text-slate-500" />}
                           </button>
                         </div>
                       </td>
