@@ -116,7 +116,7 @@ export const directorsData = [
       },
       {
         title: 'Zegna',
-        src: 'front-end/01-Directors/04-MATTIA BENETTI/6- SPLASH Ramadam_FHD_DOWNLOAD.mp4',
+        src: 'front-end/01-Directors/04-MATTIA BENETTI/6- SPLASH  Ramadam_FHD_DOWNLOAD.mp4',
       },
       {
         title: 'Zegna',
@@ -170,7 +170,7 @@ export const directorsData = [
       },
       {
         title: 'Smirnoff Karol G',
-        src: 'front-end/01-Directors/06-jessy terrero/2 - Bad Bunny - Ni Bien Ni Mal [Official Muaic Video].mp4',
+        src: 'front-end/01-Directors/06-jessy terrero/2 - Bad Bunny - Ni Bien Ni Mal.mp4',
       },
       {
         title: 'Smirnoff Karol G',
