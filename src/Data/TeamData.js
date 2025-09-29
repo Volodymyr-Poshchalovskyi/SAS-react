@@ -8,7 +8,7 @@
 export const teamData = [
   {
     id: 1,
-    firstName: 'JANETTE',
+    firstName: 'candice',
     lastName: 'BECKMAN',
     role: 'CO-FOUNDER / PHOTOGRAPHER',
     category: 'MUSIC & CULTURE',
@@ -17,7 +17,7 @@ export const teamData = [
   },
   {
     id: 2,
-    firstName: 'JESSY',
+    firstName: 'heather',
     lastName: 'TERRERO',
     role: 'CO-FOUNDER / CEO',
     category: 'FILM & BRANDED CONTENT',
@@ -26,7 +26,7 @@ export const teamData = [
   },
   {
     id: 3,
-    firstName: 'SOPHIE',
+    firstName: 'rost',
     lastName: 'MULLER',
     role: 'DIRECTOR',
     category: 'MUSIC VIDEOS',
@@ -35,11 +35,11 @@ export const teamData = [
   },
   {
     id: 4,
-    firstName: 'DAVID',
+    firstName: 'tommy',
     lastName: 'LACHAPELLE',
     role: 'DIRECTOR / ARTIST',
     category: 'FASHION & ART',
-    photoSrc: 'front-end/08-about/01-Team/Tommy.jpg', // Example GCS path
+    photoSrc: 'front-end/08-about/01-Team/front-end_08-about_01-Team_Tommy.jpg', // Example GCS path
     bio: 'IS AN AMERICAN COMMERCIAL PHOTOGRAPHER, FINE-ART PHOTOGRAPHER, MUSIC VIDEO DIRECTOR, AND FILM DIRECTOR. HE IS KNOWN FOR HIS PHOTOGRAPHY, WHICH OFTEN REFERENCES ART HISTORY AND SOMETIMES CONVEYS SOCIAL MESSAGES. HIS PHOTOGRAPHIC STYLE HAS BEEN DESCRIBED AS "HYPER-REAL AND SLICKLY SURREALIST".'
   }
 ];
