@@ -1,7 +1,8 @@
-// src/AdminComponents/Layout/TrendingVideos.jsx
-
 import React from 'react';
 import { PlayCircle } from 'lucide-react';
+
+// ✨ ЗМІНА: Додано базовий URL для CDN
+const CDN_BASE_URL = 'http://34.54.191.201';
 
 const cardClasses =
   'bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl';
@@ -53,7 +54,12 @@ const TrendingVideos = ({ videos, isLoading }) => {
       {mostPopular && (
         <div className="group relative aspect-video w-full rounded-lg overflow-hidden cursor-pointer">
           <img
-            src={mostPopular.imageUrl || 'https://placehold.co/1600x900'}
+            // ✨ ЗМІНА: Формуємо URL з CDN, пропс тепер `preview_gcs_path`
+            src={
+              mostPopular.preview_gcs_path
+                ? `${CDN_BASE_URL}/${mostPopular.preview_gcs_path}`
+                : 'https://placehold.co/1600x900'
+            }
             alt={mostPopular.title}
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
@@ -80,7 +86,12 @@ const TrendingVideos = ({ videos, isLoading }) => {
         {otherVideos.map((video) => (
           <div key={video.id} className="flex items-center gap-4 py-3">
             <img
-              src={video.imageUrl || 'https://placehold.co/160x90'}
+              // ✨ ЗМІНА: Формуємо URL з CDN, пропс тепер `preview_gcs_path`
+              src={
+                video.preview_gcs_path
+                  ? `${CDN_BASE_URL}/${video.preview_gcs_path}`
+                  : 'https://placehold.co/160x90'
+              }
               alt={video.title}
               className="w-24 h-14 object-cover rounded border border-slate-200 dark:border-slate-800"
             />

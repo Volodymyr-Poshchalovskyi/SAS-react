@@ -22,25 +22,15 @@ import {
   Power,
   PowerOff,
   Edit,
-  Pin, // PIN UPDATE: Import Pin icon
+  Pin,
 } from 'lucide-react';
-import { getSignedUrls } from '../../lib/gcsUrlCache';
 
-// Припускаємо, що у вас є Supabase клієнт, якщо ні, його потрібно ініціалізувати
-// import { createClient } from '@supabase/supabase-js';
-// const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-// const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-// const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// ✨ ОСНОВНА ЗМІНА: Додано базовий URL для CDN
+const CDN_BASE_URL = 'http://34.54.191.201';
 
 // =======================
 // HELPER FUNCTIONS & UTILITIES
 // =======================
-const getSignedUrlsCached = async (gcsPaths) => {
-  const uniquePaths = [...new Set(gcsPaths.filter((path) => path))];
-  if (uniquePaths.length === 0) return {};
-  return getSignedUrls(uniquePaths);
-};
-
 const Highlight = ({ text, highlight }) => {
   if (!highlight?.trim() || !text) return <span>{text}</span>;
   const regex = new RegExp(
@@ -473,30 +463,22 @@ const MyAnalytics = () => {
     direction: 'descending',
   });
   const [currentPage, setCurrentPage] = useState(1);
-  const [signedUrls, setSignedUrls] = useState({});
   const [reelToDelete, setReelToDelete] = useState(null);
   const [reelToEdit, setReelToEdit] = useState(null);
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [copiedLink, setCopiedLink] = useState(null);
   const itemsPerPage = 10;
 
-  // PIN UPDATE: State for pins, selection, and user ID
   const [selectedReels, setSelectedReels] = useState(new Set());
   const [pinnedReelIds, setPinnedReelIds] = useState(new Set());
   const [currentUserId, setCurrentUserId] = useState(null);
   const isInitialMount = useRef(true);
   const headerCheckboxRef = useRef(null);
 
-  // PIN UPDATE: Fetch reels and load pins from localStorage
   useEffect(() => {
     const fetchReels = async () => {
       setLoading(true);
       try {
-        // We need the user to scope the pins in localStorage.
-        // Assuming a Supabase client `supabase.auth.getUser()`
-        // If you get user from another endpoint, adjust it.
-        // const { data: { user } } = await supabase.auth.getUser();
-        // For now, let's assume a mock user fetch if no supabase client
         const user = { id: 'mock-user-id-123' }; // Replace with your actual user fetching
         if (user) setCurrentUserId(user.id);
 
@@ -505,7 +487,6 @@ const MyAnalytics = () => {
         const data = await response.json();
         setReelsData(data);
 
-        // Load pins from localStorage
         if (user) {
           const storedPinsRaw = localStorage.getItem('userPinnedReels');
           if (storedPinsRaw) {
@@ -523,7 +504,6 @@ const MyAnalytics = () => {
     fetchReels();
   }, []);
 
-  // PIN UPDATE: Save pins to localStorage whenever they change
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
@@ -680,19 +660,6 @@ const MyAnalytics = () => {
     const start = (currentPage - 1) * itemsPerPage;
     return filteredData.slice(start, start + itemsPerPage);
   }, [filteredData, currentPage]);
-
-  useEffect(() => {
-    const fetchAndCacheUrls = async () => {
-      const pathsToFetch = currentData
-        .map((item) => item.preview_gcs_path)
-        .filter((path) => path);
-      if (pathsToFetch.length > 0) {
-        const urlsMap = await getSignedUrlsCached(pathsToFetch);
-        setSignedUrls((prevUrls) => ({ ...prevUrls, ...urlsMap }));
-      }
-    };
-    if (currentData.length > 0) fetchAndCacheUrls();
-  }, [currentData]);
 
   const handleSort = (key) =>
     setSortConfig((prev) => ({
@@ -866,9 +833,6 @@ const MyAnalytics = () => {
               <tbody className="text-slate-800 dark:text-slate-200 divide-y divide-slate-100 dark:divide-slate-800">
                 {currentData.map((reel, index) => {
                   const isPinned = pinnedReelIds.has(reel.id);
-                  const previewUrl = reel.preview_gcs_path
-                    ? signedUrls[reel.preview_gcs_path]
-                    : null;
                   const completionRate = Math.round(reel.completion_rate || 0);
                   const createdBy = reel.user_profiles
                     ? `${reel.user_profiles.first_name || ''} ${reel.user_profiles.last_name || ''}`.trim()
@@ -912,9 +876,9 @@ const MyAnalytics = () => {
                       <td className="p-4 text-left">
                         <div className="flex items-center gap-4">
                           <div className="w-20 h-12 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
-                            {previewUrl ? (
+                            {reel.preview_gcs_path ? (
                               <img
-                                src={previewUrl}
+                                src={`${CDN_BASE_URL}/${reel.preview_gcs_path}`}
                                 alt={reel.title}
                                 className="w-full h-full object-cover rounded-md"
                               />
@@ -998,6 +962,7 @@ const MyAnalytics = () => {
                             target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-1 text-blue-500 hover:text-blue-600 dark:text-blue-400 hover:underline"
+                            onClick={(e) => e.stopPropagation()}
                           >
                             <Highlight
                               text={reel.short_link}

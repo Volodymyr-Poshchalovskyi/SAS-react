@@ -19,7 +19,6 @@ import {
 } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { getSignedUrls } from '../../lib/gcsUrlCache';
 
 // =======================
 // HELPER FUNCTIONS & SETUP
@@ -29,6 +28,9 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'YOUR_SUPABASE_URL';
 const SUPABASE_ANON_KEY =
   import.meta.env.VITE_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ✨ ОСНОВНА ЗМІНА: Додано базовий URL для CDN
+const CDN_BASE_URL = 'http://34.54.191.201';
 
 // =======================
 // SUB-COMPONENTS
@@ -187,7 +189,7 @@ const CreationStatusModal = ({ isOpen, onClose, status, title, message }) => {
   );
 };
 
-const ExistingReelsList = ({ reels, onCopy, signedUrls, isLoading }) => {
+const ExistingReelsList = ({ reels, onCopy, isLoading }) => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const filteredReels = useMemo(() => {
@@ -226,9 +228,6 @@ const ExistingReelsList = ({ reels, onCopy, signedUrls, isLoading }) => {
           </div>
         ) : (
           filteredReels.map((reel) => {
-            const previewUrl = reel.preview_gcs_path
-              ? signedUrls[reel.preview_gcs_path]
-              : null;
             return (
               <div
                 key={reel.id}
@@ -236,9 +235,9 @@ const ExistingReelsList = ({ reels, onCopy, signedUrls, isLoading }) => {
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="w-14 h-9 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">
-                    {previewUrl ? (
+                    {reel.preview_gcs_path ? (
                       <img
-                        src={previewUrl}
+                        src={`${CDN_BASE_URL}/${reel.preview_gcs_path}`}
                         alt={reel.title}
                         className="w-full h-full object-cover rounded-md"
                       />
@@ -292,7 +291,6 @@ const ReelCreatorSidebar = ({
   });
   const [existingReels, setExistingReels] = useState([]);
   const [isLoadingReels, setIsLoadingReels] = useState(false);
-  const [signedSidebarUrls, setSignedSidebarUrls] = useState({});
   const navigate = useNavigate();
 
   const isEditing = !!editingReel;
@@ -318,20 +316,6 @@ const ReelCreatorSidebar = ({
     };
     fetchExistingReels();
   }, [activeTab, existingReels.length]);
-
-  useEffect(() => {
-    const fetchAndCacheUrls = async () => {
-      const pathsToFetch = existingReels
-        .map((item) => item.preview_gcs_path)
-        .filter((path) => path && !signedSidebarUrls[path]);
-      if (pathsToFetch.length > 0) {
-        const uniquePaths = [...new Set(pathsToFetch)];
-        const urlsMap = await getSignedUrls(uniquePaths);
-        setSignedSidebarUrls((prev) => ({ ...prev, ...urlsMap }));
-      }
-    };
-    if (existingReels.length > 0) fetchAndCacheUrls();
-  }, [existingReels, signedSidebarUrls]);
 
   const handleDragOverContainer = (e) => {
     e.preventDefault();
@@ -618,7 +602,6 @@ const ReelCreatorSidebar = ({
           ) : (
             <ExistingReelsList
               reels={existingReels}
-              signedUrls={signedSidebarUrls}
               isLoading={isLoadingReels}
               onCopy={handleCopyReel}
             />
@@ -629,7 +612,7 @@ const ReelCreatorSidebar = ({
   );
 };
 
-const ConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
+const LibraryConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
   const [status, setStatus] = useState('idle');
   useEffect(() => {
     if (isOpen) setStatus('idle');
@@ -783,7 +766,6 @@ const Library = () => {
     direction: 'descending',
   });
   const [modalMedia, setModalMedia] = useState(null);
-  const [signedUrls, setSignedUrls] = useState({});
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [itemToDelete, setItemToDelete] = useState(null);
 
@@ -860,73 +842,44 @@ const Library = () => {
     const reelToCopy = location.state?.reelToCopy;
     const reelToEdit = location.state?.reelToEdit;
     const reelData = reelToCopy || reelToEdit;
-
+  
     if (reelData && items.length > 0) {
       const itemIds = reelData.media_item_ids || [];
       const rawItemsToProcess = itemIds
         .map((id) => items.find((item) => item.id === id))
         .filter(Boolean);
-
-      if (rawItemsToProcess.length > 0) {
-        if (reelToEdit) {
-          setEditingReel(reelToEdit);
-          setReelTitle(reelToEdit.title);
-        } else {
-          // reelToCopy
-          setEditingReel(null);
-          setReelTitle(`Copy: ${reelToCopy.title}`);
-        }
-
-        setActiveTab('new');
-
-        const processItems = async () => {
-          const pathsToFetch = rawItemsToProcess
-            .map((item) => item.preview_gcs_path)
-            .filter((path) => path && !signedUrls[path]);
-
-          let newUrls = {};
-          if (pathsToFetch.length > 0) {
-            newUrls = await getSignedUrls(pathsToFetch);
-            setSignedUrls((prev) => ({ ...prev, ...newUrls }));
-          }
-
-          const finalItemsWithUrls = rawItemsToProcess.map((item) => ({
-            ...item,
-            previewUrl:
-              newUrls[item.preview_gcs_path] ||
-              signedUrls[item.preview_gcs_path] ||
-              null,
-          }));
-
-          setReelItems(finalItemsWithUrls);
-        };
-
-        processItems();
-        navigate(location.pathname, { replace: true, state: {} });
-      } else {
-        if (reelToEdit) {
-          setEditingReel(reelToEdit);
-          setReelTitle(reelToEdit.title);
-          setReelItems([]);
-          setActiveTab('new');
-        }
-        console.warn(
-          'Could not find media items to process from the provided IDs.'
-        );
-        navigate(location.pathname, { replace: true, state: {} });
+  
+      if (reelToEdit) {
+        setEditingReel(reelToEdit);
+        setReelTitle(reelToEdit.title);
+      } else { // reelToCopy
+        setEditingReel(null);
+        setReelTitle(`Copy: ${reelToCopy.title}`);
       }
+      
+      setActiveTab('new');
+      
+      // ✨ ЗМІНА: Прямо формуємо URL, не робимо запит
+      const finalItemsWithUrls = rawItemsToProcess.map(item => ({
+        ...item,
+        previewUrl: item.preview_gcs_path ? `${CDN_BASE_URL}/${item.preview_gcs_path}` : null
+      }));
+      setReelItems(finalItemsWithUrls);
+  
+      navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location.state, items, navigate, signedUrls]);
+  }, [location.state, items, navigate]);
 
   const allItemsWithUrls = useMemo(
     () =>
       items.map((item) => ({
         ...item,
-        previewUrl: signedUrls[item.preview_gcs_path] || null,
+        // ✨ ЗМІНА: Прямо формуємо URL
+        previewUrl: item.preview_gcs_path ? `${CDN_BASE_URL}/${item.preview_gcs_path}` : null,
       })),
-    [items, signedUrls]
+    [items]
   );
-
+  
   const filteredItems = useMemo(() => {
     let processItems = [...items];
 
@@ -943,11 +896,9 @@ const Library = () => {
       const isAPinned = pinnedItemIds.has(a.id);
       const isBPinned = pinnedItemIds.has(b.id);
 
-      // Primary sort: pinned items first
       if (isAPinned && !isBPinned) return -1;
       if (!isAPinned && isBPinned) return 1;
 
-      // Secondary sort: by selected column
       const valA = a[sortConfig.key] || '';
       const valB = b[sortConfig.key] || '';
       if (valA < valB) return sortConfig.direction === 'ascending' ? -1 : 1;
@@ -964,7 +915,6 @@ const Library = () => {
     return filteredItems.slice(start, start + itemsPerPage);
   }, [filteredItems, currentPage]);
 
-  // ***FIXED***: Moved this hook up with the other hooks
   const pinActionText = useMemo(() => {
     if (selectedItems.size === 0) return 'Pin';
     const selectedIds = Array.from(selectedItems);
@@ -973,19 +923,8 @@ const Library = () => {
     );
     return allSelectedArePinned ? 'Unpin Selected' : 'Pin Selected';
   }, [selectedItems, pinnedItemIds]);
-
-  useEffect(() => {
-    const fetchUrlsForCurrentPage = async () => {
-      const paths = currentItems
-        .flatMap((i) => [i.preview_gcs_path, i.video_gcs_path])
-        .filter((p) => p && !signedUrls[p]);
-      if (paths.length > 0) {
-        const urlsMap = await getSignedUrls(paths);
-        setSignedUrls((prev) => ({ ...prev, ...urlsMap }));
-      }
-    };
-    if (currentItems.length > 0) fetchUrlsForCurrentPage();
-  }, [currentItems, signedUrls]);
+  
+  // ✨ ЗМІНА: useEffect для завантаження signed URLs видалено
 
   useEffect(() => {
     if (headerCheckboxRef.current) {
@@ -1054,7 +993,10 @@ const Library = () => {
   const handleRowDoubleClick = (item) => {
     const fullResolutionAssetPath = item.video_gcs_path;
     if (!fullResolutionAssetPath) return;
-    const assetUrl = signedUrls[fullResolutionAssetPath];
+
+    // ✨ ЗМІНА: Прямо формуємо URL для модального вікна
+    const assetUrl = `${CDN_BASE_URL}/${fullResolutionAssetPath}`;
+    
     let assetType = item.type;
     if (!assetType) {
       const extension = fullResolutionAssetPath.split('.').pop().toLowerCase();
@@ -1098,7 +1040,7 @@ const Library = () => {
         mediaType={modalMedia?.type}
         onClose={() => setModalMedia(null)}
       />
-      <ConfirmationModal
+      <LibraryConfirmationModal
         isOpen={!!itemToDelete}
         onClose={() => setItemToDelete(null)}
         onConfirm={handleConfirmDelete}
@@ -1147,52 +1089,22 @@ const Library = () => {
                     <th className="p-4 w-12 text-center">
                       <Pin size={14} />
                     </th>
-                    <SortableHeader
-                      sortKey="title"
-                      sortConfig={sortConfig}
-                      onSort={handleSort}
-                      className="w-[30%]"
-                    >
+                    <SortableHeader sortKey="title" sortConfig={sortConfig} onSort={handleSort} className="w-[30%]">
                       Title
                     </SortableHeader>
-                    <SortableHeader
-                      sortKey="artists"
-                      sortConfig={sortConfig}
-                      onSort={handleSort}
-                      className="w-[15%]"
-                    >
+                    <SortableHeader sortKey="artists" sortConfig={sortConfig} onSort={handleSort} className="w-[15%]">
                       Artists
                     </SortableHeader>
-                    <SortableHeader
-                      sortKey="client"
-                      sortConfig={sortConfig}
-                      onSort={handleSort}
-                      className="w-[15%]"
-                    >
+                    <SortableHeader sortKey="client" sortConfig={sortConfig} onSort={handleSort} className="w-[15%]">
                       Client
                     </SortableHeader>
-                    <SortableHeader
-                      sortKey="categories"
-                      sortConfig={sortConfig}
-                      onSort={handleSort}
-                      className="w-[15%]"
-                    >
+                    <SortableHeader sortKey="categories" sortConfig={sortConfig} onSort={handleSort} className="w-[15%]">
                       Categories
                     </SortableHeader>
-                    <SortableHeader
-                      sortKey="user_id"
-                      sortConfig={sortConfig}
-                      onSort={handleSort}
-                      className="w-[15%]"
-                    >
+                    <SortableHeader sortKey="user_id" sortConfig={sortConfig} onSort={handleSort} className="w-[15%]">
                       Added By
                     </SortableHeader>
-                    <SortableHeader
-                      sortKey="created_at"
-                      sortConfig={sortConfig}
-                      onSort={handleSort}
-                      className="w-36"
-                    >
+                    <SortableHeader sortKey="created_at" sortConfig={sortConfig} onSort={handleSort} className="w-36">
                       Created At
                     </SortableHeader>
                     <th className="p-4 w-16 text-right"></th>
@@ -1204,9 +1116,6 @@ const Library = () => {
                     const addedBy = item.user_profiles
                       ? `${item.user_profiles.first_name || ''} ${item.user_profiles.last_name || ''}`.trim()
                       : 'System';
-                    const previewUrl = item.preview_gcs_path
-                      ? signedUrls[item.preview_gcs_path]
-                      : null;
                     const isLastItemOnPage = index === currentItems.length - 1;
                     return (
                       <tr
@@ -1243,9 +1152,9 @@ const Library = () => {
                         <td className="p-4 align-top">
                           <div className="flex items-start gap-4">
                             <div className="w-16 h-10 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">
-                              {previewUrl ? (
+                              {item.preview_gcs_path ? (
                                 <img
-                                  src={previewUrl}
+                                  src={`${CDN_BASE_URL}/${item.preview_gcs_path}`}
                                   alt="preview"
                                   className="w-full h-full object-cover rounded-md"
                                 />

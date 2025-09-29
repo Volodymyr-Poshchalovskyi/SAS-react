@@ -1,14 +1,20 @@
-// src/AdminComponents/Layout/TrendingDirectors.jsx
-
 import React from 'react';
+
+// ✨ ЗМІНА: Додано базовий URL для CDN
+const CDN_BASE_URL = 'http://34.54.191.201';
 
 const cardClasses =
   'bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl';
 
-const DirectorListItem = ({ imageUrl, name, views }) => (
+// ✨ ЗМІНА: Компонент тепер приймає `photoGcsPath` замість `imageUrl`
+const DirectorListItem = ({ photoGcsPath, name, views }) => (
   <div className="flex items-center gap-4 py-3">
     <img
-      src={imageUrl || 'https://placehold.co/100x100'}
+      src={
+        photoGcsPath
+          ? `${CDN_BASE_URL}/${photoGcsPath}`
+          : 'https://placehold.co/100x100'
+      }
       alt={name}
       className="w-12 h-12 object-cover rounded-full border-2 border-slate-200 dark:border-slate-700"
     />
@@ -67,7 +73,8 @@ const TrendingDirectors = ({ directors, isLoading }) => {
               key={director.name}
               name={director.name}
               views={director.totalViews}
-              imageUrl={director.imageUrl}
+              // ✨ ЗМІНА: Передаємо `photoGcsPath`
+              photoGcsPath={director.photoGcsPath}
             />
           ))}
         </div>

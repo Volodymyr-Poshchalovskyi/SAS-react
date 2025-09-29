@@ -5,7 +5,8 @@ import DateRangePicker from './DateRangePicker';
 import { formatDistanceToNow } from 'date-fns';
 import TrendingVideos from './TrendingVideos';
 import TrendingDirectors from './TrendingDirectors';
-import { getSignedUrls } from '../../lib/gcsUrlCache';
+
+const CDN_BASE_URL = 'http://34.54.191.201';
 
 const cardClasses =
   'bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl';
@@ -59,10 +60,9 @@ const ListItem = ({
   </div>
 );
 
-// ✨ НОВА ДОПОМІЖНА ФУНКЦІЯ для коректного форматування дати
 const toYYYYMMDD = (date) => {
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0'); // Місяці 0-індексовані
+  const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
@@ -97,7 +97,6 @@ const Dashboard = () => {
       setTrendingDirectors([]);
       if (!dateRange.from || !dateRange.to) return;
 
-      // ✨ ВИПРАВЛЕНО: Використовуємо нову функцію замість toISOString()
       const startDateStr = toYYYYMMDD(dateRange.from);
       const endDateStr = toYYYYMMDD(dateRange.to);
 
@@ -132,8 +131,7 @@ const Dashboard = () => {
           .slice(0, 3)
           .map(([name, totalViews]) => ({ name, totalViews }));
 
-        let directorDetails = [];
-        let directorPhotoPaths = [];
+        let finalTopDirectors = [];
         if (topDirectors.length > 0) {
           const directorNames = topDirectors.map((d) => d.name);
           const detailsRes = await fetch(
@@ -144,60 +142,29 @@ const Dashboard = () => {
               body: JSON.stringify({ names: directorNames }),
             }
           );
-          directorDetails = await detailsRes.json();
-          directorPhotoPaths = directorDetails
-            .map((d) => d.photo_gcs_path)
-            .filter(Boolean);
+          const directorDetails = await detailsRes.json();
+
+          // ✨ ЗМІНА 1: Визначаємо шлях до зображення за замовчуванням
+          const defaultDirectorImagePath = 'back-end/artists/director.jpg';
+
+          const directorDetailsMap = directorDetails.reduce((acc, director) => {
+            acc[director.name] = { photoGcsPath: director.photo_gcs_path };
+            return acc;
+          }, {});
+
+          finalTopDirectors = topDirectors.map((director) => ({
+            ...director,
+            // ✨ ЗМІНА 2: Використовуємо шлях за замовчуванням, якщо іншого немає
+            photoGcsPath:
+              directorDetailsMap[director.name]?.photoGcsPath ||
+              defaultDirectorImagePath,
+          }));
         }
 
-        const defaultDirectorImagePath = 'back-end/artists/director.jpg';
-        const trendingPaths = trendingData
-          .map((v) => v.preview_gcs_path)
-          .filter(Boolean);
-        const activityPaths = activityData
-          .map((a) => a.preview_gcs_path)
-          .filter(Boolean);
-        const allPaths = [
-          ...new Set([
-            ...trendingPaths,
-            ...activityPaths,
-            ...directorPhotoPaths,
-            defaultDirectorImagePath,
-          ]),
-        ];
-        const urls = await getSignedUrls(allPaths);
-        const fallbackDirectorUrl = urls[defaultDirectorImagePath];
-        const directorDetailsMap = directorDetails.reduce((acc, director) => {
-          const specificPhotoUrl = director.photo_gcs_path
-            ? urls[director.photo_gcs_path]
-            : null;
-          acc[director.name] = {
-            imageUrl: specificPhotoUrl || fallbackDirectorUrl,
-          };
-          return acc;
-        }, {});
-
-        setTrendingDirectors(
-          topDirectors.map((director) => ({
-            ...director,
-            imageUrl:
-              directorDetailsMap[director.name]?.imageUrl ||
-              fallbackDirectorUrl,
-          }))
-        );
-
         setChartData(chartData);
-        setTrendingVideos(
-          trendingData
-            .slice(0, 4)
-            .map((v) => ({ ...v, imageUrl: urls[v.preview_gcs_path] }))
-        );
-        setRecentActivity(
-          activityData.map((a) => ({
-            ...a,
-            imageUrl: urls[a.preview_gcs_path],
-          }))
-        );
+        setTrendingVideos(trendingData.slice(0, 4));
+        setTrendingDirectors(finalTopDirectors);
+        setRecentActivity(activityData);
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
       } finally {
@@ -260,7 +227,11 @@ const Dashboard = () => {
                   : recentActivity.map((item) => (
                       <ListItem
                         key={item.id}
-                        imageUrl={item.imageUrl}
+                        imageUrl={
+                          item.preview_gcs_path
+                            ? `${CDN_BASE_URL}/${item.preview_gcs_path}`
+                            : null
+                        }
                         title={item.client || 'N/A Client'}
                         subtitle={item.title}
                         time={formatDistanceToNow(new Date(item.created_at), {
