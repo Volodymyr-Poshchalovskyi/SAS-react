@@ -34,113 +34,119 @@ export default function PublicReelPage() {
     const videoRef = useRef(null);
     const hasMultipleSlides = data?.mediaItems?.length > 1;
 
-useEffect(() => {
-    if (!data || !data.reelDbId) return;
+    // --- ОСНОВНИЙ useEffect З ОНОВЛЕНОЮ ЛОГІКОЮ ЛОГУВАННЯ ---
+    useEffect(() => {
+        if (!data || !data.reelDbId) return;
 
-    // --- Генеруємо/дістаємо session_id ---
-    let sessionId = sessionStorage.getItem(`session_id_${data.reelDbId}`);
-    if (!sessionId) {
-        sessionId = crypto.randomUUID();
-        sessionStorage.setItem(`session_id_${data.reelDbId}`, sessionId);
-    }
-
-    // --- універсальний логгер ---
-    const logEvent = (eventType, mediaItemId = null, duration = null) => {
-        const payload = {
-            reel_id: data.reelDbId,
-            session_id: sessionId,
-            event_type: eventType,
-        };
-
-        // для completion обов’язково потрібен media_item_id
-        if (eventType === "completion") {
-            payload.media_item_id = mediaItemId ?? data.mediaItems[currentSlide]?.id;
-        } else if (mediaItemId) {
-            payload.media_item_id = mediaItemId;
+        // --- Генеруємо/дістаємо session_id ---
+        let sessionId = sessionStorage.getItem(`session_id_${data.reelDbId}`);
+        if (!sessionId) {
+            sessionId = crypto.randomUUID();
+            sessionStorage.setItem(`session_id_${data.reelDbId}`, sessionId);
         }
 
-        if (duration) {
-            payload.duration_seconds = duration;
-        }
+        // --- Універсальний логгер ---
+        const logEvent = (eventType, mediaItemId = null, duration = null) => {
+            const payload = {
+                reel_id: data.reelDbId,
+                session_id: sessionId,
+                event_type: eventType,
+            };
 
-        fetch("http://localhost:3001/reels/log-event", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
-        })
-            .then(res => {
-                if (!res.ok) {
-                    return res.json().then(errData => {
-                        throw new Error(errData.error || "Failed to log event");
-                    });
-                }
-                console.log(`✅ Event logged:`, payload);
-            })
-            .catch(err => console.error(`❌ Failed to log ${eventType}:`, err));
-    };
-
-    // --- view логіка як і було ---
-    const viewLogged = sessionStorage.getItem(`view_logged_${data.reelDbId}`);
-    if (!viewLogged) {
-        logEvent("view");
-        sessionStorage.setItem(`view_logged_${data.reelDbId}`, "true");
-    }
-
-    const currentMedia = data.mediaItems[currentSlide];
-    if (!currentMedia) return;
-
-    const completedVideosKey = `completed_videos_${data.reelDbId}`;
-    const VIEW_THRESHOLD = 0.9; // 90%
-
-    const markVideoCompleted = () => {
-        let completed = JSON.parse(sessionStorage.getItem(completedVideosKey) || "[]");
-
-        if (!completed.includes(currentMedia.id)) {
-            completed.push(currentMedia.id);
-            sessionStorage.setItem(completedVideosKey, JSON.stringify(completed));
-            console.log("✅ Completed videos:", completed);
-
-            if (completed.length === data.mediaItems.length) {
-                // тепер completion відправляється з id останнього відео
-                logEvent("completion", currentMedia.id, videoRef.current?.duration || null);
-                console.log("🎉 All videos completed!");
+            // Додаємо media_item_id для івентів, де це потрібно
+            if (eventType === "completion" || eventType === "media_completion") {
+                payload.media_item_id = mediaItemId ?? data.mediaItems[currentSlide]?.id;
+            } else if (mediaItemId) {
+                payload.media_item_id = mediaItemId;
             }
-        }
-    };
 
-    const handleTimeUpdate = () => {
-        const video = videoRef.current;
-        if (!video || !video.duration) return;
+            if (duration) {
+                payload.duration_seconds = duration;
+            }
 
-        const percentageWatched = video.currentTime / video.duration;
-        if (percentageWatched >= VIEW_THRESHOLD) {
-            markVideoCompleted();
-            video.removeEventListener("timeupdate", handleTimeUpdate);
-        }
-    };
-
-    const handleEnded = () => {
-        markVideoCompleted();
-        nextSlideHandler();
-    };
-
-    const nextSlideHandler = () =>
-        setCurrentSlide(prev =>
-            prev === data.mediaItems.length - 1 ? 0 : prev + 1
-        );
-
-    const videoElement = videoRef.current;
-    if (videoElement) {
-        videoElement.addEventListener("timeupdate", handleTimeUpdate);
-        videoElement.addEventListener("ended", handleEnded);
-        return () => {
-            videoElement.removeEventListener("timeupdate", handleTimeUpdate);
-            videoElement.removeEventListener("ended", handleEnded);
+            fetch("http://localhost:3001/reels/log-event", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            })
+                .then(res => {
+                    if (!res.ok) {
+                        return res.json().then(errData => {
+                            throw new Error(errData.error || "Failed to log event");
+                        });
+                    }
+                    console.log(`✅ Event logged:`, payload);
+                })
+                .catch(err => console.error(`❌ Failed to log ${eventType}:`, err));
         };
-    }
-}, [data, currentSlide, reelId]);
 
+        // --- Логіка логування 'view' (без змін) ---
+        const viewLogged = sessionStorage.getItem(`view_logged_${data.reelDbId}`);
+        if (!viewLogged) {
+            logEvent("view");
+            sessionStorage.setItem(`view_logged_${data.reelDbId}`, "true");
+        }
 
+        const currentMedia = data.mediaItems[currentSlide];
+        if (!currentMedia) return;
+
+        const completedVideosKey = `completed_videos_${data.reelDbId}`;
+        const VIEW_THRESHOLD = 0.9; // 90%
+
+        // --- Функція, що обробляє завершення перегляду відео ---
+        const markVideoCompleted = () => {
+            let completed = JSON.parse(sessionStorage.getItem(completedVideosKey) || "[]");
+
+            // Перевіряємо, чи це відео ще НЕ було відмічене як переглянуте
+            if (!completed.includes(currentMedia.id)) {
+                // 1. ДОДАНО: Відправляємо івент про перегляд КОНКРЕТНОГО відео
+                logEvent("media_completion", currentMedia.id, videoRef.current?.duration || null);
+                
+                // 2. Додаємо id до масиву в sessionStorage
+                completed.push(currentMedia.id);
+                sessionStorage.setItem(completedVideosKey, JSON.stringify(completed));
+                console.log("✅ Completed videos:", completed);
+
+                // 3. ЗБЕРЕЖЕНО: Перевіряємо, чи всі відео тепер переглянуті
+                if (completed.length === data.mediaItems.length) {
+                    // Відправляємо фінальний івент "completion"
+                    logEvent("completion", currentMedia.id, videoRef.current?.duration || null);
+                    console.log("🎉 All videos completed!");
+                }
+            }
+        };
+
+        const handleTimeUpdate = () => {
+            const video = videoRef.current;
+            if (!video || !video.duration) return;
+
+            const percentageWatched = video.currentTime / video.duration;
+            if (percentageWatched >= VIEW_THRESHOLD) {
+                markVideoCompleted();
+                video.removeEventListener("timeupdate", handleTimeUpdate);
+            }
+        };
+
+        const handleEnded = () => {
+            markVideoCompleted();
+            nextSlideHandler();
+        };
+
+        const nextSlideHandler = () =>
+            setCurrentSlide(prev =>
+                prev === data.mediaItems.length - 1 ? 0 : prev + 1
+            );
+
+        const videoElement = videoRef.current;
+        if (videoElement) {
+            videoElement.addEventListener("timeupdate", handleTimeUpdate);
+            videoElement.addEventListener("ended", handleEnded);
+            return () => {
+                videoElement.removeEventListener("timeupdate", handleTimeUpdate);
+                videoElement.removeEventListener("ended", handleEnded);
+            };
+        }
+    }, [data, currentSlide, reelId]);
     
     // --- Збереження позиції (без змін) ---
     useEffect(() => {
