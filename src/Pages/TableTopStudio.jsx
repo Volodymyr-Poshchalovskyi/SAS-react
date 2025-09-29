@@ -1,6 +1,6 @@
 // src/Pages/TableTopStudio.jsx
 
-import React, { useState, useEffect, useLayoutEffect } from 'react'; // ✨ Додано useState та useLayoutEffect
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { Link } from 'react-router-dom';
 import VideoContainer from '../Components/VideoContainer';
 import { AnimatePresence } from 'framer-motion';
@@ -11,36 +11,14 @@ import { tableTopData } from '../Data/TableTopData';
 const showreelURL =
   'front-end/04-Service/01-ROUGE ALLURE VELVET NUIT BLANCHE, lipstick for a moment, allure for a night — CHANEL Makeup (1080p_25fps_H264-128kbit_AAC).mp4';
 
+// ✨ Додаємо константу для базового URL нашого CDN
+const CDN_BASE_URL = 'http://34.54.191.201';
+
 const TableTopStudio = () => {
   const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } =
     useAnimation();
-  // ✨ Крок 1: Додаємо стан для зберігання підписаних URL
-  const [videoUrls, setVideoUrls] = useState({});
-
-  // ✨ Крок 2: Додаємо логіку для завантаження URL
-  useEffect(() => {
-    const fetchVideoUrls = async () => {
-      // Збираємо всі шляхи до відео: шоуріл + всі проєкти
-      const gcsPaths = [showreelURL, ...tableTopData.map((p) => p.src)];
-
-      try {
-        const response = await fetch(
-          'http://localhost:3001/generate-read-urls',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ gcsPaths }),
-          }
-        );
-        if (!response.ok) throw new Error('Failed to fetch video URLs');
-        setVideoUrls(await response.json());
-      } catch (error) {
-        console.error('Error fetching Table Top video URLs:', error);
-      }
-    };
-
-    fetchVideoUrls();
-  }, []); // Запускаємо один раз при завантаженні компонента
+  
+  // ❗️ Ми видалили стан `videoUrls` і `useEffect` для запиту на бекенд.
 
   // Логіка прелоадера (без змін)
   useEffect(() => {
@@ -75,9 +53,9 @@ const TableTopStudio = () => {
       </h1>
 
       <div className="relative w-full h-screen bg-black">
-        {/* ✨ Крок 3: Використовуємо підписаний URL для шоуріла */}
+        {/* ✨ Використовуємо пряме посилання на CDN для шоуріла */}
         <VideoContainer
-          videoSrc={videoUrls[showreelURL]}
+          videoSrc={`${CDN_BASE_URL}/${showreelURL}`}
           shouldPlay={!isPreloaderActive}
         />
       </div>
@@ -92,9 +70,9 @@ const TableTopStudio = () => {
 
       {tableTopData.map((project) => (
         <div key={project.id} className="relative w-full h-screen bg-black">
-          {/* ✨ Крок 3: Використовуємо підписаний URL для кожного проєкту */}
+          {/* ✨ Використовуємо пряме посилання на CDN для кожного проєкту */}
           <VideoContainer
-            videoSrc={videoUrls[project.src]}
+            videoSrc={`${CDN_BASE_URL}/${project.src}`}
             shouldPlay={!isPreloaderActive}
           />
           <div className="absolute top-[80%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full text-center">

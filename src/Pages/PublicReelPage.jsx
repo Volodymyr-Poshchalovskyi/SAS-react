@@ -9,6 +9,8 @@ import { useParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import sinnersLogoBlack from '../assets/Logo/Sinners logo black.png';
 
+const CDN_BASE_URL = 'http://34.54.191.201';
+
 // --- Компонент Preloader ---
 const Preloader = () => (
   <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white">
@@ -57,31 +59,26 @@ const SliderArrow = ({ direction, onClick }) => (
   </button>
 );
 
-// --- ✨ ПОЧАТОК ЗМІН: DownloadModal з прогрес-барами ---
+// --- Компонент DownloadModal ---
 const DownloadModal = ({ isOpen, onClose, mediaItems }) => {
   const [selectedItems, setSelectedItems] = useState(new Set());
   const [isDownloading, setIsDownloading] = useState(false);
-  // Новий стан для відстеження прогресу завантаження для кожного елемента
   const [downloadProgress, setDownloadProgress] = useState({});
 
   useEffect(() => {
     if (isOpen) {
       setSelectedItems(new Set());
-      setDownloadProgress({}); // Скидаємо прогрес при кожному відкритті
+      setDownloadProgress({});
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
   const handleToggleSelection = (itemId) => {
-    if (isDownloading) return; // Блокуємо зміну вибору під час завантаження
+    if (isDownloading) return;
     setSelectedItems((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(itemId)) {
-        newSet.delete(itemId);
-      } else {
-        newSet.add(itemId);
-      }
+      newSet.has(itemId) ? newSet.delete(itemId) : newSet.add(itemId);
       return newSet;
     });
   };
@@ -93,7 +90,6 @@ const DownloadModal = ({ isOpen, onClose, mediaItems }) => {
     if (itemsToDownload.length === 0) return;
 
     setIsDownloading(true);
-    // Ініціалізуємо прогрес для вибраних файлів
     const initialProgress = {};
     itemsToDownload.forEach((item) => {
       initialProgress[item.id] = 0;
@@ -102,7 +98,8 @@ const DownloadModal = ({ isOpen, onClose, mediaItems }) => {
 
     for (const item of itemsToDownload) {
       try {
-        const response = await fetch(item.videoUrl);
+        const downloadUrl = `${CDN_BASE_URL}/${item.videoGcsPath}`;
+        const response = await fetch(downloadUrl);
         if (!response.ok) throw new Error(`Network response was not ok`);
         if (!response.body)
           throw new Error('ReadableStream not supported in this browser.');
@@ -120,7 +117,9 @@ const DownloadModal = ({ isOpen, onClose, mediaItems }) => {
           receivedLength += value.length;
 
           if (contentLength) {
-            const progress = Math.round((receivedLength / contentLength) * 100);
+            const progress = Math.round(
+              (receivedLength / contentLength) * 100
+            );
             setDownloadProgress((prev) => ({ ...prev, [item.id]: progress }));
           }
         }
@@ -130,11 +129,10 @@ const DownloadModal = ({ isOpen, onClose, mediaItems }) => {
         const link = document.createElement('a');
         link.href = url;
 
-        const urlPath = new URL(item.videoUrl).pathname;
-        const originalFileName = urlPath.substring(
-          urlPath.lastIndexOf('/') + 1
+        const gcsPath = item.videoGcsPath;
+        const decodedFileName = decodeURIComponent(
+          gcsPath.substring(gcsPath.lastIndexOf('/') + 1)
         );
-        const decodedFileName = decodeURIComponent(originalFileName);
         const userFriendlyFileName = decodedFileName.includes('-')
           ? decodedFileName.substring(decodedFileName.indexOf('-') + 1)
           : decodedFileName;
@@ -150,11 +148,9 @@ const DownloadModal = ({ isOpen, onClose, mediaItems }) => {
         window.URL.revokeObjectURL(url);
       } catch (error) {
         console.error('Download failed for:', item.title, error);
-        // Позначаємо елемент як помилковий
         setDownloadProgress((prev) => ({ ...prev, [item.id]: 'error' }));
       }
     }
-    // Зачекаємо трохи перед закриттям, щоб користувач побачив 100%
     setTimeout(() => {
       setIsDownloading(false);
       onClose();
@@ -164,7 +160,7 @@ const DownloadModal = ({ isOpen, onClose, mediaItems }) => {
   return (
     <div
       className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
-      onClick={!isDownloading ? onClose : undefined} // Блокуємо закриття під час завантаження
+      onClick={!isDownloading ? onClose : undefined}
     >
       <div
         className="bg-white dark:bg-black border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-lg text-left flex flex-col"
@@ -196,12 +192,10 @@ const DownloadModal = ({ isOpen, onClose, mediaItems }) => {
             </svg>
           </button>
         </div>
-
         <div className="space-y-2 p-4 max-h-[60vh] overflow-y-auto">
           {mediaItems.map((item) => {
             const progress = downloadProgress[item.id];
             const showProgressBar = typeof progress === 'number';
-
             return (
               <div
                 key={item.id}
@@ -209,8 +203,8 @@ const DownloadModal = ({ isOpen, onClose, mediaItems }) => {
                   !item.allow_download
                     ? 'opacity-50 cursor-not-allowed'
                     : isDownloading
-                      ? 'cursor-default'
-                      : 'cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-900'
+                    ? 'cursor-default'
+                    : 'cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-900'
                 }`}
                 onClick={() =>
                   item.allow_download && handleToggleSelection(item.id)
@@ -225,7 +219,7 @@ const DownloadModal = ({ isOpen, onClose, mediaItems }) => {
                   className="h-5 w-5 border-2 border-slate-300 dark:border-slate-700 text-black dark:text-white focus:ring-black dark:focus:ring-white accent-black dark:accent-white shrink-0 cursor-pointer disabled:cursor-not-allowed"
                 />
                 <img
-                  src={item.previewUrl}
+                  src={`${CDN_BASE_URL}/${item.previewGcsPath}`}
                   alt={item.title}
                   className="w-24 h-14 object-cover shrink-0"
                 />
@@ -236,8 +230,6 @@ const DownloadModal = ({ isOpen, onClose, mediaItems }) => {
                   <p className="text-sm text-slate-500 dark:text-slate-400 truncate">
                     {item.client}
                   </p>
-
-                  {/* --- Блок прогрес-бару --- */}
                   {showProgressBar && (
                     <div className="mt-2 flex items-center gap-3">
                       <div className="w-full bg-slate-200 dark:bg-slate-800 h-1 overflow-hidden">
@@ -259,7 +251,6 @@ const DownloadModal = ({ isOpen, onClose, mediaItems }) => {
             );
           })}
         </div>
-
         <div className="p-6 mt-auto border-t border-slate-200 dark:border-slate-800 flex justify-end">
           <button
             onClick={handleDownload}
@@ -275,11 +266,9 @@ const DownloadModal = ({ isOpen, onClose, mediaItems }) => {
     </div>
   );
 };
-// --- ✨ КІНЕЦЬ ЗМІН ---
 
 export default function PublicReelPage() {
   const { reelId } = useParams();
-  // --- Усі стани ---
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [preloading, setPreloading] = useState(true);
@@ -288,48 +277,36 @@ export default function PublicReelPage() {
     const savedSlide = sessionStorage.getItem(`reel_${reelId}_slide`);
     return savedSlide ? parseInt(savedSlide, 10) : 0;
   });
-  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const [isFullImageLoaded, setIsFullImageLoaded] = useState(false);
   const [isInitialPlay, setIsInitialPlay] = useState(true);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
 
-  // --- Refs ---
   const videoRef = useRef(null);
-  const preloadVideoRef = useRef(null);
-
   const hasMultipleSlides = data?.mediaItems?.length > 1;
 
-  // --- Логіка прелоадера ---
   useEffect(() => {
     const timer = setTimeout(() => {
       setPreloading(false);
-    }, 1600);
+    }, 500);
     return () => clearTimeout(timer);
   }, []);
 
-  // --- Memoized значення ---
   const currentMediaItem = data?.mediaItems?.[currentSlide] || null;
 
   const isVideo = useMemo(() => {
-    if (!currentMediaItem?.videoUrl) return false;
-    try {
-      const url = new URL(currentMediaItem.videoUrl);
-      const videoExtensions = ['.mp4', '.mov', '.webm', '.ogg'];
-      return videoExtensions.some((ext) =>
-        url.pathname.toLowerCase().endsWith(ext)
-      );
-    } catch {
-      return false;
-    }
+    if (!currentMediaItem?.videoGcsPath) return false;
+    const path = currentMediaItem.videoGcsPath.toLowerCase();
+    const videoExtensions = ['.mp4', '.mov', '.webm', '.ogg'];
+    return videoExtensions.some((ext) => path.endsWith(ext));
   }, [currentMediaItem]);
 
-  const isAnyMediaDownloadable = useMemo(() => {
-    return data?.mediaItems?.some((item) => item.allow_download);
-  }, [data]);
+  const isAnyMediaDownloadable = useMemo(
+    () => data?.mediaItems?.some((item) => item.allow_download),
+    [data]
+  );
 
   const isReadyToPlay = !loading && !preloading;
 
-  // --- Функція логування статистики ---
   const logEvent = useCallback(
     (eventType, mediaItemId = null, duration = null) => {
       if (!data?.reelDbId) return;
@@ -342,110 +319,48 @@ export default function PublicReelPage() {
         reel_id: data.reelDbId,
         session_id: sessionId,
         event_type: eventType,
+        media_item_id: mediaItemId ?? currentMediaItem?.id,
+        duration_seconds: duration,
       };
-      if (eventType === 'completion' || eventType === 'media_completion') {
-        payload.media_item_id =
-          mediaItemId ?? data.mediaItems[currentSlide]?.id;
-      } else if (mediaItemId) {
-        payload.media_item_id = mediaItemId;
-      }
-      if (duration !== null) {
-        payload.duration_seconds = duration;
-      }
       fetch('http://localhost:3001/reels/log-event', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-      })
-        .then((res) => {
-          if (!res.ok)
-            return res.json().then((errData) => {
-              throw new Error(errData.error || 'Failed to log event');
-            });
-        })
-        .catch((err) => console.error(`Failed to log ${eventType}:`, err));
+      }).catch((err) => console.error(`Failed to log ${eventType}:`, err));
     },
-    [data, currentSlide]
+    [data, currentMediaItem]
   );
 
-  // --- Управління відтворенням та станами ---
   useEffect(() => {
-    setIsVideoPlaying(false);
     setIsFullImageLoaded(false);
-
     const video = videoRef.current;
-    if (isVideo) {
-      if (!video) return;
-      if (isReadyToPlay) {
-        const savedTime = sessionStorage.getItem(`reel_${reelId}_time`);
-        const savedSlide = sessionStorage.getItem(`reel_${reelId}_slide`);
-        if (savedTime && String(currentSlide) === savedSlide) {
-          video.currentTime = parseFloat(savedTime);
-          sessionStorage.removeItem(`reel_${reelId}_time`);
-        } else {
-          video.currentTime = 0;
-        }
-        video
-          .play()
-          .catch((error) =>
-            console.error('Video playback was prevented:', error)
-          );
+    if (isVideo && video && isReadyToPlay) {
+      const savedTime = sessionStorage.getItem(`reel_${reelId}_time`);
+      const savedSlide = sessionStorage.getItem(`reel_${reelId}_slide`);
+      if (savedTime && String(currentSlide) === savedSlide) {
+        video.currentTime = parseFloat(savedTime);
+        sessionStorage.removeItem(`reel_${reelId}_time`);
       } else {
-        video.pause();
+        video.currentTime = 0;
       }
+      video.play().catch((e) => console.error('Playback prevented:', e));
     }
   }, [isReadyToPlay, isVideo, currentMediaItem, reelId, currentSlide]);
 
-  // --- Слухачі подій для плавних переходів ---
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
     const onPlaying = () => {
-      setIsVideoPlaying(true);
       if (isInitialPlay) setIsInitialPlay(false);
     };
-    const onSlideChange = () => setIsVideoPlaying(false);
     video.addEventListener('playing', onPlaying);
-    video.addEventListener('loadstart', onSlideChange);
     return () => {
       video.removeEventListener('playing', onPlaying);
-      video.removeEventListener('loadstart', onSlideChange);
     };
   }, [currentMediaItem, isInitialPlay]);
 
-  // --- Логіка попереднього завантаження ---
-  const nextSlideIndex = useMemo(() => {
-    if (!data || !hasMultipleSlides) return null;
-    return (currentSlide + 1) % data.mediaItems.length;
-  }, [currentSlide, data, hasMultipleSlides]);
-  const nextMediaItem = data?.mediaItems[nextSlideIndex];
-  const isNextItemVideo = useMemo(() => {
-    if (!nextMediaItem?.videoUrl) return false;
-    try {
-      const url = new URL(nextMediaItem.videoUrl);
-      const videoExtensions = ['.mp4', '.mov', '.webm', '.ogg'];
-      return videoExtensions.some((ext) =>
-        url.pathname.toLowerCase().endsWith(ext)
-      );
-    } catch {
-      return false;
-    }
-  }, [nextMediaItem]);
   useEffect(() => {
-    if (isNextItemVideo) {
-      const preloadVideo = preloadVideoRef.current;
-      if (preloadVideo) {
-        preloadVideo
-          .play()
-          .then(() => preloadVideo.pause())
-          .catch(() => {});
-      }
-    }
-  }, [nextMediaItem, isNextItemVideo]);
-
-  // --- Головний useEffect для статистики та авто-перемикання ---
-  useEffect(() => {
-    if (!isReadyToPlay || !data || !data.reelDbId || !currentMediaItem) return;
+    if (!isReadyToPlay || !data || !currentMediaItem) return;
 
     const sessionStartTimeKey = `session_start_time_${data.reelDbId}`;
     if (!sessionStorage.getItem(sessionStartTimeKey)) {
@@ -456,10 +371,12 @@ export default function PublicReelPage() {
       logEvent('view');
       sessionStorage.setItem(viewLoggedKey, 'true');
     }
-    const nextSlideHandler = () =>
-      setCurrentSlide((prev) =>
-        prev === data.mediaItems.length - 1 ? 0 : prev + 1
-      );
+
+    const nextSlideHandler = () => {
+      if (!hasMultipleSlides) return;
+      setCurrentSlide((prev) => (prev + 1) % data.mediaItems.length);
+    };
+
     const completedMediaKey = `completed_media_${data.reelDbId}`;
     const markMediaCompleted = (mediaId, duration) => {
       let completed = JSON.parse(
@@ -474,24 +391,24 @@ export default function PublicReelPage() {
         }
       }
     };
+
     if (isVideo) {
       const VIEW_THRESHOLD = 0.9;
+      const videoElement = videoRef.current;
       const handleTimeUpdate = () => {
-        const video = videoRef.current;
-        if (!video || !video.duration) return;
-        if (video.currentTime / video.duration >= VIEW_THRESHOLD) {
-          markMediaCompleted(currentMediaItem.id, video.duration);
-          video.removeEventListener('timeupdate', handleTimeUpdate);
+        if (!videoElement?.duration) return;
+        if (videoElement.currentTime / videoElement.duration >= VIEW_THRESHOLD) {
+          markMediaCompleted(currentMediaItem.id, videoElement.duration);
+          videoElement.removeEventListener('timeupdate', handleTimeUpdate);
         }
       };
       const handleEnded = () => {
         markMediaCompleted(
           currentMediaItem.id,
-          videoRef.current?.duration || null
+          videoElement?.duration || null
         );
         nextSlideHandler();
       };
-      const videoElement = videoRef.current;
       if (videoElement) {
         videoElement.addEventListener('timeupdate', handleTimeUpdate);
         videoElement.addEventListener('ended', handleEnded);
@@ -505,9 +422,8 @@ export default function PublicReelPage() {
       const imageTimer = setTimeout(nextSlideHandler, 7000);
       return () => clearTimeout(imageTimer);
     }
-  }, [data, currentSlide, logEvent, isVideo, currentMediaItem, isReadyToPlay]);
+  }, [data, currentSlide, logEvent, isVideo, currentMediaItem, isReadyToPlay, hasMultipleSlides]);
 
-  // --- useEffect для завантаження даних ---
   useEffect(() => {
     const fetchReelData = async () => {
       if (!reelId) return;
@@ -534,13 +450,12 @@ export default function PublicReelPage() {
     window.scrollTo(0, 0);
   }, [reelId]);
 
-  // --- useEffect для виходу зі сторінки ---
   useEffect(() => {
     if (!reelId || !data?.reelDbId) return;
     const handlePageExit = () => {
       if (isVideo) {
         const videoElement = videoRef.current;
-        if (videoElement && videoElement.currentTime) {
+        if (videoElement?.currentTime) {
           sessionStorage.setItem(
             `reel_${reelId}_time`,
             videoElement.currentTime
@@ -551,10 +466,7 @@ export default function PublicReelPage() {
       const sessionStartTimeKey = `session_start_time_${data.reelDbId}`;
       const startTime = sessionStorage.getItem(sessionStartTimeKey);
       if (startTime) {
-        const endTime = Date.now();
-        const durationSeconds = Math.round(
-          (endTime - parseInt(startTime, 10)) / 1000
-        );
+        const durationSeconds = Math.round((Date.now() - parseInt(startTime, 10)) / 1000);
         if (durationSeconds > 0) {
           logEvent('session_duration', null, durationSeconds);
         }
@@ -568,19 +480,20 @@ export default function PublicReelPage() {
     };
   }, [reelId, data, currentSlide, logEvent, isVideo]);
 
-  const nextSlide = () =>
-    setCurrentSlide((prev) =>
-      prev === data.mediaItems.length - 1 ? 0 : prev + 1
-    );
-  const prevSlide = () =>
-    setCurrentSlide((prev) =>
-      prev === 0 ? data.mediaItems.length - 1 : prev - 1
-    );
+  const nextSlide = () => {
+    if (!hasMultipleSlides) return;
+    setCurrentSlide((prev) => (prev + 1) % data.mediaItems.length);
+  }
+  const prevSlide = () => {
+     if (!hasMultipleSlides) return;
+    setCurrentSlide((prev) => (prev - 1 + data.mediaItems.length) % data.mediaItems.length);
+  }
+  
+  const artistNames = (currentMediaItem?.artists || []).map((a) => a.name).join(', ').toUpperCase();
 
-  const artistNames = (currentMediaItem?.artists || [])
-    .map((a) => a.name)
-    .join(', ')
-    .toUpperCase();
+  const mediaUrl = currentMediaItem ? `${CDN_BASE_URL}/${currentMediaItem.videoGcsPath}` : '';
+  const previewUrl = currentMediaItem ? `${CDN_BASE_URL}/${currentMediaItem.previewGcsPath}` : '';
+  const artistPhotoUrl = data?.mediaItems?.[0]?.artists?.[0]?.photoGcsPath ? `${CDN_BASE_URL}/${data.mediaItems[0].artists[0].photoGcsPath}` : '';
 
   return (
     <>
@@ -594,7 +507,6 @@ export default function PublicReelPage() {
           </motion.div>
         )}
       </AnimatePresence>
-
       <AnimatePresence>
         {isDownloadModalOpen && data && (
           <motion.div
@@ -612,26 +524,6 @@ export default function PublicReelPage() {
         )}
       </AnimatePresence>
 
-      {nextMediaItem &&
-        (isNextItemVideo ? (
-          <video
-            ref={preloadVideoRef}
-            key={nextMediaItem.id}
-            src={nextMediaItem.videoUrl}
-            preload="auto"
-            style={{ display: 'none' }}
-            muted
-            playsInline
-          />
-        ) : (
-          <img
-            key={nextMediaItem.id}
-            src={nextMediaItem.videoUrl}
-            alt=""
-            style={{ display: 'none' }}
-          />
-        ))}
-
       {!loading && data && (
         <div className="bg-white dark:bg-black text-black dark:text-white">
           <section className="relative w-full h-screen overflow-hidden bg-black">
@@ -640,7 +532,7 @@ export default function PublicReelPage() {
                 <motion.video
                   ref={videoRef}
                   key={currentSlide}
-                  src={currentMediaItem.videoUrl}
+                  src={mediaUrl}
                   muted
                   playsInline
                   className="absolute top-0 left-0 w-full h-full object-cover"
@@ -652,14 +544,14 @@ export default function PublicReelPage() {
               ) : isInitialPlay ? (
                 <div key={currentSlide} className="absolute inset-0">
                   <motion.img
-                    src={currentMediaItem.previewUrl}
+                    src={previewUrl}
                     alt="Loading image preview"
                     className="absolute inset-0 w-full h-full object-cover"
                     animate={{ opacity: isFullImageLoaded ? 0 : 1 }}
                     transition={{ duration: 0.7 }}
                   />
                   <motion.img
-                    src={currentMediaItem.videoUrl}
+                    src={mediaUrl}
                     alt={currentMediaItem.title || 'Reel media'}
                     onLoad={() => {
                       setIsFullImageLoaded(true);
@@ -674,7 +566,7 @@ export default function PublicReelPage() {
               ) : (
                 <motion.img
                   key={currentSlide}
-                  src={currentMediaItem.videoUrl}
+                  src={mediaUrl}
                   alt={currentMediaItem.title || 'Reel media'}
                   className="absolute inset-0 w-full h-full object-cover"
                   initial={{ opacity: 0 }}
@@ -684,28 +576,9 @@ export default function PublicReelPage() {
                 />
               )}
             </AnimatePresence>
-
-            <AnimatePresence>
-              {isVideo && isInitialPlay && !isVideoPlaying && (
-                <motion.img
-                  key="poster-image"
-                  src={currentMediaItem.previewUrl}
-                  alt="Video poster"
-                  initial={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.4 }}
-                  className="absolute top-0 left-0 w-full h-full object-cover z-10"
-                />
-              )}
-            </AnimatePresence>
-
             <div className="absolute inset-0 bg-black bg-opacity-30" />
-            {hasMultipleSlides && (
-              <SliderArrow direction="left" onClick={prevSlide} />
-            )}
-            {hasMultipleSlides && (
-              <SliderArrow direction="right" onClick={nextSlide} />
-            )}
+            {hasMultipleSlides && <SliderArrow direction="left" onClick={prevSlide} />}
+            {hasMultipleSlides && <SliderArrow direction="right" onClick={nextSlide} />}
             <div className="absolute inset-0 text-white pointer-events-none z-20">
               <div className="w-full h-full flex justify-center items-start pt-[15vh]">
                 <h1 className="text-3xl md:text-4xl font-bold uppercase font-montserrat text-center [text-shadow:0_2px_6px_rgb(0_0_0_/_0.6)] tracking-widest md:tracking-[0.2em]">
@@ -713,117 +586,55 @@ export default function PublicReelPage() {
                 </h1>
               </div>
               <div className="absolute bottom-8 left-8 md:bottom-12 md:left-12 font-montserrat [text-shadow:0_2px_4px_rgb(0_0_0_/_0.7)]">
-                {currentMediaItem.client && (
-                  <p className="text-xl md:text-2xl font-semibold">
-                    {currentMediaItem.client}
-                  </p>
-                )}
-                {currentMediaItem.title && (
-                  <p className="text-md md:text-lg opacity-80">
-                    {currentMediaItem.title}
-                  </p>
-                )}
+                {currentMediaItem.client && (<p className="text-xl md:text-2xl font-semibold">{currentMediaItem.client}</p>)}
+                {currentMediaItem.title && (<p className="text-md md:text-lg opacity-80">{currentMediaItem.title}</p>)}
               </div>
               <div className="absolute bottom-8 right-8 md:bottom-12 md:right-12 font-montserrat text-right [text-shadow:0_2px_4px_rgb(0_0_0_/_0.7)]">
                 {artistNames && (
                   <>
-                    <p className="text-sm md:text-md uppercase opacity-80">
-                      {currentMediaItem.craft}
-                    </p>
-                    <p className="text-lg md:text-xl font-semibold">
-                      {artistNames}
-                    </p>
+                    <p className="text-sm md:text-md uppercase opacity-80">{currentMediaItem.craft}</p>
+                    <p className="text-lg md:text-xl font-semibold">{artistNames}</p>
                   </>
                 )}
               </div>
             </div>
           </section>
-
           <section className="pt-20 pb-10 md:pt-32 md:pb-16 px-6 lg:px-8 bg-white dark:bg-black">
             <div className="max-w-screen-2xl mx-auto">
               <div className="flex justify-between items-center mb-16 flex-wrap gap-4">
-                <h2 className="text-3xl md:text-4xl font-bold uppercase text-left font-montserrat">
-                  Work
-                </h2>
-                {isAnyMediaDownloadable && (
-                  <button
-                    onClick={() => setIsDownloadModalOpen(true)}
-                    className="px-6 py-2.5 text-xs font-semibold uppercase tracking-widest bg-transparent border border-black dark:border-white text-black dark:text-white hover:bg-black dark:hover:bg-white hover:text-white dark:hover:text-black transition-colors"
-                  >
-                    Download Media
-                  </button>
-                )}
+                <h2 className="text-3xl md:text-4xl font-bold uppercase text-left font-montserrat">Work</h2>
+                {isAnyMediaDownloadable && (<button onClick={() => setIsDownloadModalOpen(true)} className="px-6 py-2.5 text-xs font-semibold uppercase tracking-widest bg-transparent border border-black dark:border-white text-black dark:text-white hover:bg-black dark:hover:bg-white hover:text-white dark:hover:text-black transition-colors">Download Media</button>)}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
                 {data.mediaItems.map((item, index) => (
-                  <div
-                    key={item.id}
-                    className="group relative cursor-pointer overflow-hidden"
-                    onClick={() => setCurrentSlide(index)}
-                  >
-                    <img
-                      src={item.previewUrl}
-                      alt={`${item.client} - ${item.title}`}
-                      className="w-full h-auto object-cover aspect-video transition-transform duration-300 group-hover:scale-105"
-                    />
+                  <div key={item.id} className="group relative cursor-pointer overflow-hidden" onClick={() => setCurrentSlide(index)}>
+                    <img src={`${CDN_BASE_URL}/${item.previewGcsPath}`} alt={`${item.client} - ${item.title}`} className="w-full h-auto object-cover aspect-video transition-transform duration-300 group-hover:scale-105" />
                     <div className="absolute top-0 left-0 p-4 w-full">
-                      {item.client && (
-                        <p className="font-semibold text-base text-white uppercase font-montserrat [text-shadow:0_2px_4px_rgb(0_0_0_/_0.7)]">
-                          {item.client}
-                        </p>
-                      )}
-                      {item.title && (
-                        <p className="text-xs text-white/90 uppercase font-montserrat [text-shadow:0_2px_4px_rgb(0_0_0_/_0.7)]">
-                          {item.title}
-                        </p>
-                      )}
+                      {item.client && (<p className="font-semibold text-base text-white uppercase font-montserrat [text-shadow:0_2px_4px_rgb(0_0_0_/_0.7)]">{item.client}</p>)}
+                      {item.title && (<p className="text-xs text-white/90 uppercase font-montserrat [text-shadow:0_2px_4px_rgb(0_0_0_/_0.7)]">{item.title}</p>)}
                     </div>
                   </div>
                 ))}
               </div>
             </div>
           </section>
-          {data.mediaItems[0]?.artists?.[0] && (
+          {artistPhotoUrl && (
             <section className="pt-10 pb-20 md:pt-16 md:pb-32 px-8 sm:px-12 lg:px-16 bg-white dark:bg-black">
               <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-start">
                 <div className="md:col-span-1">
-                  <img
-                    src={data.mediaItems[0].artists[0].photoUrl || ''}
-                    alt={data.mediaItems[0].artists[0].name}
-                    className="w-full h-auto object-cover"
-                  />
+                  <img src={artistPhotoUrl} alt={data.mediaItems[0].artists[0].name} className="w-full h-auto object-cover" />
                 </div>
                 <div className="md:col-span-1 flex flex-col">
-                  <h2 className="text-3xl md:text-4xl font-bold uppercase mb-6 font-montserrat">
-                    {data.mediaItems[0].artists[0].name}
-                  </h2>
-                  {data.mediaItems[0].artists[0].description && (
-                    <p className="font-semibold text-base leading-[28.4px] tracking-[-0.09em] text-[#1D1D1D] dark:text-white/90">
-                      {data.mediaItems[0].artists[0].description}
-                    </p>
-                  )}
+                  <h2 className="text-3xl md:text-4xl font-bold uppercase mb-6 font-montserrat">{data.mediaItems[0].artists[0].name}</h2>
+                  {data.mediaItems[0].artists[0].description && (<p className="font-semibold text-base leading-[28.4px] tracking-[-0.09em] text-[#1D1D1D] dark:text-white/90">{data.mediaItems[0].artists[0].description}</p>)}
                 </div>
               </div>
             </section>
           )}
         </div>
       )}
-
-      {!loading && error && (
-        <div className="h-screen w-full bg-white dark:bg-black flex items-center justify-center text-red-500 text-center p-8">
-          Error: {error}
-        </div>
-      )}
-      {!loading && !data && !error && (
-        <div className="h-screen w-full bg-white dark:bg-black flex flex-col items-center justify-center text-center p-8">
-          <h1 className="text-3xl font-bold text-black dark:text-white mb-4">
-            Reel is Empty
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400">
-            This reel does not contain any videos or may have been deleted.
-          </p>
-        </div>
-      )}
+      {!loading && error && <div className="h-screen w-full bg-white dark:bg-black flex items-center justify-center text-red-500 text-center p-8">Error: {error}</div>}
+      {!loading && !data && !error && <div className="h-screen w-full bg-white dark:bg-black flex flex-col items-center justify-center text-center p-8"><h1 className="text-3xl font-bold text-black dark:text-white mb-4">Reel is Empty</h1><p className="text-slate-500 dark:text-slate-400">This reel does not contain any videos or may have been deleted.</p></div>}
     </>
   );
 }

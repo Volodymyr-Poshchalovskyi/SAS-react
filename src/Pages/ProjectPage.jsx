@@ -1,6 +1,6 @@
 // src/Pages/ProjectPage.jsx
 
-import React, { useLayoutEffect, useMemo, useState, useEffect } from 'react';
+import React, { useLayoutEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { productionData } from '../Data/ProductionData';
 import { tableTopData } from '../Data/TableTopData';
@@ -15,19 +15,21 @@ const shuffleArray = (array) => {
   return newArr;
 };
 
+// ✨ Додаємо константу для базового URL нашого CDN
+const CDN_BASE_URL = 'http://34.54.191.201';
+
 export default function ProjectPage() {
   const { projectSlug } = useParams();
-  const [signedUrls, setSignedUrls] = useState({});
+  
+  // ❗️ Ми видалили стан `signedUrls` і `useEffect` для запиту на бекенд.
 
   const projectData = useMemo(() => {
     const productionProject = productionData.find(
       (p) => p.projectSlug === projectSlug
     );
     if (productionProject) {
-      // ✨ Зміни тут: прибираємо заглушки і просто передаємо знайдений об'єкт,
-      // додаючи лише динамічно згенеровані поля
       return {
-        ...productionProject, // Копіюємо всі поля з productionProject
+        ...productionProject,
         videoSrc: productionProject.src,
         relatedProjects: shuffleArray(
           productionData.filter((p) => p.projectSlug !== projectSlug)
@@ -47,9 +49,8 @@ export default function ProjectPage() {
       (p) => p.projectSlug === projectSlug
     );
     if (tableTopProject) {
-      // ✨ Зміни тут: аналогічно для tableTopProject
       return {
-        ...tableTopProject, // Копіюємо всі поля з tableTopProject
+        ...tableTopProject,
         videoSrc: tableTopProject.src,
         relatedProjects: shuffleArray(
           tableTopData.filter((p) => p.projectSlug !== projectSlug)
@@ -68,41 +69,6 @@ export default function ProjectPage() {
     return null;
   }, [projectSlug]);
 
-  // Решта коду залишається без змін, оскільки вона вже
-  // правильно працює з об'єктом projectData.
-
-  useEffect(() => {
-    const fetchUrls = async () => {
-      if (!projectData) return;
-      const pathsToSign = [projectData.videoSrc];
-      if (
-        projectData.relatedProjects &&
-        projectData.relatedProjects.length > 0
-      ) {
-        projectData.relatedProjects.forEach((p) => {
-          if (!pathsToSign.includes(p.preview)) {
-            pathsToSign.push(p.preview);
-          }
-        });
-      }
-      try {
-        const response = await fetch(
-          'http://localhost:3001/generate-read-urls',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ gcsPaths: pathsToSign }),
-          }
-        );
-        if (!response.ok) throw new Error('Failed to fetch signed URLs');
-        setSignedUrls(await response.json());
-      } catch (error) {
-        console.error('Error fetching URLs for ProjectPage:', error);
-      }
-    };
-    fetchUrls();
-  }, [projectData]);
-
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
   }, [projectSlug]);
@@ -119,9 +85,10 @@ export default function ProjectPage() {
   return (
     <div className="bg-white text-black">
       <section className="relative w-full h-screen bg-black">
-        {signedUrls[projectData.videoSrc] && (
+        {/* ✨ Використовуємо пряме посилання на CDN для головного відео */}
+        {projectData.videoSrc && (
           <VideoContainer
-            videoSrc={signedUrls[projectData.videoSrc]}
+            videoSrc={`${CDN_BASE_URL}/${projectData.videoSrc}`}
             shouldPlay={true}
           />
         )}
@@ -164,9 +131,10 @@ export default function ProjectPage() {
                       className="group"
                     >
                       <div className="relative aspect-[3/4] overflow-hidden">
-                        {signedUrls[related.preview] ? (
+                        {/* ✨ Використовуємо пряме посилання на CDN для прев'ю */}
+                        {related.preview ? (
                           <video
-                            src={signedUrls[related.preview]}
+                            src={`${CDN_BASE_URL}/${related.preview}`}
                             muted
                             playsInline
                             className="w-full h-full object-cover transition-transform duration-500 ease-in-out group-hover:scale-110"

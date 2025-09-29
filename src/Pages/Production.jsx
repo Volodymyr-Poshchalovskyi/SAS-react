@@ -31,7 +31,6 @@ const VideoTitleOverlay = ({
         viewport={{ once: true, amount: 0.5 }}
       >
         <p className="font-chanel text-2xl sm:text-4xl text-shadow">{title}</p>
-        {/* ✨ Зміни тут: оновлено стиль кнопки */}
         <Link
           to={`/projects/${projectSlug}`}
           className="py-3 px-8 text-xs font-normal bg-white text-black border-2 border-white hover:bg-transparent hover:text-white transition-colors duration-300 pointer-events-auto"
@@ -47,13 +46,13 @@ export default function Production() {
   const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } =
     useAnimation();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [videoUrls, setVideoUrls] = useState({});
+  
+  // ❗️ Ми видалили стан `videoUrls` і `useEffect` для запиту на бекенд.
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  // --- (решта коду без змін) ---
   useEffect(() => {
     if (onPreloaderPage) setIsPreloaderActive(true);
   }, [onPreloaderPage, setIsPreloaderActive]);
@@ -64,27 +63,6 @@ export default function Production() {
       document.body.style.overflow = '';
     };
   }, [isPreloaderActive]);
-
-  useEffect(() => {
-    const fetchVideoUrls = async () => {
-      const gcsPaths = productionData.map((video) => video.src);
-      try {
-        const response = await fetch(
-          'http://localhost:3001/generate-read-urls',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ gcsPaths }),
-          }
-        );
-        if (!response.ok) throw new Error('Failed to fetch video URLs');
-        setVideoUrls(await response.json());
-      } catch (error) {
-        console.error('Error fetching production video URLs:', error);
-      }
-    };
-    fetchVideoUrls();
-  }, []);
 
   useEffect(() => {
     const htmlElement = document.documentElement;
@@ -125,12 +103,16 @@ export default function Production() {
       )}
 
       {productionData.map((video, index) => {
-        const signedUrl = videoUrls[video.src];
+        const gcsPath = video.src;
+        
+        // ✨ ФОРМУЄМО ПРЯМЕ ПОСИЛАННЯ НА CDN ДЛЯ КОЖНОГО ВІДЕО
+        const publicCdnUrl = `http://34.54.191.201/${gcsPath}`;
+
         return (
           <div key={video.id} className="relative w-full h-screen snap-start">
-            {signedUrl && (
+            {publicCdnUrl && (
               <VideoContainer
-                videoSrc={signedUrl}
+                videoSrc={publicCdnUrl}
                 shouldPlay={!isPreloaderActive && currentIndex === index}
               />
             )}

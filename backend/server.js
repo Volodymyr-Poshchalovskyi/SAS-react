@@ -689,11 +689,9 @@ app.get('/reels/public/:short_link', async (req, res) => {
   try {
     const { data: reel, error: reelError } = await supabase
       .from('reels')
-      // ✨ ПОЧАТОК ЗМІН: Додано `allow_download` до запиту
       .select(
         `id, title, status, reel_media_items(display_order, media_items(id, title, client, artists, video_gcs_path, preview_gcs_path, craft, allow_download))`
       )
-      // ✨ КІНЕЦЬ ЗМІН
       .eq('short_link', req.params.short_link)
       .single();
 
@@ -707,33 +705,10 @@ app.get('/reels/public/:short_link', async (req, res) => {
       .map((item) => item.media_items)
       .filter(Boolean);
 
-    const readOptions = {
-      version: 'v4',
-      action: 'read',
-      expires: Date.now() + 20 * 60 * 1000,
-    };
     const defaultDirectorImagePath = 'back-end/artists/director.jpg';
 
-    const mediaItemsWithUrls = await Promise.all(
+    const mediaItemsWithPaths = await Promise.all(
       sortedMediaItems.map(async (item) => {
-        let videoUrl = null,
-          previewUrl = null;
-        try {
-          if (item.video_gcs_path)
-            [videoUrl] = await bucket
-              .file(item.video_gcs_path)
-              .getSignedUrl(readOptions);
-          if (item.preview_gcs_path)
-            [previewUrl] = await bucket
-              .file(item.preview_gcs_path)
-              .getSignedUrl(readOptions);
-        } catch (urlError) {
-          console.error(
-            `Failed to get signed URL for item ${item.id}:`,
-            urlError.message
-          );
-        }
-
         const artistNames = (item.artists || '')
           .split(',')
           .map((name) => name.trim())
@@ -753,57 +728,33 @@ app.get('/reels/public/:short_link', async (req, res) => {
             return acc;
           }, {});
 
-          enrichedArtists = await Promise.all(
-            artistNames.map(async (name) => {
-              const record = artistMap[name];
-              let photoUrl = null;
-              const path_to_sign =
-                record && record.photo_gcs_path
-                  ? record.photo_gcs_path
-                  : defaultDirectorImagePath;
-
-              try {
-                [photoUrl] = await bucket
-                  .file(path_to_sign)
-                  .getSignedUrl(readOptions);
-              } catch (e) {
-                console.error(
-                  `Failed to sign URL for artist photo: ${path_to_sign}`,
-                  e.message
-                );
-                if (path_to_sign !== defaultDirectorImagePath) {
-                  try {
-                    [photoUrl] = await bucket
-                      .file(defaultDirectorImagePath)
-                      .getSignedUrl(readOptions);
-                  } catch (e2) {
-                    console.error('Failed to sign fallback URL', e2.message);
-                  }
-                }
-              }
-
-              return {
-                name: record ? record.name : name,
-                description: record ? record.description : null,
-                photoUrl,
-              };
-            })
-          );
+          enrichedArtists = artistNames.map((name) => {
+            const record = artistMap[name];
+            const photoPath =
+              record && record.photo_gcs_path
+                ? record.photo_gcs_path
+                : defaultDirectorImagePath;
+            return {
+              name: record ? record.name : name,
+              description: record ? record.description : null,
+              photoGcsPath: photoPath,
+            };
+          });
         }
 
         return {
           ...item,
+          videoGcsPath: item.video_gcs_path,
+          previewGcsPath: item.preview_gcs_path || item.video_gcs_path,
           artists: enrichedArtists,
-          videoUrl,
-          previewUrl: previewUrl || videoUrl,
         };
       })
     );
-
+    
     const publicData = {
       reelDbId: reel.id,
       reelTitle: reel.title,
-      mediaItems: mediaItemsWithUrls,
+      mediaItems: mediaItemsWithPaths,
     };
     res.status(200).json(publicData);
   } catch (error) {

@@ -5,13 +5,14 @@ import { motion } from 'framer-motion';
 import VideoContainer from '../Components/VideoContainer';
 
 function Main() {
-  // 1. Використовуємо шлях до файлу в GCS
+  // 1. Шлях до файлу в GCS
   const GCS_VIDEO_PATH =
     'front-end/00-Main Page/SHOWREEL SINNERS AND SAINTS 2024.mp4';
 
-  // 2. Стан для збереження URL, статусу завантаження та помилок
-  const [videoUrl, setVideoUrl] = React.useState('');
-  const [error, setError] = React.useState(null);
+  // 2. Формуємо пряме посилання на CDN, використовуючи IP-адресу
+  const videoUrl = `http://34.54.191.201/${GCS_VIDEO_PATH}`;
+
+  // 3. Стан і логіка для відтворення відео при скролі залишаються
   const [shouldPlayVideo, setShouldPlayVideo] = React.useState(false);
   const videoSectionRef = React.useRef(null);
 
@@ -32,36 +33,7 @@ function Main() {
     }),
   };
 
-  // 3. Ефект для завантаження підписаного URL для відео
-  React.useEffect(() => {
-    const fetchVideoUrl = async () => {
-      try {
-        const response = await fetch(
-          'http://localhost:3001/generate-read-urls',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ gcsPaths: [GCS_VIDEO_PATH] }),
-          }
-        );
-        if (!response.ok) {
-          throw new Error('Failed to get video URL from server.');
-        }
-        const data = await response.json();
-        const url = data[GCS_VIDEO_PATH];
-        if (url) {
-          setVideoUrl(url);
-        } else {
-          throw new Error('Video URL not found in the server response.');
-        }
-      } catch (err) {
-        console.error('Error fetching main page video:', err);
-        setError(err.message);
-      }
-    };
-
-    fetchVideoUrl();
-  }, []); // Пустий масив залежностей, щоб виконати один раз при монтуванні
+  // 4. Ми видалили useEffect, який робив запит на бекенд, бо він більше не потрібен
 
   // Intersection Observer для відтворення відео залишається без змін
   React.useEffect(() => {
@@ -90,18 +62,8 @@ function Main() {
 
   return (
     <div className="relative w-full h-screen text-white" ref={videoSectionRef}>
-      {/* 4. Передаємо динамічно завантажений URL в VideoContainer */}
-      {/* Відображаємо відео, тільки якщо URL успішно отримано */}
-      {videoUrl && (
-        <VideoContainer videoSrc={videoUrl} shouldPlay={shouldPlayVideo} />
-      )}
-
-      {/* Відображаємо помилку, якщо вона виникла */}
-      {error && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black z-20">
-          <p className="text-red-500">Could not load video: {error}</p>
-        </div>
-      )}
+      {/* 5. Передаємо напряму сформований URL в VideoContainer */}
+      <VideoContainer videoSrc={videoUrl} shouldPlay={shouldPlayVideo} />
 
       {/* Анімований текст */}
       <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center px-4">

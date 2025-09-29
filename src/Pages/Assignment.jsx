@@ -14,47 +14,22 @@ const nameAnimation = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: 'easeOut' } },
 };
 
-// MotionLink більше не потрібен
-// const MotionLink = motion(Link);
-
 export default function Assignment() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } =
     useAnimation();
-  const [videoUrls, setVideoUrls] = useState({});
+  
+  // ❗️ Ми видалили стан `videoUrls` і `useEffect` для запиту на бекенд.
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  // ... (решта коду без змін) ...
   useEffect(() => {
     if (onPreloaderPage) {
       setIsPreloaderActive(true);
     }
   }, [onPreloaderPage, setIsPreloaderActive]);
-
-  useEffect(() => {
-    const fetchVideoUrls = async () => {
-      const gcsPaths = assignmentData.map((director) => director.videos[0].src);
-      try {
-        const response = await fetch(
-          'http://localhost:3001/generate-read-urls',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ gcsPaths }),
-          }
-        );
-        if (!response.ok) throw new Error('Failed to fetch video URLs');
-        const urlsMap = await response.json();
-        setVideoUrls(urlsMap);
-      } catch (error) {
-        console.error('Error fetching assignment video URLs:', error);
-      }
-    };
-    fetchVideoUrls();
-  }, []);
 
   useEffect(() => {
     document.body.style.overflow = isPreloaderActive ? 'hidden' : '';
@@ -103,20 +78,22 @@ export default function Assignment() {
 
       {assignmentData.map((director, index) => {
         const gcsPath = director.videos[0].src;
-        const signedUrl = videoUrls[gcsPath];
+        
+        // ✨ ФОРМУЄМО ПРЯМЕ ПОСИЛАННЯ НА CDN ДЛЯ КОЖНОГО ВІДЕО
+        const publicCdnUrl = `http://34.54.191.201/${gcsPath}`;
+
         return (
           <div
             key={director.id}
             className="relative w-full h-screen snap-start"
           >
-            {signedUrl && (
+            {publicCdnUrl && (
               <VideoContainer
-                videoSrc={signedUrl}
+                videoSrc={publicCdnUrl}
                 shouldPlay={!isPreloaderActive && currentIndex === index}
               />
             )}
             <div className="absolute top-[80%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full text-center">
-              {/* ✨ Зміни тут: Анімуємо батьківський div */}
               <motion.div
                 className="flex flex-col items-center gap-4"
                 variants={nameAnimation}
@@ -134,7 +111,6 @@ export default function Assignment() {
                   {director.name}
                 </Link>
 
-                {/* ✨ Зміни тут: Умовно додаємо кнопку "SEE MORE" */}
                 {index > 0 && (
                   <Link
                     to={`/assignment/${director.slug}`}

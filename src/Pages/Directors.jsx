@@ -18,40 +18,19 @@ export default function Directors() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } =
     useAnimation();
-  const [videoUrls, setVideoUrls] = useState({});
+
+  // ❗️ Ми видалили стан `videoUrls` і `useEffect` для запиту на бекенд.
+  // Вони більше не потрібні.
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  // ... (решта коду без змін) ...
   useEffect(() => {
     if (onPreloaderPage) {
       setIsPreloaderActive(true);
     }
   }, [onPreloaderPage, setIsPreloaderActive]);
-
-  useEffect(() => {
-    const fetchVideoUrls = async () => {
-      const gcsPaths = directorsData.map((director) => director.videos[0].src);
-      try {
-        const response = await fetch(
-          'http://localhost:3001/generate-read-urls',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ gcsPaths }),
-          }
-        );
-        if (!response.ok) throw new Error('Failed to fetch video URLs');
-        const urlsMap = await response.json();
-        setVideoUrls(urlsMap);
-      } catch (error) {
-        console.error('Error fetching director video URLs:', error);
-      }
-    };
-    fetchVideoUrls();
-  }, []);
 
   useEffect(() => {
     document.body.style.overflow = isPreloaderActive ? 'hidden' : '';
@@ -101,15 +80,18 @@ export default function Directors() {
 
       {directorsData.map((director, index) => {
         const gcsPath = director.videos[0].src;
-        const signedUrl = videoUrls[gcsPath];
+
+        // ✨ ФОРМУЄМО ПРЯМЕ ПОСИЛАННЯ НА CDN ДЛЯ КОЖНОГО ВІДЕО
+        const publicCdnUrl = `http://34.54.191.201/${gcsPath}`;
+
         return (
           <div
             key={director.id}
             className="relative w-full h-screen snap-start"
           >
-            {signedUrl && (
+            {publicCdnUrl && (
               <VideoContainer
-                videoSrc={signedUrl}
+                videoSrc={publicCdnUrl}
                 shouldPlay={!isPreloaderActive && currentIndex === index}
               />
             )}
@@ -132,7 +114,6 @@ export default function Directors() {
                 </Link>
                 
                 {index > 0 && (
-                  // ✨ Зміни тут: застосовано новий стиль до кнопки
                   <Link
                     to={`/directors/${director.slug}`}
                     className="py-3 px-8 text-xs font-normal bg-white text-black border-2 border-white hover:bg-transparent hover:text-white transition-colors duration-300"
