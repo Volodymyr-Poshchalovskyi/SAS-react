@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-// ✨ Зміни тут: імпортуємо Link
 import { Link } from 'react-router-dom';
 import PreloaderBanner from '../Components/PreloaderBanner';
 import { useAnimation } from '../context/AnimationContext';
@@ -15,7 +14,6 @@ const nameAnimation = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: 'easeOut' } },
 };
 
-// ✨ Зміни тут: оновлюємо оверлей, щоб він містив кнопку
 const VideoTitleOverlay = ({
   title,
   projectSlug,
@@ -33,9 +31,10 @@ const VideoTitleOverlay = ({
         viewport={{ once: true, amount: 0.5 }}
       >
         <p className="font-chanel text-2xl sm:text-4xl text-shadow">{title}</p>
+        {/* ✨ Зміни тут: оновлено стиль кнопки */}
         <Link
           to={`/projects/${projectSlug}`}
-          className="font-helvetica text-sm uppercase tracking-wider border border-white/50 rounded-full px-4 py-2 pointer-events-auto transition-colors hover:bg-white/10"
+          className="py-3 px-8 text-xs font-normal bg-white text-black border-2 border-white hover:bg-transparent hover:text-white transition-colors duration-300 pointer-events-auto"
         >
           See Project
         </Link>
@@ -54,7 +53,7 @@ export default function Production() {
     window.scrollTo(0, 0);
   }, []);
 
-  // --- Логіка прелоадера (без змін) ---
+  // --- (решта коду без змін) ---
   useEffect(() => {
     if (onPreloaderPage) setIsPreloaderActive(true);
   }, [onPreloaderPage, setIsPreloaderActive]);
@@ -66,7 +65,6 @@ export default function Production() {
     };
   }, [isPreloaderActive]);
 
-  // --- Завантаження URL відео (без змін) ---
   useEffect(() => {
     const fetchVideoUrls = async () => {
       const gcsPaths = productionData.map((video) => video.src);
@@ -88,7 +86,6 @@ export default function Production() {
     fetchVideoUrls();
   }, []);
 
-  // --- Логіка скролу (без змін) ---
   useEffect(() => {
     const htmlElement = document.documentElement;
     htmlElement.classList.add('scroll-snap-enabled');
@@ -137,7 +134,6 @@ export default function Production() {
                 shouldPlay={!isPreloaderActive && currentIndex === index}
               />
             )}
-            {/* ✨ Зміни тут: передаємо projectSlug */}
             <VideoTitleOverlay
               title={video.title}
               projectSlug={video.projectSlug}

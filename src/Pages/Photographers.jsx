@@ -1,3 +1,5 @@
+// src/Pages/Photographers.jsx
+
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -11,7 +13,8 @@ const nameAnimation = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: 'easeOut' } },
 };
 
-const MotionLink = motion(Link);
+// MotionLink більше не потрібен
+// const MotionLink = motion(Link);
 
 export default function Photographers() {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -22,7 +25,7 @@ export default function Photographers() {
     window.scrollTo(0, 0);
   }, []);
 
-  // ✨ ОСНОВНА ЛОГІКА: Цей блок запускає прелоадер при завантаженні сторінки.
+  // ... (решта коду без змін) ...
   useEffect(() => {
     if (onPreloaderPage) {
       setIsPreloaderActive(true);
@@ -85,9 +88,9 @@ export default function Photographers() {
           />
           <div className="absolute inset-0 bg-black opacity-30" />
           <div className="absolute top-[80%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full text-center">
-            <MotionLink
-              to={`/photographers/${photographer.slug}`}
-              className="text-white font-chanel font-normal uppercase text-4xl sm:text-6xl md:text-[5rem] tracking-[-0.3rem] md:tracking-[-0.6rem] transition-opacity duration-500 hover:opacity-50"
+            {/* ✨ Зміни тут: Анімуємо батьківський div замість MotionLink */}
+            <motion.div
+              className="flex flex-col items-center gap-4"
               variants={nameAnimation}
               initial="hidden"
               animate={
@@ -96,8 +99,23 @@ export default function Photographers() {
               whileInView={index > 0 ? 'visible' : undefined}
               viewport={{ once: true, amount: 0.5 }}
             >
-              {photographer.name}
-            </MotionLink>
+              <Link
+                to={`/photographers/${photographer.slug}`}
+                className="text-white font-chanel font-normal uppercase text-4xl sm:text-6xl md:text-[5rem] tracking-[-0.3rem] md:tracking-[-0.6rem] transition-opacity duration-500 hover:opacity-50"
+              >
+                {photographer.name}
+              </Link>
+              
+              {/* ✨ Зміни тут: Умовно додаємо кнопку "SEE MORE" */}
+              {index > 0 && (
+                <Link
+                  to={`/photographers/${photographer.slug}`}
+                  className="py-3 px-8 text-xs font-normal bg-white text-black border-2 border-white hover:bg-transparent hover:text-white transition-colors duration-300"
+                >
+                  SEE MORE
+                </Link>
+              )}
+            </motion.div>
           </div>
         </div>
       ))}
