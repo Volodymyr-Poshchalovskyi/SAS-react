@@ -8,19 +8,109 @@ const Highlight = ({ text, highlight }) => {
   if (!highlight?.trim()) return <span>{text}</span>;
   const regex = new RegExp(`(${highlight})`, 'gi');
   const parts = String(text).split(regex);
-  return ( <span> {parts.map((part, i) => part.toLowerCase() === highlight.toLowerCase() ? ( <mark key={i} className="bg-yellow-200 dark:bg-yellow-600/40 text-black dark:text-white rounded px-0.5" > {part} </mark> ) : ( part ))} </span> );
-};
-// --- Reusable Data Table Component (No changes) ---
-const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const filteredData = useMemo(() => {
-    if (!searchTerm) return data;
-    return data.filter((item) => item.name.toLowerCase().includes(searchTerm.toLowerCase()));
-  }, [data, searchTerm]);
-  return ( <div className="bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl flex flex-col h-full min-h-[300px]"> <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-3"> <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">{title}</h2> <button onClick={onAdd} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 rounded-md hover:bg-slate-700 dark:hover:bg-slate-300 transition-colors w-full sm:w-auto justify-center" > <Plus className="w-4 h-4" /> Add New </button> </div> <div className="p-4 border-b border-slate-200 dark:border-slate-800"> <div className="relative"> <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /> <input type="text" placeholder={`Search in ${title}...`} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent pl-9 pr-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500" /> </div> </div> <div className="p-2 overflow-y-auto flex-1"> {filteredData.length > 0 ? ( <ul className="divide-y divide-slate-100 dark:divide-slate-800"> {filteredData.map((item) => ( <li key={item.id} className="flex justify-between items-center p-2 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800/50" > <span className="text-sm text-slate-700 dark:text-slate-300"> <Highlight text={item.name} highlight={searchTerm} /> </span> <div className="flex items-center gap-2"> <button onClick={() => onEdit(item)} className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors" aria-label="Edit" > <Edit className="w-4 h-4" /> </button> <button onClick={() => onDelete(item)} className="p-1.5 text-red-500 hover:text-red-700 dark:hover:text-red-400 transition-colors" aria-label="Delete" > <Trash2 className="w-4 h-4" /> </button> </div> </li> ))} </ul> ) : ( <p className="p-4 text-center text-sm text-slate-500 dark:text-slate-400"> {searchTerm ? `No results for "${searchTerm}"` : 'No items found.'} </p> )} </div> </div> );
+  return (
+    <span>
+      {parts.map((part, i) =>
+        part.toLowerCase() === highlight.toLowerCase() ? (
+          <mark key={i} className="bg-yellow-200 dark:bg-yellow-600/40 text-black dark:text-white rounded px-0.5">
+            {part}
+          </mark>
+        ) : (
+          part
+        )
+      )}
+    </span>
+  );
 };
 
-// --- Main Page Component ---
+// --- ✨ ОНОВЛЕНИЙ Reusable Data Table Component ✨ ---
+const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [visibleCount, setVisibleCount] = useState(10); // Стан для кількості видимих рядків
+
+  const filteredData = useMemo(() => {
+    if (!searchTerm) return data;
+    return data.filter((item) =>
+      item.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [data, searchTerm]);
+  
+  // Скидаємо лічильник видимих рядків при зміні пошукового запиту
+  useEffect(() => {
+    setVisibleCount(10);
+  }, [searchTerm]);
+
+  // Дані, які фактично будуть показані користувачу
+  const dataToDisplay = useMemo(() => {
+    return filteredData.slice(0, visibleCount);
+  }, [filteredData, visibleCount]);
+
+  const handleShowMore = () => {
+    setVisibleCount(prevCount => prevCount + 10);
+  };
+
+  return (
+    // ✨ ВИДАЛЕНО h-full для динамічної висоти
+    <div className="bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl flex flex-col min-h-[300px]">
+      <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-3">
+        <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
+          {title}
+        </h2>
+        <button onClick={onAdd} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 rounded-md hover:bg-slate-700 dark:hover:bg-slate-300 transition-colors w-full sm:w-auto justify-center" >
+          <Plus className="w-4 h-4" />
+          Add New
+        </button>
+      </div>
+      <div className="p-4 border-b border-slate-200 dark:border-slate-800">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input type="text" placeholder={`Search in ${title}...`} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent pl-9 pr-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500" />
+        </div>
+      </div>
+      <div className="p-2 overflow-y-auto flex-1">
+        {/* ✨ ВІДОБРАЖЕННЯ ОБРІЗАНОГО СПИСКУ */}
+        {dataToDisplay.length > 0 ? (
+          <ul className="divide-y divide-slate-100 dark:divide-slate-800">
+            {dataToDisplay.map((item) => (
+              <li key={item.id} className="flex justify-between items-center p-2 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800/50" >
+                <span className="text-sm text-slate-700 dark:text-slate-300">
+                  <Highlight text={item.name} highlight={searchTerm} />
+                </span>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => onEdit(item)} className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors" aria-label="Edit" >
+                    <Edit className="w-4 h-4" />
+                  </button>
+                  <button onClick={() => onDelete(item)} className="p-1.5 text-red-500 hover:text-red-700 dark:hover:text-red-400 transition-colors" aria-label="Delete" >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="p-4 text-center text-sm text-slate-500 dark:text-slate-400">
+            {searchTerm ? `No results for "${searchTerm}"` : 'No items found.'}
+          </p>
+        )}
+      </div>
+      
+      {/* ✨ НОВИЙ БЛОК: Кнопка "Показати ще" */}
+      {filteredData.length > visibleCount && (
+        <div className="p-4 border-t border-slate-200 dark:border-slate-800 mt-auto">
+          <button
+            onClick={handleShowMore}
+            className="w-full px-4 py-2 text-sm font-semibold rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors"
+          >
+            Show More ({visibleCount} / {filteredData.length})
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
+// --- Main Page Component (Rest of the code remains the same) ---
 const ManagementPage = () => {
   const [artists, setArtists] = useState([]);
   const [clients, setClients] = useState([]);
@@ -37,7 +127,7 @@ const ManagementPage = () => {
   const [currentTable, setCurrentTable] = useState(null);
   const [currentItem, setCurrentItem] = useState(null);
 
-  // ✨ ЗМІНА: Form state for modal
+  // Form state for modal
   const [formData, setFormData] = useState({ name: '', description: '' });
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
@@ -78,7 +168,7 @@ const ManagementPage = () => {
     fetchAllData();
   }, []);
   
-  // ✨ ЗМІНА: Effect for photo preview
+  // Effect for photo preview
   useEffect(() => {
     if (!photoFile) {
         setPhotoPreview(null);
@@ -227,7 +317,7 @@ const ManagementPage = () => {
     <div className="w-full p-4 sm:p-6 lg:p-8">
       <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50 mb-6">Artists / Clients / Featured Celebrity</h1>
       {loading ? ( <p className="text-center text-slate-500 dark:text-slate-400">Loading data...</p> ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:items-start">
           <DataTable title="Artists" data={artists} onAdd={() => openEditModal('Artists', 'add')} onEdit={(item) => openEditModal('Artists', 'edit', item)} onDelete={(item) => openDeleteModal('Artists', item)} />
           <DataTable title="Clients" data={clients} onAdd={() => openEditModal('Clients', 'add')} onEdit={(item) => openEditModal('Clients', 'edit', item)} onDelete={(item) => openDeleteModal('Clients', item)} />
           <DataTable title="Featured Celebrity" data={celebrities} onAdd={() => openEditModal('Featured Celebrity', 'add')} onEdit={(item) => openEditModal('Featured Celebrity', 'edit', item)} onDelete={(item) => openDeleteModal('Featured Celebrity', item)} />
@@ -313,4 +403,5 @@ const ManagementPage = () => {
     </div>
   );
 };
+
 export default ManagementPage;

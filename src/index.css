@@ -7,6 +7,7 @@
 
 
 
+
 @font-face {
   font-family: 'helvetica';
   src: url('./assets/fonts/HelveticaNeueRoman.otf') format('opentype');
@@ -67,12 +68,15 @@
 body {
   font-family: 'abchanel-pb-l', sans-serif;
   color: #fff;
-  background-color: #000;
+  /* Градієнт від темно-сірого в центрі до чорного по краях */
+  background: radial-gradient(ellipse at center, #1b1b1b 0%, #000000 100%);
+  /* Забезпечуємо, щоб фон покривав весь екран */
+  min-height: 100vh;
 }
-
 .intro-preloader__sub {
   font-family: 'helvetica', Arial, sans-serif;
 }
+
 
 .footer-column a,
 .form-group input {
