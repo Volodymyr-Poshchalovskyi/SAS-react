@@ -40,15 +40,24 @@ function generateShortId(length = 5) {
 // API-ЕНДПОІНТИ ДЛЯ GOOGLE CLOUD STORAGE
 // ========================================================================== //
 
+// ======================================================================== //
+// ✨ ПОЧАТОК ЗМІН: Оновлений ендпоінт для завантаження файлів
+// ======================================================================== //
 app.post('/generate-upload-url', async (req, res) => {
   try {
-    const { fileName, fileType, destination } = req.body;
+    const { fileName, fileType, destination, role } = req.body;
     if (!fileName || !fileType) return res.status(400).json({ error: 'fileName and fileType are required.' });
 
     let destinationFolder;
+
     if (destination === 'artists') {
       destinationFolder = 'back-end/artists';
+    } else if (role === 'main') {
+      destinationFolder = 'back-end/videos';
+    } else if (role === 'preview') {
+      destinationFolder = 'back-end/previews';
     } else {
+      // Fallback to old logic if role is not specified
       destinationFolder = fileType.startsWith('video/') ? 'back-end/videos' : 'back-end/previews';
     }
     
@@ -63,6 +72,10 @@ app.post('/generate-upload-url', async (req, res) => {
     res.status(500).json({ error: 'Failed to generate upload URL.', details: error.message });
   }
 });
+// ======================================================================== //
+// ✨ КІНЕЦЬ ЗМІН
+// ======================================================================== //
+
 
 app.post('/generate-read-urls', async (req, res) => {
   try {
@@ -203,7 +216,6 @@ app.get('/analytics/views-over-time', async (req, res) => {
   }
 
   try {
-    // Крок 1: Отримуємо всі події 'media_completion' за вказаний діапазон дат
     const { data: events, error } = await supabase
       .from('reel_views')
       .select('created_at')
@@ -213,14 +225,12 @@ app.get('/analytics/views-over-time', async (req, res) => {
 
     if (error) throw error;
 
-    // Крок 2: Групуємо події за датою і рахуємо їх кількість
     const countsByDay = events.reduce((acc, event) => {
-      const date = event.created_at.split('T')[0]; // Отримуємо дату у форматі YYYY-MM-DD
+      const date = event.created_at.split('T')[0];
       acc[date] = (acc[date] || 0) + 1;
       return acc;
     }, {});
 
-    // Крок 3: Створюємо повний масив дат для діаграми, заповнюючи дні без переглядів нулями
     const result = [];
     let currentDate = new Date(startDate);
     const finalDate = new Date(endDate);
@@ -229,7 +239,7 @@ app.get('/analytics/views-over-time', async (req, res) => {
       const dateStr = currentDate.toISOString().split('T')[0];
       result.push({
         date: dateStr,
-        views: countsByDay[dateStr] || 0, // Додаємо кількість переглядів або 0
+        views: countsByDay[dateStr] || 0,
       });
       currentDate.setDate(currentDate.getDate() + 1);
     }
@@ -251,12 +261,11 @@ app.get('/analytics/trending-media', async (req, res) => {
     fullEndDate.setUTCHours(23, 59, 59, 999);
 
     try {
-        // Крок 1: Отримуємо тільки події завершення перегляду за вказаний період
         const { data: completionEvents, error: viewError } = await supabase
             .from('reel_views')
             .select('media_item_id')
-            .eq('event_type', 'media_completion') // <-- ГОЛОВНА ЗМІНА: фільтруємо тільки 'completion'
-            .not('media_item_id', 'is', null)    // Переконуємось, що media_item_id не порожній
+            .eq('event_type', 'media_completion')
+            .not('media_item_id', 'is', null)
             .gte('created_at', startDate)
             .lte('created_at', fullEndDate.toISOString());
 
@@ -265,13 +274,11 @@ app.get('/analytics/trending-media', async (req, res) => {
             return res.status(200).json([]);
         }
         
-        // Крок 2: Рахуємо, скільки разів кожне унікальне відео було переглянуто до кінця
         const countsByMediaItem = completionEvents.reduce((acc, { media_item_id }) => {
             acc[media_item_id] = (acc[media_item_id] || 0) + 1;
             return acc;
         }, {});
         
-        // Крок 3: Визначаємо ID найпопулярніших відео
         const topMediaItemIds = Object.entries(countsByMediaItem)
             .sort(([, countA], [, countB]) => countB - countA)
             .slice(0, Number(limit))
@@ -281,7 +288,6 @@ app.get('/analytics/trending-media', async (req, res) => {
             return res.status(200).json([]);
         }
 
-        // Крок 4: Отримуємо деталі для цих найпопулярніших відео
         const { data: trendingItems, error: itemsError } = await supabase
             .from('media_items')
             .select(`id, title, client, preview_gcs_path, artists`)
@@ -289,13 +295,11 @@ app.get('/analytics/trending-media', async (req, res) => {
 
         if (itemsError) throw itemsError;
 
-        // Крок 5: Формуємо фінальний результат, поєднуючи деталі з кількістю переглядів
         const result = trendingItems.map(item => ({
             ...item,
             views: countsByMediaItem[item.id] || 0
         }));
         
-        // Сортуємо фінальний результат, оскільки запит 'in' не гарантує порядок
         result.sort((a, b) => b.views - a.views);
         
         res.status(200).json(result);
@@ -364,13 +368,11 @@ app.get('/reels', async (req, res) => {
         .select('reel_id, media_item_id, display_order, media_items(preview_gcs_path)');
     if (linksError) throw linksError;
 
-    // ✨ ЗМІНА 1: Розширюємо запит, щоб отримати duration_seconds
     const { data: allViews, error: viewsError } = await supabase
         .from('reel_views')
-        .select('reel_id, session_id, event_type, duration_seconds'); // <-- Додано duration_seconds
+        .select('reel_id, session_id, event_type, duration_seconds');
     if (viewsError) throw viewsError;
 
-    // ... (код для mediaIdsByReel та previewPathByReelId залишається без змін)
     const mediaIdsByReel = allLinks.reduce((acc, link) => {
       if (!acc[link.reel_id]) acc[link.reel_id] = [];
       acc[link.reel_id].push({ id: link.media_item_id, order: link.display_order });
@@ -387,13 +389,10 @@ app.get('/reels', async (req, res) => {
           acc[link.reel_id] = link.media_items.preview_gcs_path;
         }
         return acc;
-    }, {});
+      }, {});
 
-    // ✨ ЗМІНА 2: Об'єднуємо всю логіку розрахунку аналітики в один reduce для ефективності
     const analyticsByReel = allViews.reduce((acc, view) => {
       const { reel_id, session_id, event_type, duration_seconds } = view;
-
-      // Ініціалізуємо об'єкт для рілса, якщо його ще немає
       if (!acc[reel_id]) {
         acc[reel_id] = {
           sessions: new Set(),
@@ -401,32 +400,21 @@ app.get('/reels', async (req, res) => {
           durations: []
         };
       }
-      
-      // 1. Рахуємо унікальні сесії для total_views
       acc[reel_id].sessions.add(session_id);
-
-      // 2. Рахуємо завершення (completions)
       if (event_type === 'completion') {
         acc[reel_id].completions++;
       }
-
-      // 3. Збираємо всі тривалості сесій
       if (event_type === 'session_duration' && duration_seconds != null) {
         acc[reel_id].durations.push(duration_seconds);
       }
-
       return acc;
     }, {});
 
-    // ✨ ЗМІНА 3: Формуємо фінальний результат з розрахованими даними
     const analyticsData = reels.map(reel => {
         const reelAnalytics = analyticsByReel[reel.id] || { sessions: new Set(), completions: 0, durations: [] };
-        
         const total_views = reelAnalytics.sessions.size;
         const completed_views = reelAnalytics.completions;
         const completion_rate = total_views > 0 ? (completed_views / total_views) * 100 : 0;
-        
-        // Розраховуємо середнє арифметичне для тривалості сесії
         const durations = reelAnalytics.durations;
         const avg_watch_duration = durations.length > 0
             ? durations.reduce((sum, d) => sum + d, 0) / durations.length
@@ -439,7 +427,7 @@ app.get('/reels', async (req, res) => {
             total_views,
             completed_views,
             completion_rate,
-            avg_watch_duration, // <-- Ось ваше нове значення
+            avg_watch_duration,
         };
     });
 
@@ -451,12 +439,8 @@ app.get('/reels', async (req, res) => {
   }
 });
 
-// ... (початок файлу server.js без змін)
-
-// ✨ ЗМІНА: Оновлено ендпоінт PUT /reels/:id для підтримки зміни медіа-айтемів
 app.put('/reels/:id', async (req, res) => {
   const { id } = req.params;
-  // Додаємо media_item_ids до полів, що деструктуруються
   const { title, artists, status, media_item_ids } = req.body;
 
   try {
@@ -465,7 +449,6 @@ app.put('/reels/:id', async (req, res) => {
     if (artists !== undefined) updateData.artists = artists;
     if (status !== undefined) updateData.status = status;
 
-    // Оновлюємо основну інформацію про рілс
     if (Object.keys(updateData).length > 0) {
       const { error: updateReelError } = await supabase
         .from('reels')
@@ -474,16 +457,13 @@ app.put('/reels/:id', async (req, res) => {
       if (updateReelError) throw updateReelError;
     }
 
-    // Якщо передано масив media_item_ids, оновлюємо зв'язки
     if (media_item_ids && Array.isArray(media_item_ids)) {
-      // 1. Видаляємо всі існуючі зв'язки для цього рілса
       const { error: deleteError } = await supabase
         .from('reel_media_items')
         .delete()
         .eq('reel_id', id);
       if (deleteError) throw deleteError;
 
-      // 2. Створюємо нові зв'язки, якщо масив не порожній
       if (media_item_ids.length > 0) {
         const newReelMediaItems = media_item_ids.map((mediaId, index) => ({
           reel_id: id,
@@ -497,7 +477,6 @@ app.put('/reels/:id', async (req, res) => {
       }
     }
 
-    // Повертаємо повністю оновлений рілс з усіма даними
     const { data: finalReel, error: finalFetchError } = await supabase
       .from('reels')
       .select('*, user_profiles(first_name, last_name)')
@@ -506,7 +485,6 @@ app.put('/reels/:id', async (req, res) => {
 
     if (finalFetchError) throw finalFetchError;
     
-    // Додаємо аналітичні дані (як у GET /reels) для консистентності
     const { data: views, error: viewsError } = await supabase.from('reel_views').select('session_id, event_type').eq('reel_id', id);
     if(viewsError) console.warn("Could not fetch views for updated reel, analytics data might be incomplete.");
 
@@ -518,7 +496,7 @@ app.put('/reels/:id', async (req, res) => {
       total_views,
       completed_views,
       completion_rate: total_views > 0 ? (completed_views / total_views) * 100 : 0,
-      media_item_ids: media_item_ids || [] // Повертаємо оновлені ID
+      media_item_ids: media_item_ids || []
     });
 
   } catch (error) {
@@ -526,8 +504,6 @@ app.put('/reels/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to update reel.', details: error.message });
   }
 });
-
-
 
 app.delete('/reels/:id', async (req, res) => {
   const { id } = req.params;
@@ -644,7 +620,7 @@ app.get('/media-items/:id', async (req, res) => {
 });
 
 app.get('/media-items', async (req, res) => {
-    const ids = req.query.id; // Отримуємо id як масив з query string
+    const ids = req.query.id;
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
         return res.status(400).json({ error: 'An array of media item IDs is required.' });
     }

@@ -301,15 +301,13 @@ const CreateReel = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState('');
   
-  // ✨ ЗМІНА: Додано стан для спливаючих повідомлень (toast)
   const [toast, setToast] = useState({ message: '', visible: false });
 
-  // ✨ ЗМІНА: Допоміжна функція для показу повідомлення
   const showToast = (message) => {
     setToast({ message, visible: true });
     setTimeout(() => {
       setToast({ message: '', visible: false });
-    }, 3000); // Повідомлення зникне через 3 секунди
+    }, 3000);
   };
 
   useEffect(() => {
@@ -421,7 +419,6 @@ const CreateReel = () => {
     return imageMimeTypes.includes(file.type);
   };
   
-  // ✨ ЗМІНА: Оновлена логіка для видалення та використання toast
   const handleUpdateReel = (idToUpdate, updatedFields) => {
     setReels(prevReels => {
         if (updatedFields.shouldRemove) {
@@ -522,14 +519,17 @@ const CreateReel = () => {
   const handleCommonFormChange = (field, value) => setCommonFormData(prev => ({ ...prev, [field]: value }));
   const isSchedulingDisabled = commonFormData.publishOption === 'now';
 
-  const uploadFileToGCS = async (file) => {
+  // ======================================================================== //
+  // ✨ ПОЧАТОК ЗМІН: Оновлена функція uploadFileToGCS
+  // ======================================================================== //
+  const uploadFileToGCS = async (file, role) => {
     if (!file) return null;
     setUploadMessage(`Getting upload URL for ${file.name}...`);
     
     const response = await fetch('http://localhost:3001/generate-upload-url', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fileName: file.name, fileType: file.type }),
+      body: JSON.stringify({ fileName: file.name, fileType: file.type, role: role }),
     });
 
     if (!response.ok) {
@@ -552,6 +552,9 @@ const CreateReel = () => {
     }
     return gcsPath;
   };
+  // ======================================================================== //
+  // ✨ КІНЕЦЬ ЗМІН
+  // ======================================================================== //
   
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -570,12 +573,18 @@ const CreateReel = () => {
             let videoPath = reelToUpdate.original_video_path;
             let previewPath = reelToUpdate.original_preview_path;
 
+            // ======================================================================== //
+            // ✨ ПОЧАТОК ЗМІН: Передача ролі 'main' та 'preview'
+            // ======================================================================== //
             if (reelToUpdate.selectedFile instanceof File) {
-                videoPath = await uploadFileToGCS(reelToUpdate.selectedFile);
+                videoPath = await uploadFileToGCS(reelToUpdate.selectedFile, 'main');
             }
             if (reelToUpdate.customPreviewFile instanceof File) {
-                previewPath = await uploadFileToGCS(reelToUpdate.customPreviewFile);
+                previewPath = await uploadFileToGCS(reelToUpdate.customPreviewFile, 'preview');
             }
+            // ======================================================================== //
+            // ✨ КІНЕЦЬ ЗМІН
+            // ======================================================================== //
 
             const recordToUpdate = {
                 title: reelToUpdate.title,
@@ -609,12 +618,20 @@ const CreateReel = () => {
         } else {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error("User not found.");
+
+            // ======================================================================== //
+            // ✨ ПОЧАТОК ЗМІН: Передача ролі 'main' та 'preview' в циклі
+            // ======================================================================== //
             const uploadPromises = reels.map(async (reel) => {
                 setUploadMessage(`Processing ${reel.title}...`);
-                const content_gcs_path = await uploadFileToGCS(reel.selectedFile);
-                const preview_gcs_path = reel.customPreviewFile ? await uploadFileToGCS(reel.customPreviewFile) : null;
+                const content_gcs_path = await uploadFileToGCS(reel.selectedFile, 'main');
+                const preview_gcs_path = reel.customPreviewFile ? await uploadFileToGCS(reel.customPreviewFile, 'preview') : null;
                 return { reelData: reel, content_gcs_path, preview_gcs_path };
             });
+            // ======================================================================== //
+            // ✨ КІНЕЦЬ ЗМІН
+            // ======================================================================== //
+
             setUploadMessage('Uploading files to storage...');
             const uploadResults = await Promise.all(uploadPromises);
             const recordsToInsert = uploadResults.map(result => ({
@@ -658,7 +675,6 @@ const CreateReel = () => {
   
   return (
     <form onSubmit={handleSubmit} className="max-w-7xl mx-auto space-y-8 pb-36">
-      {/* ✨ ЗМІНА: JSX для кастомного повідомлення */}
       {toast.visible && (
         <div className="fixed top-5 right-5 z-[100] bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg shadow-lg" role="alert">
           <strong className="font-bold">Error: </strong>
