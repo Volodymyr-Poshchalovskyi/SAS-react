@@ -18,31 +18,30 @@ import {
 } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { useNavigate, useLocation } from 'react-router-dom';
-// ✨ ЗМІНА: Імпортуємо спільну функцію з кешем
-import { getSignedUrls } from '../../lib/gcsUrlCache'; 
+import { getSignedUrls } from '../../lib/gcsUrlCache';
 
 // =======================
 // HELPER FUNCTIONS & SETUP
 // =======================
 
-// Ініціалізація клієнта Supabase. Замініть значення на ваші.
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "YOUR_SUPABASE_URL";
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "YOUR_SUPABASE_ANON_KEY";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// ✨ ЗМІНА: Локальну версію getSignedUrls було видалено, оскільки ми тепер її імпортуємо.
-
 
 // =======================
 // SUB-COMPONENTS
 // =======================
 
-const VideoModal = ({ videoUrl, onClose }) => {
-  if (!videoUrl) return null;
+const MediaPreviewModal = ({ mediaUrl, mediaType, onClose }) => {
+  if (!mediaUrl) return null;
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50" onClick={onClose}>
       <div className="bg-black p-4 rounded-lg relative w-full max-w-4xl" onClick={(e) => e.stopPropagation()}>
-        <video src={videoUrl} controls autoPlay className="w-full max-h-[80vh]"></video>
+        {mediaType === 'video' ? (
+          <video src={mediaUrl} controls autoPlay className="w-full max-h-[80vh]"></video>
+        ) : (
+          <img src={mediaUrl} alt="Media Preview" className="w-full h-full object-contain max-h-[80vh] mx-auto" />
+        )}
         <button onClick={onClose} className="absolute -top-4 -right-4 bg-white text-black rounded-full p-2"><X size={24} /></button>
       </div>
     </div>
@@ -385,7 +384,7 @@ const Library = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: 'created_at', direction: 'descending' });
-  const [modalVideoUrl, setModalVideoUrl] = useState(null);
+  const [modalMedia, setModalMedia] = useState(null);
   const [signedUrls, setSignedUrls] = useState({});
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [itemToDelete, setItemToDelete] = useState(null);
@@ -518,6 +517,48 @@ const Library = () => {
   const formatDateTime = (date) => new Date(date).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true });
   const handleEditItem = (id) => navigate((location.pathname.startsWith('/adminpanel') ? '/adminpanel' : '/userpanel') + `/upload-media/${id}`);
   
+  const handleRowDoubleClick = (item) => {
+    console.log("Double-clicked item:", item);
+  
+    // Шлях до повнорозмірного файлу
+    const fullResolutionAssetPath = item.video_gcs_path;
+    if (!fullResolutionAssetPath) {
+      console.error("Error: 'video_gcs_path' is missing for item:", item);
+      return;
+    }
+  
+    // Отримуємо URL для цього файлу з кешу
+    const assetUrl = signedUrls[fullResolutionAssetPath];
+    if (!assetUrl) {
+      console.error(`Error: Signed URL not found for path '${fullResolutionAssetPath}'. Check if it was fetched.`);
+      return;
+    }
+  
+    // Визначаємо тип
+    let assetType = item.type;
+  
+    // Якщо тип не вказано, спробуємо вгадати за розширенням файлу
+    if (!assetType) {
+      console.warn("Item type is missing. Guessing from file extension.");
+      const extension = fullResolutionAssetPath.split('.').pop().toLowerCase();
+      if (['mp4', 'mov', 'webm', 'avi'].includes(extension)) {
+        assetType = 'video';
+      } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension)) {
+        assetType = 'image';
+      }
+    }
+  
+    if (assetUrl && assetType) {
+      console.log(`Opening modal with URL: ${assetUrl} and Type: ${assetType}`);
+      setModalMedia({
+        url: assetUrl,
+        type: assetType,
+      });
+    } else {
+      console.error(`Failed to open modal. URL: ${assetUrl}, Type: ${assetType}`);
+    }
+  };
+  
   const handleConfirmDelete = async () => {
     if (!itemToDelete) return;
     const res = await fetch(`http://localhost:3001/media-items/${itemToDelete.id}`, { method: 'DELETE' });
@@ -535,7 +576,7 @@ const Library = () => {
 
   return (
     <>
-      <VideoModal videoUrl={modalVideoUrl} onClose={() => setModalVideoUrl(null)} />
+      <MediaPreviewModal mediaUrl={modalMedia?.url} mediaType={modalMedia?.type} onClose={() => setModalMedia(null)} />
       <ConfirmationModal isOpen={!!itemToDelete} onClose={() => setItemToDelete(null)} onConfirm={handleConfirmDelete} itemTitle={itemToDelete?.title} />
       <div className="flex items-start gap-8 p-6 min-h-screen">
         <div className="flex-1">
@@ -558,7 +599,7 @@ const Library = () => {
                     <th className="p-4 w-16 text-right"></th>
                   </tr>
                 </thead>
-                <tbody className="text-slate-800 dark:text-slate-200 text-xs">{currentItems.map((item, index) => { const addedBy = item.user_profiles ? `${item.user_profiles.first_name || ''} ${item.user_profiles.last_name || ''}`.trim() : 'System'; const previewUrl = item.preview_gcs_path ? signedUrls[item.preview_gcs_path] : null; const isLastItemOnPage = index === currentItems.length - 1; return (<tr key={item.id} draggable="true" onDragStart={(e) => handleDragStart(e, item)} className={`border-b border-slate-100 dark:border-slate-800 transition-colors cursor-pointer ${selectedItems.has(item.id) ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`} onClick={() => handleRowCheck(item.id)}><td className="p-4 align-top pt-6"><input type="checkbox" checked={selectedItems.has(item.id)} onChange={(e) => { e.stopPropagation(); handleRowCheck(item.id); }} onClick={(e) => e.stopPropagation()} className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-blue-600 cursor-pointer" /></td><td className="p-4 align-top"><div className="flex items-start gap-4"><div className="w-16 h-10 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">{previewUrl ? <img src={previewUrl} alt="preview" className="w-full h-full object-cover rounded-md" /> : <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800"><ImageIcon className="w-5 h-5 text-slate-400" /></div>}</div><div className='min-w-0'><div className="text-blue-600 dark:text-blue-400 text-[10px] font-medium uppercase">{item.client}</div><div className="font-semibold text-slate-900 dark:text-slate-50 whitespace-normal break-words">{item.title}</div></div></div></td><td className="p-4 align-top truncate">{item.artists}</td><td className="p-4 align-top truncate">{item.client}</td><td className="p-4 align-top truncate">{item.categories}</td><td className="p-4 align-top truncate">{addedBy}</td><td className="p-4 align-top text-slate-500 dark:text-slate-400">{formatDateTime(item.created_at)}</td><td className="p-4 align-top text-right relative"><button onClick={(e) => { e.stopPropagation(); setActiveDropdown(prev => (prev?.id === item.id ? null : { id: item.id })); }} className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><Settings className="h-4 w-4 text-slate-500" /></button>{activeDropdown?.id === item.id && (<ItemActionsDropdown onClose={() => setActiveDropdown(null)} onOpenDeleteModal={() => { setItemToDelete(item); setActiveDropdown(null); }} onEdit={() => handleEditItem(item.id)} isLastItem={isLastItemOnPage} />)}</td></tr>);})}</tbody>
+                <tbody className="text-slate-800 dark:text-slate-200 text-xs">{currentItems.map((item, index) => { const addedBy = item.user_profiles ? `${item.user_profiles.first_name || ''} ${item.user_profiles.last_name || ''}`.trim() : 'System'; const previewUrl = item.preview_gcs_path ? signedUrls[item.preview_gcs_path] : null; const isLastItemOnPage = index === currentItems.length - 1; return (<tr key={item.id} draggable="true" onDragStart={(e) => handleDragStart(e, item)} className={`border-b border-slate-100 dark:border-slate-800 transition-colors cursor-pointer ${selectedItems.has(item.id) ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`} onClick={() => handleRowCheck(item.id)} onDoubleClick={() => handleRowDoubleClick(item)}><td className="p-4 align-top pt-6"><input type="checkbox" checked={selectedItems.has(item.id)} onChange={(e) => { e.stopPropagation(); handleRowCheck(item.id); }} onClick={(e) => e.stopPropagation()} className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-blue-600 cursor-pointer" /></td><td className="p-4 align-top"><div className="flex items-start gap-4"><div className="w-16 h-10 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">{previewUrl ? <img src={previewUrl} alt="preview" className="w-full h-full object-cover rounded-md" /> : <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800"><ImageIcon className="w-5 h-5 text-slate-400" /></div>}</div><div className='min-w-0'><div className="text-blue-600 dark:text-blue-400 text-[10px] font-medium uppercase">{item.client}</div><div className="font-semibold text-slate-900 dark:text-slate-50 whitespace-normal break-words">{item.title}</div></div></div></td><td className="p-4 align-top truncate">{item.artists}</td><td className="p-4 align-top truncate">{item.client}</td><td className="p-4 align-top truncate">{item.categories}</td><td className="p-4 align-top truncate">{addedBy}</td><td className="p-4 align-top text-slate-500 dark:text-slate-400">{formatDateTime(item.created_at)}</td><td className="p-4 align-top text-right relative"><button onClick={(e) => { e.stopPropagation(); setActiveDropdown(prev => (prev?.id === item.id ? null : { id: item.id })); }} className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"><Settings className="h-4 w-4 text-slate-500" /></button>{activeDropdown?.id === item.id && (<ItemActionsDropdown onClose={() => setActiveDropdown(null)} onOpenDeleteModal={() => { setItemToDelete(item); setActiveDropdown(null); }} onEdit={() => handleEditItem(item.id)} isLastItem={isLastItemOnPage} />)}</td></tr>);})}</tbody>
               </table>
             </div>
             {totalPages > 1 && (<div className="p-4 flex items-center justify-between text-sm text-slate-600 dark:text-slate-400"><p>Page {currentPage} of {totalPages}</p><div className="flex items-center gap-2"><button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="px-3 py-1.5 border rounded-md disabled:opacity-50 border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"><ChevronLeft size={16} /></button><button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="px-3 py-1.5 border rounded-md disabled:opacity-50 border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"><ChevronRight size={16} /></button></div></div>)}
