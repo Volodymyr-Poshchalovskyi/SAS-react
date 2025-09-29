@@ -526,7 +526,7 @@ app.get('/reels/public/:short_link', async (req, res) => {
     try {
         const { data: reel, error: reelError } = await supabase
             .from('reels')
-            .select(`id, title, status, reel_media_items(display_order, media_items(id, title, client, artists, video_gcs_path, preview_gcs_path))`)
+            .select(`id, title, status, reel_media_items(display_order, media_items(id, title, client, artists, video_gcs_path, preview_gcs_path, craft))`)
             .eq('short_link', req.params.short_link)
             .single();
 

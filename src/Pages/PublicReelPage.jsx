@@ -237,7 +237,8 @@ export default function PublicReelPage() {
 
     if (!currentMediaItem) return <div className="h-screen w-full bg-white dark:bg-black flex items-center justify-center text-black dark:text-white">Loading media...</div>;
 
-    const artistNames = (currentMediaItem.artists || []).map(a => a.name).join(', ');
+    const artistNames = (currentMediaItem.artists || []).map(a => a.name).join(', ').toUpperCase();
+    // ✨ КІНЕЦЬ ЗМІН 1
 
     return (
         <div className="bg-white dark:bg-black text-black dark:text-white">
@@ -285,7 +286,7 @@ export default function PublicReelPage() {
                     </div>
                     <div className="absolute bottom-8 right-8 md:bottom-12 md:right-12 font-montserrat text-right [text-shadow:0_2px_4px_rgb(0_0_0_/_0.7)]">
                         {artistNames && (<>
-                            <p className="text-sm md:text-md uppercase opacity-80">Artist</p>
+                            <p className="text-sm md:text-md uppercase opacity-80">{currentMediaItem.craft}</p>
                             <p className="text-lg md:text-xl font-semibold">{artistNames}</p>
                         </>)}
                     </div>
