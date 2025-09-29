@@ -1,6 +1,17 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import sinnersLogoBlack from '../assets/Logo/Sinners logo black.png'; // ✨ 1. Імпортуємо логотип
+
+// --- Компонент Preloader ---
+const Preloader = () => (
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white">
+        <img src={sinnersLogoBlack} alt="Sinners Logo" className="w-40 h-auto mb-6" />
+        <div className="w-8 h-8 border-4 border-gray-200 border-t-black rounded-full animate-spin mb-4"></div>
+        <p className="text-black tracking-widest uppercase text-sm">Loading</p>
+    </div>
+);
+
 
 // --- Slider Arrow Component (unchanged) ---
 const SliderArrow = ({ direction, onClick }) => (
@@ -25,6 +36,7 @@ export default function PublicReelPage() {
     const { reelId } = useParams();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [preloading, setPreloading] = useState(true); // ✨ 2. Новий стан для прелоадера
     const [error, setError] = useState(null);
     const [currentSlide, setCurrentSlide] = useState(() => {
         const savedSlide = sessionStorage.getItem(`reel_${reelId}_slide`);
@@ -33,6 +45,15 @@ export default function PublicReelPage() {
 
     const videoRef = useRef(null);
     const hasMultipleSlides = data?.mediaItems?.length > 1;
+
+    // ✨ 3. useEffect для таймера прелоадера
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setPreloading(false);
+        }, 1000); // Затримка в 1 секунду
+
+        return () => clearTimeout(timer); // Очищення таймера
+    }, []);
 
     // --- Logger (unchanged) ---
     const logEvent = useCallback((eventType, mediaItemId = null, duration = null) => {
@@ -225,9 +246,11 @@ export default function PublicReelPage() {
         }
     };
 
-    // --- Render states (unchanged) ---
-    if (loading) return <div className="h-screen w-full bg-white dark:bg-black flex items-center justify-center text-black dark:text-white">Loading...</div>;
+    // --- ✨ 4. Оновлена логіка рендерингу ---
+    if (preloading || loading) return <Preloader />;
+
     if (error) return <div className="h-screen w-full bg-white dark:bg-black flex items-center justify-center text-red-500 text-center p-8">Error: {error}</div>;
+    
     if (!data || !data.mediaItems || data.mediaItems.length === 0) {
         return <div className="h-screen w-full bg-white dark:bg-black flex flex-col items-center justify-center text-center p-8"> 
             <h1 className="text-3xl font-bold text-black dark:text-white mb-4">Reel is Empty</h1> 
@@ -238,7 +261,6 @@ export default function PublicReelPage() {
     if (!currentMediaItem) return <div className="h-screen w-full bg-white dark:bg-black flex items-center justify-center text-black dark:text-white">Loading media...</div>;
 
     const artistNames = (currentMediaItem.artists || []).map(a => a.name).join(', ').toUpperCase();
-    // ✨ КІНЕЦЬ ЗМІН 1
 
     return (
         <div className="bg-white dark:bg-black text-black dark:text-white">
@@ -275,7 +297,6 @@ export default function PublicReelPage() {
                 <div className="absolute inset-0 bg-black bg-opacity-30" />
                 {hasMultipleSlides && <SliderArrow direction="left" onClick={prevSlide} />}
                 {hasMultipleSlides && <SliderArrow direction="right" onClick={nextSlide} />}
-                {/* ... решта JSX без змін ... */}
                 <div className="absolute inset-0 text-white pointer-events-none">
                     <div className="w-full h-full flex justify-center items-start pt-[15vh]">
                         <h1 className="text-3xl md:text-4xl font-bold uppercase font-montserrat text-center [text-shadow:0_2px_6px_rgb(0_0_0_/_0.6)] tracking-widest md:tracking-[0.2em]">{data.reelTitle}</h1>
