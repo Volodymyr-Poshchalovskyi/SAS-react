@@ -211,7 +211,7 @@ const EditReelModal = ({ isOpen, onClose, reel, onSaveSuccess, onCopy }) => {
                 className={secondaryButtonClasses}
               >
                 <Layers className="h-4 w-4" />
-                Change Media
+                Edit Media
               </button>
               <button
                 type="button"

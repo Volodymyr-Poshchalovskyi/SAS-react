@@ -201,10 +201,41 @@ app.get('/analytics/views-over-time', async (req, res) => {
   if (!startDate || !endDate) {
     return res.status(400).json({ error: 'startDate and endDate query parameters are required.' });
   }
+
   try {
-    const { data, error } = await supabase.rpc('get_daily_view_counts', { start_date: startDate, end_date: endDate });
+    // Крок 1: Отримуємо всі події 'media_completion' за вказаний діапазон дат
+    const { data: events, error } = await supabase
+      .from('reel_views')
+      .select('created_at')
+      .eq('event_type', 'media_completion')
+      .gte('created_at', new Date(startDate).toISOString())
+      .lte('created_at', new Date(new Date(endDate).setUTCHours(23, 59, 59, 999)).toISOString());
+
     if (error) throw error;
-    res.status(200).json(data);
+
+    // Крок 2: Групуємо події за датою і рахуємо їх кількість
+    const countsByDay = events.reduce((acc, event) => {
+      const date = event.created_at.split('T')[0]; // Отримуємо дату у форматі YYYY-MM-DD
+      acc[date] = (acc[date] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Крок 3: Створюємо повний масив дат для діаграми, заповнюючи дні без переглядів нулями
+    const result = [];
+    let currentDate = new Date(startDate);
+    const finalDate = new Date(endDate);
+
+    while (currentDate <= finalDate) {
+      const dateStr = currentDate.toISOString().split('T')[0];
+      result.push({
+        date: dateStr,
+        views: countsByDay[dateStr] || 0, // Додаємо кількість переглядів або 0
+      });
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    res.status(200).json(result);
+
   } catch (error) {
     console.error('Error fetching views over time:', error);
     res.status(500).json({ error: 'Failed to fetch daily view counts.', details: error.message });
@@ -220,48 +251,37 @@ app.get('/analytics/trending-media', async (req, res) => {
     fullEndDate.setUTCHours(23, 59, 59, 999);
 
     try {
-        // Крок 1: Отримуємо перегляди за період і рахуємо їх для кожного РІЛСА
-        const { data: viewCounts, error: viewError } = await supabase
+        // Крок 1: Отримуємо тільки події завершення перегляду за вказаний період
+        const { data: completionEvents, error: viewError } = await supabase
             .from('reel_views')
-            .select('reel_id')
+            .select('media_item_id')
+            .eq('event_type', 'media_completion') // <-- ГОЛОВНА ЗМІНА: фільтруємо тільки 'completion'
+            .not('media_item_id', 'is', null)    // Переконуємось, що media_item_id не порожній
             .gte('created_at', startDate)
             .lte('created_at', fullEndDate.toISOString());
 
         if (viewError) throw viewError;
-        if (!viewCounts || viewCounts.length === 0) return res.status(200).json([]);
-        
-        const countsByReel = viewCounts.reduce((acc, { reel_id }) => {
-            acc[reel_id] = (acc[reel_id] || 0) + 1;
-            return acc;
-        }, {});
-
-        // Крок 2: Отримуємо ВСІ зв'язки між рілсами та медіа-айтемами
-        const { data: allReelLinks, error: linksError } = await supabase
-            .from('reel_media_items')
-            .select('reel_id, media_item_id');
-        
-        if (linksError) throw linksError;
-
-        // Крок 3: Сумуємо перегляди для кожного УНІКАЛЬНОГО медіа-айтема
-        const countsByMediaItem = {};
-        for (const link of allReelLinks) {
-            // Якщо для рілса є перегляди в нашому діапазоні дат
-            if (countsByReel[link.reel_id]) {
-                const viewsForThisReel = countsByReel[link.reel_id];
-                // Додаємо перегляди рілса до загального рахунку медіа-айтема
-                countsByMediaItem[link.media_item_id] = (countsByMediaItem[link.media_item_id] || 0) + viewsForThisReel;
-            }
+        if (!completionEvents || completionEvents.length === 0) {
+            return res.status(200).json([]);
         }
         
-        // Крок 4: Визначаємо ID найпопулярніших медіа-айтемів
+        // Крок 2: Рахуємо, скільки разів кожне унікальне відео було переглянуто до кінця
+        const countsByMediaItem = completionEvents.reduce((acc, { media_item_id }) => {
+            acc[media_item_id] = (acc[media_item_id] || 0) + 1;
+            return acc;
+        }, {});
+        
+        // Крок 3: Визначаємо ID найпопулярніших відео
         const topMediaItemIds = Object.entries(countsByMediaItem)
             .sort(([, countA], [, countB]) => countB - countA)
             .slice(0, Number(limit))
             .map(([mediaItemId]) => mediaItemId);
             
-        if (topMediaItemIds.length === 0) return res.status(200).json([]);
+        if (topMediaItemIds.length === 0) {
+            return res.status(200).json([]);
+        }
 
-        // Крок 5: Отримуємо деталі для цих найпопулярніших медіа-айтемів
+        // Крок 4: Отримуємо деталі для цих найпопулярніших відео
         const { data: trendingItems, error: itemsError } = await supabase
             .from('media_items')
             .select(`id, title, client, preview_gcs_path, artists`)
@@ -269,13 +289,13 @@ app.get('/analytics/trending-media', async (req, res) => {
 
         if (itemsError) throw itemsError;
 
-        // Крок 6: Формуємо фінальний результат з сумарними переглядами
+        // Крок 5: Формуємо фінальний результат, поєднуючи деталі з кількістю переглядів
         const result = trendingItems.map(item => ({
             ...item,
             views: countsByMediaItem[item.id] || 0
         }));
         
-        // Сортуємо фінальний результат ще раз, бо запит до бази не гарантує порядок
+        // Сортуємо фінальний результат, оскільки запит 'in' не гарантує порядок
         result.sort((a, b) => b.views - a.views);
         
         res.status(200).json(result);
