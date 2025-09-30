@@ -70,10 +70,11 @@ export default function DirectorPage() {
 
   return (
     <div className="bg-white">
+      {/* ✨ ПОЧАТОК ЗМІН: Ця секція тепер ідентична до PhotographerPage */}
       <section className="bg-white text-black flex items-center justify-center relative h-[100px] mt-[90px] md:mt-[117px]">
         <Link
           to={backLink}
-          className="absolute left-8 md:left-20 top-1-2 -translate-y-1/2 flex items-center justify-center w-12 h-12 border-2 border-black text-black hover:bg-black hover:text-white transition-colors"
+          className="absolute left-8 md:left-20 top-1/2 -translate-y-1/2 flex items-center justify-center w-12 h-12 border-2 border-black text-black hover:bg-black hover:text-white transition-colors"
         >
           <svg
             className="h-6 w-6"
@@ -93,6 +94,7 @@ export default function DirectorPage() {
           {director.name}
         </h1>
       </section>
+      {/* ✨ КІНЕЦЬ ЗМІН */}
 
       <div className="bg-black">
         {director.videos.map((video, index) => {
@@ -108,7 +110,6 @@ export default function DirectorPage() {
         })}
       </div>
 
-      {/* ✨ НОВА СЕКЦІЯ БІОГРАФІЇ БЕЗ КАТЕГОРІЇ */}
       <section className="relative w-full">
         {publicPhotoUrl && (
           <img
@@ -119,7 +120,6 @@ export default function DirectorPage() {
         )}
         <div className="absolute inset-x-0 bottom-[40%] h-[40%] bg-gradient-to-t from-black to-transparent flex items-end justify-center pb-8">
           <div className="text-center">
-            {/* Поле 'category' було тут, тепер його немає */}
             <h2 className="font-normal text-white text-[80px] leading-none tracking-[-0.15em]">
               {director.name}
             </h2>
