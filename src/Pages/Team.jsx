@@ -25,7 +25,7 @@ const contentAnimation = {
 // --- Дані для вкладок (без змін) ---
 const tabsData = [
   { id: 'team', label: 'TEAM', title: 'MEET THE TEAM' },
-  { id: 'contact', label: 'CONTACT', title: 'CONTACT' },
+  { id: 'contact', label: 'CONTACT', title: 'CONNECT WITH US' },
 ];
 
 // ===================================

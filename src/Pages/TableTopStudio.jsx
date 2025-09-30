@@ -76,13 +76,11 @@ const TableTopStudio = () => {
             shouldPlay={!isPreloaderActive}
           />
           <div className="absolute top-[80%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full text-center">
-            <h1 className="text-white font-chanel font-normal uppercase text-4xl sm:text-6xl md:text-[5rem] tracking-[-0.3rem] md:tracking-[-0.6rem] mb-8">
+            
+            <Link to={`/projects/${project.projectSlug}`}>
+              <h1 className="text-white font-chanel font-normal uppercase text-4xl sm:text-6xl md:text-[5rem] tracking-[-0.3rem] md:tracking-[-0.6rem] mb-8">
               {project.title}
             </h1>
-            <Link to={`/projects/${project.projectSlug}`}>
-              <button className="py-3 px-8 text-xs font-normal bg-white text-black border-2 border-white hover:bg-transparent hover:text-white transition-colors duration-300">
-                SEE PROJECT
-              </button>
             </Link>
           </div>
         </div>

@@ -618,19 +618,35 @@ export default function PublicReelPage() {
               </div>
             </div>
           </section>
+          
+          {/* 👇 ПОЧАТОК ЗМІНЕНОЇ СЕКЦІЇ */}
           {artistPhotoUrl && (
             <section className="pt-10 pb-20 md:pt-16 md:pb-32 px-8 sm:px-12 lg:px-16 bg-white dark:bg-black">
-              <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-start">
-                <div className="md:col-span-1">
+              {/* Змінено сітку з 2 на 5 колонок для гнучкості */}
+              <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-12 md:gap-16 items-start">
+                {/* Блок з фото тепер займає 2 з 5 колонок */}
+                <div className="md:col-span-2">
                   <img src={artistPhotoUrl} alt={data.mediaItems[0].artists[0].name} className="w-full h-auto object-cover" />
                 </div>
-                <div className="md:col-span-1 flex flex-col">
+                {/* Блок з текстом тепер займає 3 з 5 колонок, роблячи його ширшим */}
+                <div className="md:col-span-3 flex flex-col">
                   <h2 className="text-3xl md:text-4xl font-bold uppercase mb-6 font-montserrat">{data.mediaItems[0].artists[0].name}</h2>
-                  {data.mediaItems[0].artists[0].description && (<p className="font-semibold text-base leading-[28.4px] tracking-[-0.09em] text-[#1D1D1D] dark:text-white/90">{data.mediaItems[0].artists[0].description}</p>)}
+                  {data.mediaItems[0].artists[0].description && (
+                     // Оновлені класи для тексту біографії
+                     // - text-sm: менший розмір шрифту
+                     // - leading-relaxed: відповідна висота рядка
+                     // - tracking-normal: стандартний міжлітерний інтервал
+                     // - [word-spacing:0.1em]: додано відстань між словами
+                    <p className="font-semibold text-sm leading-relaxed tracking-normal [word-spacing:0.1em] text-[#1D1D1D] dark:text-white/90">
+                      {data.mediaItems[0].artists[0].description}
+                    </p>
+                  )}
                 </div>
               </div>
             </section>
           )}
+          {/* 👆 КІНЕЦЬ ЗМІНЕНОЇ СЕКЦІЇ */}
+
         </div>
       )}
       {!loading && error && <div className="h-screen w-full bg-white dark:bg-black flex items-center justify-center text-red-500 text-center p-8">Error: {error}</div>}

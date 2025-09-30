@@ -1,6 +1,6 @@
 // src/components/Header.js
 
-import { useState } from 'react';
+import { useState, forwardRef } from 'react'; // ✨ Імпортуємо forwardRef
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAnimation } from '../../context/AnimationContext';
@@ -8,6 +8,7 @@ import sinnersLogoBlack from '../../assets/Logo/Sinners logo black.png';
 import sinnersLogoWhite from '../../assets/Logo/Sinners logo white.png';
 
 const navLinks = [
+  /* ... ваш масив посилань ... */
   { path: '/directors', label: 'Directors' },
   { path: '/photographers', label: 'Photographers' },
   { path: '/assignment', label: 'On Assignment' },
@@ -25,7 +26,7 @@ const fadeAnimation = {
 
 const headerVariants = {
   hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: fadeAnimation }, // Додаємо transition сюди
+  visible: { opacity: 1, transition: fadeAnimation },
 };
 
 const navVariants = {
@@ -33,9 +34,9 @@ const navVariants = {
   visible: { height: 'auto', transition: { duration: 0.3, ease: 'easeInOut' } },
 };
 
-export default function Header() {
+// ✨ КРОК 5: Огортаємо компонент в forwardRef
+const Header = forwardRef(function Header(props, ref) {
   const [isHovered, setIsHovered] = useState(false);
-  // ✨ ЗМІНА №1: Забираємо isBannerFadingOut та onPreloaderPage, вони більше не потрібні для логіки видимості
   const { isPreloaderActive } = useAnimation();
   const location = useLocation();
 
@@ -51,8 +52,6 @@ export default function Header() {
     location.pathname === '/privacy-policy' ||
     location.pathname === '/about';
 
-  // --- УМОВИ ---
-  // isPreloaderActive тепер єдине джерело правди про стан прелоадера
   const shouldHaveBackground = isHovered || isSpecialPage || isPreloaderActive;
   const isNavExpanded = isHovered || isSpecialPage || isPreloaderActive;
 
@@ -76,7 +75,9 @@ export default function Header() {
   };
 
   return (
+    // ✨ КРОК 6: Прив'язуємо отриманий ref до головного елемента
     <motion.header
+      ref={ref}
       className="fixed top-0 left-0 w-full z-[1000]"
       style={{
         backgroundColor: shouldHaveBackground
@@ -87,11 +88,10 @@ export default function Header() {
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
       variants={headerVariants}
-      // ✨ ЗМІНА №2: Спрощуємо логіку. Хедер просто з'являється і залишається видимим.
-      // Це усуває баг, коли він зникав назавжди.
       initial="hidden"
       animate="visible"
     >
+      {/* ... решта вашого JSX без змін ... */}
       <div className="w-full relative px-8 flex justify-center items-center h-16">
         <Link to="/" className="flex items-center h-full">
           <img
@@ -100,7 +100,6 @@ export default function Header() {
             className="w-32 h-auto "
           />
         </Link>
-
         <AnimatePresence>
           {shouldHaveBackground && (
             <motion.div
@@ -131,14 +130,11 @@ export default function Header() {
           )}
         </AnimatePresence>
       </div>
-
       <div className="absolute left-0 right-0 top-16 h-12" />
-
       <motion.nav
         className="w-full flex justify-center overflow-hidden"
         variants={navVariants}
         initial="hidden"
-        // ✨ ЗМІНА №3: Спрощуємо умову. Навігація розгортається, якщо є фон.
         animate={isNavExpanded ? 'visible' : 'hidden'}
         onMouseLeave={handleNavMouseLeave}
       >
@@ -165,4 +161,6 @@ export default function Header() {
       </motion.nav>
     </motion.header>
   );
-}
+});
+
+export default Header;

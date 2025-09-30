@@ -29,8 +29,7 @@ const SUPABASE_ANON_KEY =
   import.meta.env.VITE_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ✨ ОСНОВНА ЗМІНА: Додано базовий URL для CDN
-const CDN_BASE_URL = 'http://34.54.191.201';
+const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
 
 // =======================
 // SUB-COMPONENTS
@@ -612,25 +611,56 @@ const ReelCreatorSidebar = ({
   );
 };
 
-const LibraryConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
+// ✨ ЗМІНА: Модальне вікно тепер приймає `itemCount` для обробки множинного видалення
+const LibraryConfirmationModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  itemTitle,
+  itemCount,
+}) => {
   const [status, setStatus] = useState('idle');
   useEffect(() => {
     if (isOpen) setStatus('idle');
   }, [isOpen]);
+
   const handleConfirmClick = async () => {
     setStatus('deleting');
     try {
       await onConfirm();
       setStatus('success');
-      setTimeout(() => {
-        onClose();
-      }, 2000);
+      setTimeout(onClose, 2000);
     } catch (error) {
       console.error('Deletion failed:', error);
       setStatus('error');
     }
   };
+
   if (!isOpen) return null;
+
+  const isMultiDelete = itemCount && itemCount > 1;
+  const title = isMultiDelete
+    ? `Delete ${itemCount} Media Items`
+    : 'Delete Media Item';
+  const confirmationMessage = isMultiDelete ? (
+    <>
+      Are you sure you want to delete these{' '}
+      <strong className="text-slate-700 dark:text-slate-200">
+        {itemCount} items
+      </strong>
+      ? This action cannot be undone.
+    </>
+  ) : (
+    <>
+      Are you sure you want to delete{' '}
+      <strong className="text-slate-700 dark:text-slate-200">{itemTitle}</strong>
+      ? This action cannot be undone.
+    </>
+  );
+  const successText = isMultiDelete
+    ? `${itemCount} items were deleted successfully.`
+    : `Item "${itemTitle}" was deleted.`;
+
   return (
     <div
       className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
@@ -647,11 +677,7 @@ const LibraryConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => 
               Deleted Successfully
             </h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-              Item "
-              <strong className="text-slate-700 dark:text-slate-200">
-                {itemTitle}
-              </strong>
-              " was deleted.
+              {successText}
             </p>
           </div>
         ) : (
@@ -662,15 +688,11 @@ const LibraryConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => 
               </div>
               <div className="ml-4 text-left">
                 <h3 className="text-lg font-medium text-slate-900 dark:text-slate-50">
-                  Delete Media Item
+                  {title}
                 </h3>
                 <div className="mt-2">
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    Are you sure you want to delete{' '}
-                    <strong className="text-slate-700 dark:text-slate-200">
-                      {itemTitle}
-                    </strong>
-                    ? This action cannot be undone.
+                    {confirmationMessage}
                   </p>
                 </div>
               </div>
@@ -772,12 +794,14 @@ const Library = () => {
   const [pinnedItemIds, setPinnedItemIds] = useState(new Set());
   const [currentUserId, setCurrentUserId] = useState(null);
 
+  // ✨ ЗМІНА: Додано стан для модального вікна множинного видалення
+  const [isMultiDeleteModalOpen, setIsMultiDeleteModalOpen] = useState(false);
+
   const isInitialMount = useRef(true);
 
   const headerCheckboxRef = useRef(null);
   const itemsPerPage = 10;
 
-  // State lifted from Sidebar
   const [activeTab, setActiveTab] = useState('new');
   const [reelItems, setReelItems] = useState([]);
   const [reelTitle, setReelTitle] = useState(
@@ -785,7 +809,6 @@ const Library = () => {
   );
   const [editingReel, setEditingReel] = useState(null);
 
-  // Fetch media items and load pins from localStorage
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -806,7 +829,6 @@ const Library = () => {
         if (error) throw error;
         setItems(data || []);
 
-        // Load pins from localStorage
         const storedPinsRaw = localStorage.getItem('userPinnedItems');
         if (storedPinsRaw) {
           const allUsersPins = JSON.parse(storedPinsRaw);
@@ -823,7 +845,6 @@ const Library = () => {
     fetchData();
   }, []);
 
-  // Save pins to localStorage whenever they change
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
@@ -842,30 +863,31 @@ const Library = () => {
     const reelToCopy = location.state?.reelToCopy;
     const reelToEdit = location.state?.reelToEdit;
     const reelData = reelToCopy || reelToEdit;
-  
+
     if (reelData && items.length > 0) {
       const itemIds = reelData.media_item_ids || [];
       const rawItemsToProcess = itemIds
         .map((id) => items.find((item) => item.id === id))
         .filter(Boolean);
-  
+
       if (reelToEdit) {
         setEditingReel(reelToEdit);
         setReelTitle(reelToEdit.title);
-      } else { // reelToCopy
+      } else {
         setEditingReel(null);
         setReelTitle(`Copy: ${reelToCopy.title}`);
       }
-      
+
       setActiveTab('new');
-      
-      // ✨ ЗМІНА: Прямо формуємо URL, не робимо запит
-      const finalItemsWithUrls = rawItemsToProcess.map(item => ({
+
+      const finalItemsWithUrls = rawItemsToProcess.map((item) => ({
         ...item,
-        previewUrl: item.preview_gcs_path ? `${CDN_BASE_URL}/${item.preview_gcs_path}` : null
+        previewUrl: item.preview_gcs_path
+          ? `${CDN_BASE_URL}/${item.preview_gcs_path}`
+          : null,
       }));
       setReelItems(finalItemsWithUrls);
-  
+
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location.state, items, navigate]);
@@ -874,12 +896,13 @@ const Library = () => {
     () =>
       items.map((item) => ({
         ...item,
-        // ✨ ЗМІНА: Прямо формуємо URL
-        previewUrl: item.preview_gcs_path ? `${CDN_BASE_URL}/${item.preview_gcs_path}` : null,
+        previewUrl: item.preview_gcs_path
+          ? `${CDN_BASE_URL}/${item.preview_gcs_path}`
+          : null,
       })),
     [items]
   );
-  
+
   const filteredItems = useMemo(() => {
     let processItems = [...items];
 
@@ -923,8 +946,6 @@ const Library = () => {
     );
     return allSelectedArePinned ? 'Unpin Selected' : 'Pin Selected';
   }, [selectedItems, pinnedItemIds]);
-  
-  // ✨ ЗМІНА: useEffect для завантаження signed URLs видалено
 
   useEffect(() => {
     if (headerCheckboxRef.current) {
@@ -994,9 +1015,8 @@ const Library = () => {
     const fullResolutionAssetPath = item.video_gcs_path;
     if (!fullResolutionAssetPath) return;
 
-    // ✨ ЗМІНА: Прямо формуємо URL для модального вікна
     const assetUrl = `${CDN_BASE_URL}/${fullResolutionAssetPath}`;
-    
+
     let assetType = item.type;
     if (!assetType) {
       const extension = fullResolutionAssetPath.split('.').pop().toLowerCase();
@@ -1017,6 +1037,36 @@ const Library = () => {
     );
     if (!res.ok) throw new Error(await res.text());
     setItems((prev) => prev.filter((item) => item.id !== itemToDelete.id));
+    setItemToDelete(null);
+  };
+
+  // ✨ ЗМІНА: Нова функція для обробки множинного видалення
+  const handleConfirmMultiDelete = async () => {
+    const itemIdsToDelete = Array.from(selectedItems);
+    const deletePromises = itemIdsToDelete.map((id) =>
+      fetch(`http://localhost:3001/media-items/${id}`, { method: 'DELETE' })
+    );
+
+    const results = await Promise.allSettled(deletePromises);
+    const successfullyDeletedIds = [];
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled' && result.value.ok) {
+        successfullyDeletedIds.push(itemIdsToDelete[index]);
+      } else {
+        console.error(
+          `Failed to delete item ID: ${itemIdsToDelete[index]}`,
+          result.reason
+        );
+      }
+    });
+
+    if (successfullyDeletedIds.length > 0) {
+      setItems((currentData) =>
+        currentData.filter((item) => !successfullyDeletedIds.includes(item.id))
+      );
+    }
+    setSelectedItems(new Set());
+    setIsMultiDeleteModalOpen(false);
   };
 
   const handleUpdateSuccess = (updatedReel) => {
@@ -1046,6 +1096,13 @@ const Library = () => {
         onConfirm={handleConfirmDelete}
         itemTitle={itemToDelete?.title}
       />
+      {/* ✨ ЗМІНА: Додано модальне вікно для множинного видалення */}
+      <LibraryConfirmationModal
+        isOpen={isMultiDeleteModalOpen}
+        onClose={() => setIsMultiDeleteModalOpen(false)}
+        onConfirm={handleConfirmMultiDelete}
+        itemCount={selectedItems.size}
+      />
       <div className="flex items-start gap-8 p-6 min-h-screen">
         <div className="flex-1">
           <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
@@ -1054,13 +1111,23 @@ const Library = () => {
                 Media Library
               </h1>
               {selectedItems.size > 0 && (
-                <button
-                  onClick={() => handleTogglePin(Array.from(selectedItems))}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                >
-                  <Pin size={16} />
-                  {pinActionText} ({selectedItems.size})
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleTogglePin(Array.from(selectedItems))}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                  >
+                    <Pin size={16} />
+                    {pinActionText} ({selectedItems.size})
+                  </button>
+                  {/* ✨ ЗМІНА: Додано кнопку видалення вибраних елементів */}
+                  <button
+                    onClick={() => setIsMultiDeleteModalOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-red-600 text-white rounded-md hover:bg-red-700"
+                  >
+                    <Trash2 size={16} />
+                    Delete Selected ({selectedItems.size})
+                  </button>
+                </div>
               )}
             </div>
             <div className="w-full sm:w-72">
@@ -1089,22 +1156,52 @@ const Library = () => {
                     <th className="p-4 w-12 text-center">
                       <Pin size={14} />
                     </th>
-                    <SortableHeader sortKey="title" sortConfig={sortConfig} onSort={handleSort} className="w-[30%]">
+                    <SortableHeader
+                      sortKey="title"
+                      sortConfig={sortConfig}
+                      onSort={handleSort}
+                      className="w-[30%]"
+                    >
                       Title
                     </SortableHeader>
-                    <SortableHeader sortKey="artists" sortConfig={sortConfig} onSort={handleSort} className="w-[15%]">
+                    <SortableHeader
+                      sortKey="artists"
+                      sortConfig={sortConfig}
+                      onSort={handleSort}
+                      className="w-[15%]"
+                    >
                       Artists
                     </SortableHeader>
-                    <SortableHeader sortKey="client" sortConfig={sortConfig} onSort={handleSort} className="w-[15%]">
+                    <SortableHeader
+                      sortKey="client"
+                      sortConfig={sortConfig}
+                      onSort={handleSort}
+                      className="w-[15%]"
+                    >
                       Client
                     </SortableHeader>
-                    <SortableHeader sortKey="categories" sortConfig={sortConfig} onSort={handleSort} className="w-[15%]">
+                    <SortableHeader
+                      sortKey="categories"
+                      sortConfig={sortConfig}
+                      onSort={handleSort}
+                      className="w-[15%]"
+                    >
                       Categories
                     </SortableHeader>
-                    <SortableHeader sortKey="user_id" sortConfig={sortConfig} onSort={handleSort} className="w-[15%]">
+                    <SortableHeader
+                      sortKey="user_id"
+                      sortConfig={sortConfig}
+                      onSort={handleSort}
+                      className="w-[15%]"
+                    >
                       Added By
                     </SortableHeader>
-                    <SortableHeader sortKey="created_at" sortConfig={sortConfig} onSort={handleSort} className="w-36">
+                    <SortableHeader
+                      sortKey="created_at"
+                      sortConfig={sortConfig}
+                      onSort={handleSort}
+                      className="w-36"
+                    >
                       Created At
                     </SortableHeader>
                     <th className="p-4 w-16 text-right"></th>

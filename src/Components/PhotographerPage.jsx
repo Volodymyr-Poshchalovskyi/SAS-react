@@ -1,3 +1,5 @@
+// src/Pages/PhotographerPage.jsx
+
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { photographersData } from '../Data/PhotographersData';
@@ -33,12 +35,12 @@ export default function PhotographerPage() {
   const collageImagesData = [
     { width: 411, height: 732, left: 120, top: 2256 },
     { width: 363, height: 510, left: 710, top: 2271 },
-    { width: 363, height: 491, left: 935, top: 2494 }, // 3-й елемент
+    { width: 363, height: 491, left: 935, top: 2494 },
     { width: 461, height: 579, left: -55, top: 3240 },
     { width: 585, height: 732, left: 740, top: 3132 },
     { width: 446, height: 448, left: 523, top: 3921 },
-    { width: 385, height: 441, left: 15, top: 4446 }, // 7-й елемент
-    { width: 343, height: 596, left: 301, top: 4510 }, // 8-й елемент
+    { width: 385, height: 441, left: 15, top: 4446 },
+    { width: 343, height: 596, left: 301, top: 4510 },
     { width: 462, height: 580, left: 930, top: 4484 },
   ];
 
@@ -70,34 +72,31 @@ export default function PhotographerPage() {
 
   return (
     <div className="bg-white">
-      {/* Секція заголовку */}
-      <section className="bg-white text-black h-[40vh] flex items-center justify-center pt-20 md:pt-28">
-        <div className="relative w-full flex items-center justify-center">
-          <div className="absolute left-0 h-full flex items-center pl-12 md:pl-32">
-            <Link
-              to="/photographers"
-              className="flex items-center justify-center w-16 h-16 text-black rounded-full transition-colors group"
-            >
-              <svg
-                className="h-12 w-12 transition-colors "
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-            </Link>
-          </div>
-          <h1 className="text-[120px] font-chanel font-semibold uppercase text-center px-4 flex-grow">
-            {photographer.name}
-          </h1>
-        </div>
+      {/* ✨ ПОЧАТОК ЗМІН: Секція заголовку, ідентична до DirectorPage */}
+      <section className="bg-white text-black flex items-center justify-center relative h-[100px] mt-[90px] md:mt-[117px]">
+        <Link
+          to="/photographers" // Змінено посилання
+          className="absolute left-8 md:left-20 top-1/2 -translate-y-1/2 flex items-center justify-center w-12 h-12 border-2 border-black text-black hover:bg-black hover:text-white transition-colors"
+        >
+          <svg
+            className="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+        </Link>
+        <h1 className="text-4xl sm:text-5xl md:text-6xl font-chanel font-semibold uppercase text-center px-4">
+          {photographer.name} {/* Змінено дані */}
+        </h1>
       </section>
+      {/* ✨ КІНЕЦЬ ЗМІН */}
 
       {/* Секція з великим фото */}
       <section className="w-full h-screen">
@@ -255,7 +254,7 @@ export default function PhotographerPage() {
         </div>
       </section>
 
-      {/* ✨ НОВА СЕКЦІЯ: Заголовок та опис 2 */}
+      {/* Секція: Заголовок та опис 2 */}
       <section className="bg-white py-20">
         <div className="max-w-2xl mx-auto text-center px-4">
           <h2 className="text-[20px] font-semibold uppercase mb-4">

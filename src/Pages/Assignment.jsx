@@ -111,14 +111,7 @@ export default function Assignment() {
                   {director.name}
                 </Link>
 
-                {index > 0 && (
-                  <Link
-                    to={`/assignment/${director.slug}`}
-                    className="py-3 px-8 text-xs font-normal bg-white text-black border-2 border-white hover:bg-transparent hover:text-white transition-colors duration-300"
-                  >
-                    SEE MORE
-                  </Link>
-                )}
+                
               </motion.div>
             </div>
           </div>

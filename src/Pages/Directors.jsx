@@ -8,37 +8,69 @@ import PreloaderBanner from '../Components/PreloaderBanner';
 import ScrollProgressBar from '../Components/ScrollProgressBar';
 import { useAnimation } from '../context/AnimationContext';
 import { directorsData } from '../Data/DirectorsData';
+import { useInView } from 'react-intersection-observer'; // ✨ Імпортуємо хук
 
 const nameAnimation = {
   hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: 'easeOut' } },
 };
 
+// ✨ Створюємо окремий компонент для одного слайду
+const DirectorSlide = ({ director, index, currentIndex, isPreloaderActive }) => {
+  const { ref, inView } = useInView({
+    // Відео почне завантажуватися, коли слайд буде на 50% у зоні видимості
+    triggerOnce: true, // Спрацює лише один раз
+    threshold: 0.5,
+  });
+
+  const gcsPath = director.videos[0].src;
+  const publicCdnUrl = `http://34.54.191.201/${gcsPath}`;
+
+  return (
+    <div
+      ref={ref} // Прив'язуємо observer до цього елемента
+      className="relative w-full h-screen snap-start"
+    >
+      {/* ✨ Рендеримо VideoContainer ТІЛЬКИ ЯКЩО слайд видимий */}
+      {inView && (
+        <VideoContainer
+          videoSrc={publicCdnUrl}
+          shouldPlay={!isPreloaderActive && currentIndex === index}
+        />
+      )}
+      <div className="absolute top-[80%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full text-center">
+        <motion.div
+          className="flex flex-col items-center gap-4"
+          variants={nameAnimation}
+          initial="hidden"
+          animate={index === 0 && !isPreloaderActive ? 'visible' : undefined}
+          whileInView={index > 0 ? 'visible' : undefined}
+          viewport={{ once: true, amount: 0.5 }}
+        >
+          <Link
+            to={`/directors/${director.slug}`}
+            className="text-white font-chanel font-normal uppercase text-4xl sm:text-6xl md:text-[5rem] tracking-[-0.3rem] md:tracking-[-0.6rem] transition-opacity duration-500 hover:opacity-50"
+          >
+            {director.name}
+          </Link>
+          
+          
+        </motion.div>
+      </div>
+    </div>
+  );
+};
+
 export default function Directors() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } =
     useAnimation();
+  
+  // ... (весь інший код вашого компонента залишається без змін)
 
-  // ❗️ Ми видалили стан `videoUrls` і `useEffect` для запиту на бекенд.
-  // Вони більше не потрібні.
-
-  useLayoutEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
-
-  useEffect(() => {
-    if (onPreloaderPage) {
-      setIsPreloaderActive(true);
-    }
-  }, [onPreloaderPage, setIsPreloaderActive]);
-
-  useEffect(() => {
-    document.body.style.overflow = isPreloaderActive ? 'hidden' : '';
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isPreloaderActive]);
-
+  useLayoutEffect(() => { window.scrollTo(0, 0); }, []);
+  useEffect(() => { if (onPreloaderPage) setIsPreloaderActive(true); }, [onPreloaderPage, setIsPreloaderActive]);
+  useEffect(() => { document.body.style.overflow = isPreloaderActive ? 'hidden' : ''; return () => { document.body.style.overflow = ''; }; }, [isPreloaderActive]);
   useEffect(() => {
     const htmlElement = document.documentElement;
     htmlElement.classList.add('scroll-snap-enabled');
@@ -54,10 +86,8 @@ export default function Directors() {
     };
   }, [isPreloaderActive]);
 
-  const bannerTitle =
-    'VISIONARY STORYTELLERS. COMMERCIAL REBELS. GLOBAL CREATORS.';
-  const bannerDescription =
-    'From award-winning filmmakers to fashion-forward image makers, our directors and hybrid talent deliver world-class content across commercials, music videos, branded series, and global campaigns.';
+  const bannerTitle = 'VISIONARY STORYTELLERS. COMMERCIAL REBELS. GLOBAL CREATORS.';
+  const bannerDescription = 'From award-winning filmmakers to fashion-forward image makers, our directors and hybrid talent deliver world-class content across commercials, music videos, branded series, and global campaigns.';
 
   return (
     <div className="bg-black">
@@ -78,54 +108,15 @@ export default function Directors() {
         />
       )}
 
-      {directorsData.map((director, index) => {
-        const gcsPath = director.videos[0].src;
-
-        // ✨ ФОРМУЄМО ПРЯМЕ ПОСИЛАННЯ НА CDN ДЛЯ КОЖНОГО ВІДЕО
-        const publicCdnUrl = `http://34.54.191.201/${gcsPath}`;
-
-        return (
-          <div
-            key={director.id}
-            className="relative w-full h-screen snap-start"
-          >
-            {publicCdnUrl && (
-              <VideoContainer
-                videoSrc={publicCdnUrl}
-                shouldPlay={!isPreloaderActive && currentIndex === index}
-              />
-            )}
-            <div className="absolute top-[80%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full text-center">
-              <motion.div
-                className="flex flex-col items-center gap-4"
-                variants={nameAnimation}
-                initial="hidden"
-                animate={
-                  index === 0 && !isPreloaderActive ? 'visible' : undefined
-                }
-                whileInView={index > 0 ? 'visible' : undefined}
-                viewport={{ once: true, amount: 0.5 }}
-              >
-                <Link
-                  to={`/directors/${director.slug}`}
-                  className="text-white font-chanel font-normal uppercase text-4xl sm:text-6xl md:text-[5rem] tracking-[-0.3rem] md:tracking-[-0.6rem] transition-opacity duration-500 hover:opacity-50"
-                >
-                  {director.name}
-                </Link>
-                
-                {index > 0 && (
-                  <Link
-                    to={`/directors/${director.slug}`}
-                    className="py-3 px-8 text-xs font-normal bg-white text-black border-2 border-white hover:bg-transparent hover:text-white transition-colors duration-300"
-                  >
-                    SEE MORE
-                  </Link>
-                )}
-              </motion.div>
-            </div>
-          </div>
-        );
-      })}
+      {directorsData.map((director, index) => (
+        <DirectorSlide
+          key={director.id}
+          director={director}
+          index={index}
+          currentIndex={currentIndex}
+          isPreloaderActive={isPreloaderActive}
+        />
+      ))}
     </div>
   );
 }

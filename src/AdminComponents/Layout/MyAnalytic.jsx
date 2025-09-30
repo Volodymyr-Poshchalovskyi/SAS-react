@@ -25,8 +25,7 @@ import {
   Pin,
 } from 'lucide-react';
 
-// ✨ ОСНОВНА ЗМІНА: Додано базовий URL для CDN
-const CDN_BASE_URL = 'http://34.54.191.201';
+const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
 
 // =======================
 // HELPER FUNCTIONS & UTILITIES
@@ -101,7 +100,14 @@ const inputClasses =
 // =======================
 // MODAL & DROPDOWN COMPONENTS
 // =======================
-const ConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
+// ✨ ЗМІНА: Модальне вікно тепер приймає `itemCount` для обробки множинного видалення
+const ConfirmationModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  itemTitle,
+  itemCount,
+}) => {
   const [status, setStatus] = useState('idle');
   useEffect(() => {
     if (isOpen) setStatus('idle');
@@ -122,6 +128,29 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
 
   if (!isOpen) return null;
 
+  const isMultiDelete = itemCount && itemCount > 1;
+  const title = isMultiDelete
+    ? `Delete ${itemCount} Showreels`
+    : 'Delete Showreel';
+  const confirmationMessage = isMultiDelete ? (
+    <>
+      Are you sure you want to delete these{' '}
+      <strong className="text-slate-700 dark:text-slate-200">
+        {itemCount} showreels
+      </strong>
+      ? This action cannot be undone.
+    </>
+  ) : (
+    <>
+      Are you sure you want to delete{' '}
+      <strong className="text-slate-700 dark:text-slate-200">{itemTitle}</strong>
+      ? This action cannot be undone.
+    </>
+  );
+  const successText = isMultiDelete
+    ? `${itemCount} showreels were deleted successfully.`
+    : `The showreel "${itemTitle}" was deleted.`;
+
   return (
     <div
       className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
@@ -138,11 +167,7 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
               Deleted Successfully
             </h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-              The showreel "
-              <strong className="text-slate-700 dark:text-slate-200">
-                {itemTitle}
-              </strong>
-              " was deleted.
+              {successText}
             </p>
           </div>
         ) : (
@@ -153,7 +178,7 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
               </div>
               <div className="ml-4 text-left">
                 <h3 className="text-lg leading-6 font-medium text-slate-900 dark:text-slate-50">
-                  Delete Showreel
+                  {title}
                 </h3>
                 <div className="mt-2">
                   <p className="text-sm text-slate-500 dark:text-slate-400">
@@ -162,13 +187,7 @@ const ConfirmationModal = ({ isOpen, onClose, onConfirm, itemTitle }) => {
                         Failed to delete. Please try again.
                       </span>
                     ) : (
-                      <>
-                        Are you sure you want to delete{' '}
-                        <strong className="text-slate-700 dark:text-slate-200">
-                          {itemTitle}
-                        </strong>
-                        ? This action cannot be undone.
-                      </>
+                      confirmationMessage
                     )}
                   </p>
                 </div>
@@ -475,11 +494,14 @@ const MyAnalytics = () => {
   const isInitialMount = useRef(true);
   const headerCheckboxRef = useRef(null);
 
+  // ✨ ЗМІНА: Додано стан для модального вікна множинного видалення
+  const [isMultiDeleteModalOpen, setIsMultiDeleteModalOpen] = useState(false);
+
   useEffect(() => {
     const fetchReels = async () => {
       setLoading(true);
       try {
-        const user = { id: 'mock-user-id-123' }; // Replace with your actual user fetching
+        const user = { id: 'mock-user-id-123' };
         if (user) setCurrentUserId(user.id);
 
         const response = await fetch('http://localhost:3001/reels');
@@ -573,6 +595,37 @@ const MyAnalytics = () => {
     setReelsData((currentData) =>
       currentData.filter((r) => r.id !== reelToDelete.id)
     );
+    setReelToDelete(null); // Close modal on success
+  };
+
+  // ✨ ЗМІНА: Нова функція для обробки множинного видалення
+  const handleConfirmMultiDelete = async () => {
+    const reelIdsToDelete = Array.from(selectedReels);
+    const deletePromises = reelIdsToDelete.map((id) =>
+      fetch(`http://localhost:3001/reels/${id}`, { method: 'DELETE' })
+    );
+
+    const results = await Promise.allSettled(deletePromises);
+    const successfullyDeletedIds = [];
+    results.forEach((result, index) => {
+      if (result.status === 'fulfilled' && result.value.ok) {
+        successfullyDeletedIds.push(reelIdsToDelete[index]);
+      } else {
+        console.error(
+          `Failed to delete reel ID: ${reelIdsToDelete[index]}`,
+          result.reason
+        );
+      }
+    });
+
+    if (successfullyDeletedIds.length > 0) {
+      setReelsData((currentData) =>
+        currentData.filter((r) => !successfullyDeletedIds.includes(r.id))
+      );
+    }
+
+    setSelectedReels(new Set());
+    setIsMultiDeleteModalOpen(false);
   };
 
   const handleCopy = (reel) => {
@@ -718,6 +771,13 @@ const MyAnalytics = () => {
         onConfirm={handleConfirmDelete}
         itemTitle={reelToDelete?.title}
       />
+      {/* ✨ ЗМІНА: Додано модальне вікно для множинного видалення */}
+      <ConfirmationModal
+        isOpen={isMultiDeleteModalOpen}
+        onClose={() => setIsMultiDeleteModalOpen(false)}
+        onConfirm={handleConfirmMultiDelete}
+        itemCount={selectedReels.size}
+      />
       <EditReelModal
         onCopy={handleCopy}
         isOpen={!!reelToEdit}
@@ -733,13 +793,23 @@ const MyAnalytics = () => {
               Analytics
             </h1>
             {selectedReels.size > 0 && (
-              <button
-                onClick={() => handleTogglePin(Array.from(selectedReels))}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-md hover:bg-blue-700"
-              >
-                <Pin size={16} />
-                {pinActionText} ({selectedReels.size})
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handleTogglePin(Array.from(selectedReels))}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  <Pin size={16} />
+                  {pinActionText} ({selectedReels.size})
+                </button>
+                {/* ✨ ЗМІНА: Додано кнопку видалення вибраних елементів */}
+                <button
+                  onClick={() => setIsMultiDeleteModalOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-red-600 text-white rounded-md hover:bg-red-700"
+                >
+                  <Trash2 size={16} />
+                  Delete Selected ({selectedReels.size})
+                </button>
+              </div>
             )}
           </div>
           <div className="w-full sm:w-72">
@@ -855,12 +925,12 @@ const MyAnalytics = () => {
                     >
                       <td className="p-4 text-left">
                         <input
-                          type="checkbox"
-                          checked={selectedReels.has(reel.id)}
-                          onChange={(e) => e.stopPropagation()}
-                          onClick={(e) => e.stopPropagation()}
-                          className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-blue-600 cursor-pointer"
-                        />
+  type="checkbox"
+  checked={selectedReels.has(reel.id)}
+  onChange={() => handleRowCheck(reel.id)} // Тепер викликає функцію вибору
+  onClick={(e) => e.stopPropagation()}     // Залишено, щоб уникнути подвійного спрацювання
+  className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-blue-600 cursor-pointer"
+/>
                       </td>
                       <td className="p-4 text-center">
                         <button

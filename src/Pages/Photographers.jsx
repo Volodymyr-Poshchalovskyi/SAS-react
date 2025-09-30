@@ -106,15 +106,7 @@ export default function Photographers() {
                 {photographer.name}
               </Link>
               
-              {/* ✨ Зміни тут: Умовно додаємо кнопку "SEE MORE" */}
-              {index > 0 && (
-                <Link
-                  to={`/photographers/${photographer.slug}`}
-                  className="py-3 px-8 text-xs font-normal bg-white text-black border-2 border-white hover:bg-transparent hover:text-white transition-colors duration-300"
-                >
-                  SEE MORE
-                </Link>
-              )}
+              
             </motion.div>
           </div>
         </div>

@@ -11,7 +11,6 @@ const PostProduction = () => {
   const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } =
     useAnimation();
 
-  // ✨ ОСНОВНА ЛОГІКА: Цей блок запускає прелоадер при завантаженні сторінки.
   useEffect(() => {
     if (onPreloaderPage) {
       setIsPreloaderActive(true);
@@ -30,7 +29,10 @@ const PostProduction = () => {
     'Our post-production team blends motion control, AI-enhanced editing, CG/VFX, and color finishing to deliver bold, elevated storytelling. Every project is refined frame by flawless frame — ensuring beauty, product, and performance content resonates across every platform.';
 
   return (
-    <div className="bg-white text-black min-h-screen pt-36">
+    // ✨ ЗВЕРНІТЬ УВАГУ: Я також прибрав клас pt-36 з цього div,
+    // оскільки він, ймовірно, був потрібен для відступу від видаленого банера.
+    // Якщо вам потрібен відступ для хедера, можливо, варто його повернути або змінити.
+    <div className="bg-white text-black min-h-screen">
       <AnimatePresence>
         {isPreloaderActive && (
           <PreloaderBanner
@@ -41,9 +43,7 @@ const PostProduction = () => {
         )}
       </AnimatePresence>
 
-      <h1 className="text-center text-4xl md:text-5xl font-semibold text-black py-12 uppercase tracking-wider">
-        POST PRODUCTION
-      </h1>
+      {/* 🗑️ ВИДАЛЕНО БЛОК H1 З НАПИСОМ "POST PRODUCTION" */}
 
       <div className="relative w-full h-screen bg-black">
         <VideoContainer videoSrc={videoURL} shouldPlay={!isPreloaderActive} />
@@ -52,9 +52,7 @@ const PostProduction = () => {
             SUPERNOVA
           </h1>
           <Link to="/post-production-projects">
-            <button className="py-3 px-8 text-xs font-normal bg-white text-black border-2 border-white hover:bg-transparent hover:text-white transition-colors duration-300">
-              SEE MORE
-            </button>
+            
           </Link>
         </div>
       </div>
