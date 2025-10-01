@@ -24,6 +24,9 @@ export default function Feature() {
     if (onPreloaderPage) {
       setIsPreloaderActive(true);
     }
+    return () => {
+      setIsPreloaderActive(false);
+    };
   }, [onPreloaderPage, setIsPreloaderActive]);
 
   useEffect(() => {

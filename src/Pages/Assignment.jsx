@@ -29,6 +29,9 @@ export default function Assignment() {
     if (onPreloaderPage) {
       setIsPreloaderActive(true);
     }
+    return () => {
+      setIsPreloaderActive(false);
+    };
   }, [onPreloaderPage, setIsPreloaderActive]);
 
   useEffect(() => {

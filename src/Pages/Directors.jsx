@@ -59,7 +59,9 @@ export default function Directors() {
   const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } = useAnimation();
 
   useLayoutEffect(() => { window.scrollTo(0, 0); }, []);
-  useEffect(() => { if (onPreloaderPage) setIsPreloaderActive(true); }, [onPreloaderPage, setIsPreloaderActive]);
+  useEffect(() => { if (onPreloaderPage) setIsPreloaderActive(true); return () => {
+      setIsPreloaderActive(false);
+    };}, [onPreloaderPage, setIsPreloaderActive]);
   useEffect(() => { document.body.style.overflow = isPreloaderActive ? 'hidden' : ''; return () => { document.body.style.overflow = ''; }; }, [isPreloaderActive]);
   useEffect(() => {
     const htmlElement = document.documentElement;

@@ -21,7 +21,9 @@ const TableTopStudio = () => {
   // Логіка прелоадера (без змін)
   useEffect(() => {
     if (onPreloaderPage) setIsPreloaderActive(true);
-  }, [onPreloaderPage, setIsPreloaderActive]);
+  return () => {
+      setIsPreloaderActive(false);
+    };}, [onPreloaderPage, setIsPreloaderActive]);
 
   useEffect(() => {
     document.body.style.overflow = isPreloaderActive ? 'hidden' : '';

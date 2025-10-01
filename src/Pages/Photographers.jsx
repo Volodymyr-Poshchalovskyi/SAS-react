@@ -30,6 +30,9 @@ export default function Photographers() {
     if (onPreloaderPage) {
       setIsPreloaderActive(true);
     }
+    return () => {
+      setIsPreloaderActive(false);
+    };
   }, [onPreloaderPage, setIsPreloaderActive]);
 
   useEffect(() => {
