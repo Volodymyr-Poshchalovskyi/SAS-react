@@ -3,23 +3,21 @@
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import VideoContainer from '../Components/VideoContainer';
+import HlsVideoPlayer from '../Components/HlsVideoPlayer'; // <-- ЗМІНА 1: Новий імпорт
 import PreloaderBanner from '../Components/PreloaderBanner';
 import ScrollProgressBar from '../Components/ScrollProgressBar';
 import { useAnimation } from '../context/AnimationContext';
 import { directorsData } from '../Data/DirectorsData';
-import { useInView } from 'react-intersection-observer'; // ✨ Імпортуємо хук
+import { useInView } from 'react-intersection-observer';
 
 const nameAnimation = {
   hidden: { opacity: 0, y: 30 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: 'easeOut' } },
 };
 
-// ✨ Створюємо окремий компонент для одного слайду
 const DirectorSlide = ({ director, index, currentIndex, isPreloaderActive }) => {
   const { ref, inView } = useInView({
-    // Відео почне завантажуватися, коли слайд буде на 50% у зоні видимості
-    triggerOnce: true, // Спрацює лише один раз
+    triggerOnce: true,
     threshold: 0.5,
   });
 
@@ -27,14 +25,11 @@ const DirectorSlide = ({ director, index, currentIndex, isPreloaderActive }) => 
   const publicCdnUrl = `http://34.54.191.201/${gcsPath}`;
 
   return (
-    <div
-      ref={ref} // Прив'язуємо observer до цього елемента
-      className="relative w-full h-screen snap-start"
-    >
-      {/* ✨ Рендеримо VideoContainer ТІЛЬКИ ЯКЩО слайд видимий */}
+    <div ref={ref} className="relative w-full h-screen snap-start">
       {inView && (
-        <VideoContainer
-          videoSrc={publicCdnUrl}
+        // <-- ЗМІНА 2: Використовуємо новий плеєр
+        <HlsVideoPlayer
+          src={publicCdnUrl}
           shouldPlay={!isPreloaderActive && currentIndex === index}
         />
       )}
@@ -53,8 +48,6 @@ const DirectorSlide = ({ director, index, currentIndex, isPreloaderActive }) => 
           >
             {director.name}
           </Link>
-          
-          
         </motion.div>
       </div>
     </div>
@@ -63,10 +56,7 @@ const DirectorSlide = ({ director, index, currentIndex, isPreloaderActive }) => 
 
 export default function Directors() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } =
-    useAnimation();
-  
-  // ... (весь інший код вашого компонента залишається без змін)
+  const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } = useAnimation();
 
   useLayoutEffect(() => { window.scrollTo(0, 0); }, []);
   useEffect(() => { if (onPreloaderPage) setIsPreloaderActive(true); }, [onPreloaderPage, setIsPreloaderActive]);

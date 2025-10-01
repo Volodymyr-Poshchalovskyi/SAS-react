@@ -1,6 +1,6 @@
 // src/Pages/TableTopStudio.jsx
 
-import React, { useState, useEffect, useLayoutEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import VideoContainer from '../Components/VideoContainer';
 import { AnimatePresence } from 'framer-motion';
@@ -17,8 +17,6 @@ const CDN_BASE_URL = 'http://34.54.191.201';
 const TableTopStudio = () => {
   const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } =
     useAnimation();
-  
-  // ❗️ Ми видалили стан `videoUrls` і `useEffect` для запиту на бекенд.
 
   // Логіка прелоадера (без змін)
   useEffect(() => {
@@ -48,9 +46,7 @@ const TableTopStudio = () => {
         )}
       </AnimatePresence>
 
-      <h1 className="text-center text-4xl md:text-5xl font-semibold text-black py-12 uppercase tracking-wider">
-        TABLE TOP DIVISION
-      </h1>
+      {/* ✨ ЗМІНА: Заголовок "TABLE TOP DIVISION" було видалено звідси. */}
 
       <div className="relative w-full h-screen bg-black">
         {/* ✨ Використовуємо пряме посилання на CDN для шоуріла */}
@@ -76,11 +72,10 @@ const TableTopStudio = () => {
             shouldPlay={!isPreloaderActive}
           />
           <div className="absolute top-[80%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full text-center">
-            
             <Link to={`/projects/${project.projectSlug}`}>
               <h1 className="text-white font-chanel font-normal uppercase text-4xl sm:text-6xl md:text-[5rem] tracking-[-0.3rem] md:tracking-[-0.6rem] mb-8">
-              {project.title}
-            </h1>
+                {project.title}
+              </h1>
             </Link>
           </div>
         </div>

@@ -4,7 +4,7 @@ import React, { useState, useLayoutEffect } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { directorsData } from '../Data/DirectorsData';
 import { assignmentData } from '../Data/AssignmentData';
-import VideoContainer from '../Components/VideoContainer';
+import HlsVideoPlayer from '../Components/HlsVideoPlayer'; // <-- ЗМІНА 1: Новий імпорт
 import VideoModal from '../Components/VideoModal';
 import { useInView } from 'react-intersection-observer';
 
@@ -17,7 +17,7 @@ const DirectorVideoBlock = ({ video, videoSrc, onExpand }) => {
 
   return (
     <section ref={ref} className="relative w-full h-[75vh] bg-black">
-      {inView && <VideoContainer videoSrc={videoSrc} shouldPlay={inView} />}
+      <HlsVideoPlayer src={videoSrc} shouldPlay={inView} />
       <div className="absolute inset-0 z-10 flex items-end justify-center">
         <div className="flex flex-col items-center text-white pb-24 px-4">
           <div className="mb-6 text-shadow text-center">
@@ -70,7 +70,6 @@ export default function DirectorPage() {
 
   return (
     <div className="bg-white">
-      {/* ✨ ПОЧАТОК ЗМІН: Ця секція тепер ідентична до PhotographerPage */}
       <section className="bg-white text-black flex items-center justify-center relative h-[100px] mt-[90px] md:mt-[117px]">
         <Link
           to={backLink}
@@ -94,7 +93,6 @@ export default function DirectorPage() {
           {director.name}
         </h1>
       </section>
-      {/* ✨ КІНЕЦЬ ЗМІН */}
 
       <div className="bg-black">
         {director.videos.map((video, index) => {
@@ -110,29 +108,33 @@ export default function DirectorPage() {
         })}
       </div>
 
-      <section className="relative w-full">
+      <section className="relative w-full min-h-screen bg-black flex flex-col justify-end">
+        {/* 1. Image as a true background */}
+        {/* We use absolute positioning and object-cover to make the image fill the entire section without distorting it. */}
+        {/* This completely decouples the layout from the image's dimensions. */}
         {publicPhotoUrl && (
           <img
             src={publicPhotoUrl}
             alt={director.name}
-            className="w-full h-auto block"
+            className="absolute inset-0 w-full h-full object-cover z-0"
           />
         )}
-        <div className="absolute inset-x-0 bottom-[40%] h-[40%] bg-gradient-to-t from-black to-transparent flex items-end justify-center pb-8">
-          <div className="text-center">
-            <h2 className="font-normal text-white text-[80px] leading-none tracking-[-0.15em]">
+
+        {/* 2. Unified Content Container */}
+        {/* This single div now holds the name and bio. It has a gradient background and is pushed to the bottom by the parent's flexbox (`justify-end`). */}
+        {/* Its height is flexible, determined by its padding and content, preventing text overflow. */}
+        <div className="relative z-10 w-full bg-gradient-to-t from-black via-black/90 to-transparent pt-24 pb-20 md:pb-32">
+          <div className="container mx-auto px-4 flex flex-col items-center text-center text-white">
+            <h2 className="font-normal text-[80px] leading-none tracking-[-0.15em] mb-8">
               {director.name}
             </h2>
+            <p
+              className="w-full max-w-3xl font-semibold text-justify text-xs leading-[36px] tracking-[-0.09em]"
+              style={{ wordSpacing: '0.25em' }}
+            >
+              {director.bio}
+            </p>
           </div>
-        </div>
-        <div className="absolute inset-x-0 bottom-0 h-[40%] bg-black"></div>
-        <div className="absolute inset-x-0 bottom-0 h-[40%] flex justify-center pt-28">
-          <p
-            className="w-2/5 font-semibold text-white text-justify text-xs leading-[36px] tracking-[-0.09em]"
-            style={{ wordSpacing: '0.25em' }}
-          >
-            {director.bio}
-          </p>
         </div>
       </section>
 
