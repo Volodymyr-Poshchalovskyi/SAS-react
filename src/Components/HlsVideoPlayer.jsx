@@ -1,47 +1,50 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 
 const HlsVideoPlayer = ({ src, shouldPlay, isMuted = true, ...props }) => {
   const videoRef = useRef(null);
-  const hlsRef = useRef(null); // ✨ Додаємо ref для збереження екземпляра Hls
+  const hlsRef = useRef(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    setIsLoading(true);
     if (!src) return;
 
     const video = videoRef.current;
-    
+    const hls = new Hls({
+      autoLevelEnabled: false,
+    });
+
+    hlsRef.current = hls;
+
     // --- ПОЧАТОК ЗМІН ---
 
-    // 1. Ініціалізуємо Hls з вимкненим автоматичним перемиканням якості
-    const hls = new Hls({
-      autoLevelEnabled: false, // Це головний параметр, який вимикає ABR
-    });
-    
-    hlsRef.current = hls; // Зберігаємо екземпляр у ref
+    // 1. Створюємо функцію, яка вимкне лоадер
+    const onVideoReady = () => {
+      setIsLoading(false);
+    };
 
-    // 2. Встановлюємо найвищу якість, коли маніфест завантажено
+    // 2. Прибираємо логіку з hls.on(...) і додаємо нативний слухач подій
+    //    Подія 'loadeddata' спрацьовує, коли перший кадр відео завантажено і готовий до показу
+    video.addEventListener('loadeddata', onVideoReady);
+
+    // --- КІНЕЦЬ ЗМІН ---
+
     hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
       if (data.levels && data.levels.length > 0) {
         const highestLevel = data.levels.length - 1;
-        
-        // hls.currentLevel негайно перемикає якість
-        // hls.startLevel встановлює якість для початку відтворення
-        // hls.nextLevel гарантує, що якість не зміниться при переході до наступного сегмента
         hls.currentLevel = highestLevel;
         hls.startLevel = highestLevel;
         hls.nextLevel = highestLevel;
-
-        console.log(
-          `Forcing highest quality: ${data.levels[highestLevel].height}p`
-        );
       }
     });
-    // --- КІНЕЦЬ ЗМІН ---
 
     hls.loadSource(src);
     hls.attachMedia(video);
 
     return () => {
+      // Важливо прибирати слухач подій, щоб уникнути витоків пам'яті
+      video.removeEventListener('loadeddata', onVideoReady);
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
@@ -49,27 +52,36 @@ const HlsVideoPlayer = ({ src, shouldPlay, isMuted = true, ...props }) => {
     };
   }, [src]);
 
-  // Керування відтворенням/паузою (цей блок залишається без змін)
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    if (shouldPlay) {
+    if (shouldPlay && !isLoading) {
       video.play().catch(error => console.log("Autoplay was prevented:", error));
     } else {
       video.pause();
     }
-  }, [shouldPlay]);
+  }, [shouldPlay, isLoading]);
 
   return (
-    <video
-      ref={videoRef}
-      className="absolute top-0 left-0 w-full h-full object-cover"
-      playsInline
-      loop
-      muted={isMuted}
-      {...props}
-    />
+    <>
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-solid border-white border-t-transparent"></div>
+        </div>
+      )}
+
+      <video
+        ref={videoRef}
+        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${
+          isLoading ? 'opacity-0' : 'opacity-100'
+        }`}
+        playsInline
+        loop
+        muted={isMuted}
+        {...props}
+      />
+    </>
   );
 };
 
