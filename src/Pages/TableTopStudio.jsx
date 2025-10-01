@@ -12,7 +12,7 @@ const showreelURL =
   'front-end/04-Service/01-ROUGE ALLURE VELVET NUIT BLANCHE, lipstick for a moment, allure for a night — CHANEL Makeup (1080p_25fps_H264-128kbit_AAC).mp4';
 
 // ✨ Додаємо константу для базового URL нашого CDN
-const CDN_BASE_URL = 'http://34.54.191.201';
+const CDN_BASE_URL = 'https://storage.googleapis.com';
 
 const TableTopStudio = () => {
   const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } =

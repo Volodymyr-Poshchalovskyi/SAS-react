@@ -18,7 +18,7 @@ const nameAnimation = {
 
 const DirectorSlide = ({ director, isActive, shouldPreload, isPreloaderActive }) => {
   const [videoSrc, setVideoSrc] = useState('');
-  const publicCdnUrl = `http://34.54.191.201/${director.videos[0].src}`;
+  const publicCdnUrl = `https://storage.googleapis.com/new-sas-media-storage/${director.videos[0].src}`;
 
   useEffect(() => {
     // Керуємо джерелом відео: встановлюємо URL, якщо слайд активний

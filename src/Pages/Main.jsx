@@ -11,7 +11,7 @@ function Main() {
 
   const GCS_VIDEO_PATH =
     'front-end/00-Main Page/SHOWREEL SINNERS AND SAINTS 2024.mp4';
-  const videoUrl = `http://34.54.191.201/${GCS_VIDEO_PATH}`;
+  const videoUrl = `https://storage.googleapis.com/new-sas-media-storage/${GCS_VIDEO_PATH}`;
 
   const [shouldPlayVideo, setShouldPlayVideo] = React.useState(false);
   const videoSectionRef = React.useRef(null);

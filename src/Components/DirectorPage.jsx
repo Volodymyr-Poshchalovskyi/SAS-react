@@ -8,7 +8,7 @@ import HlsVideoPlayer from '../Components/HlsVideoPlayer'; // <-- ЗМІНА 1: 
 import VideoModal from '../Components/VideoModal';
 import { useInView } from 'react-intersection-observer';
 
-const CDN_BASE_URL = 'http://34.54.191.201';
+const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
 
 const DirectorVideoBlock = ({ video, videoSrc, onExpand }) => {
   const { ref, inView } = useInView({

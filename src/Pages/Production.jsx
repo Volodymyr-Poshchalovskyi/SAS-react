@@ -108,7 +108,7 @@ export default function Production() {
         const gcsPath = video.src;
         
         // ✨ ФОРМУЄМО ПРЯМЕ ПОСИЛАННЯ НА CDN ДЛЯ КОЖНОГО ВІДЕО
-        const publicCdnUrl = `http://34.54.191.201/${gcsPath}`;
+        const publicCdnUrl = `https://storage.googleapis.com/new-sas-media-storage/${gcsPath}`;
 
         return (
           <div key={video.id} className="relative w-full h-screen snap-start">
