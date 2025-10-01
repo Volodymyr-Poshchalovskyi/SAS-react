@@ -1,9 +1,7 @@
-// src/Pages/Assignment.jsx
-
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import VideoContainer from '../Components/VideoContainer';
+import HlsVideoPlayer from '../Components/HlsVideoPlayer';
 import PreloaderBanner from '../Components/PreloaderBanner';
 import ScrollProgressBar from '../Components/ScrollProgressBar';
 import { useAnimation } from '../context/AnimationContext';
@@ -11,15 +9,63 @@ import { assignmentData } from '../Data/AssignmentData';
 
 const nameAnimation = {
   hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: 'easeOut' } },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.8, ease: 'easeOut' },
+  },
+};
+
+const AssignmentSlide = ({ director, index, isActive, shouldPreload, isPreloaderActive }) => {
+  const [videoSrc, setVideoSrc] = useState('');
+  // ✨ Формуємо посилання на відео один раз
+  const publicCdnUrl = `http://34.54.191.201/${director.videos[0].src}`;
+
+  useEffect(() => {
+    // Керуємо джерелом відео: встановлюємо URL, якщо слайд активний
+    // або має бути попередньо завантажений.
+    if (isActive || shouldPreload) {
+      setVideoSrc(publicCdnUrl);
+    } 
+    // В іншому випадку — очищуємо src, щоб зупинити завантаження.
+    else {
+      setVideoSrc('');
+    }
+  }, [isActive, shouldPreload, publicCdnUrl]);
+
+  return (
+    <div className="relative w-full h-screen snap-start">
+      {/* Рендеримо плеєр, тільки якщо є що завантажувати/відтворювати */}
+      {videoSrc && (
+        <HlsVideoPlayer
+          src={videoSrc}
+          shouldPlay={isActive && !isPreloaderActive} // Відтворюємо тільки активне відео
+        />
+      )}
+      <div className="absolute top-[80%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full text-center">
+        <motion.div
+          className="flex flex-col items-center gap-4"
+          variants={nameAnimation}
+          initial="hidden"
+          // Анімація з'являється тільки для активного слайда
+          animate={isActive && !isPreloaderActive ? 'visible' : 'hidden'}
+          // Viewport тут вже не потрібен, оскільки анімація керується станом
+        >
+          <Link
+            to={`/assignment/${director.slug}`}
+            className="text-white font-chanel font-normal uppercase text-4xl sm:text-6xl md:text-[5rem] tracking-[-0.3rem] md:tracking-[-0.6rem] transition-opacity duration-500 hover:opacity-50"
+          >
+            {director.name}
+          </Link>
+        </motion.div>
+      </div>
+    </div>
+  );
 };
 
 export default function Assignment() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } =
-    useAnimation();
-  
-  // ❗️ Ми видалили стан `videoUrls` і `useEffect` для запиту на бекенд.
+  const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } = useAnimation();
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
@@ -44,12 +90,15 @@ export default function Assignment() {
   useEffect(() => {
     const htmlElement = document.documentElement;
     htmlElement.classList.add('scroll-snap-enabled');
+    
     const handleScroll = () => {
       if (isPreloaderActive) return;
       const newIndex = Math.round(window.scrollY / window.innerHeight);
       setCurrentIndex(newIndex);
     };
+
     window.addEventListener('scroll', handleScroll, { passive: true });
+    
     return () => {
       htmlElement.classList.remove('scroll-snap-enabled');
       window.removeEventListener('scroll', handleScroll);
@@ -80,44 +129,19 @@ export default function Assignment() {
       )}
 
       {assignmentData.map((director, index) => {
-        const gcsPath = director.videos[0].src;
-        
-        // ✨ ФОРМУЄМО ПРЯМЕ ПОСИЛАННЯ НА CDN ДЛЯ КОЖНОГО ВІДЕО
-        const publicCdnUrl = `http://34.54.191.201/${gcsPath}`;
+        // Визначаємо стан кожного слайду прямо тут
+        const isActive = index === currentIndex;
+        const shouldPreload = Math.abs(index - currentIndex) === 1;
 
         return (
-          <div
+          <AssignmentSlide
             key={director.id}
-            className="relative w-full h-screen snap-start"
-          >
-            {publicCdnUrl && (
-              <VideoContainer
-                videoSrc={publicCdnUrl}
-                shouldPlay={!isPreloaderActive && currentIndex === index}
-              />
-            )}
-            <div className="absolute top-[80%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full text-center">
-              <motion.div
-                className="flex flex-col items-center gap-4"
-                variants={nameAnimation}
-                initial="hidden"
-                animate={
-                  index === 0 && !isPreloaderActive ? 'visible' : undefined
-                }
-                whileInView={index > 0 ? 'visible' : undefined}
-                viewport={{ once: true, amount: 0.5 }}
-              >
-                <Link
-                  to={`/assignment/${director.slug}`}
-                  className="text-white font-chanel font-normal uppercase text-4xl sm:text-6xl md:text-[5rem] tracking-[-0.3rem] md:tracking-[-0.6rem] transition-opacity duration-500 hover:opacity-50"
-                >
-                  {director.name}
-                </Link>
-
-                
-              </motion.div>
-            </div>
-          </div>
+            director={director}
+            index={index}
+            isActive={isActive}
+            shouldPreload={shouldPreload}
+            isPreloaderActive={isPreloaderActive}
+          />
         );
       })}
     </div>
