@@ -4,6 +4,9 @@ import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import AppRouter from './Routes/Router';
 import { AnimationProvider } from './context/AnimationContext';
+import { UploadProvider } from './context/UploadContext';
+import UploadModal from './Components/UploadModal';
+
 
 /**
  * ScrollToTop
@@ -29,6 +32,7 @@ const ScrollToTop = () => {
 export default function App() {
   return (
     <>
+    <UploadProvider>
       {/* Scrolls page to top on route change */}
       <ScrollToTop />
 
@@ -37,6 +41,8 @@ export default function App() {
         {/* Application routes */}
         <AppRouter />
       </AnimationProvider>
+      <UploadModal/>
+      </UploadProvider>
     </>
   );
 }
