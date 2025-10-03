@@ -24,6 +24,10 @@ import { useNavigate, useLocation } from 'react-router-dom';
 // HELPER FUNCTIONS & SETUP
 // =======================
 
+// ✨ ЗМІНА: Використовуємо змінну середовища для базової URL-адреси API
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'YOUR_SUPABASE_URL';
 const SUPABASE_ANON_KEY =
   import.meta.env.VITE_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY';
@@ -302,7 +306,8 @@ const ReelCreatorSidebar = ({
       if (activeTab === 'existing' && existingReels.length === 0) {
         setIsLoadingReels(true);
         try {
-          const response = await fetch('http://localhost:3001/reels');
+          // ✨ ЗМІНА: Замінено localhost на змінну
+          const response = await fetch(`${API_BASE_URL}/reels`);
           if (!response.ok) throw new Error('Failed to fetch reels');
           const data = await response.json();
           setExistingReels(data);
@@ -386,17 +391,15 @@ const ReelCreatorSidebar = ({
 
     try {
       if (isEditing) {
-        const res = await fetch(
-          `http://localhost:3001/reels/${editingReel.id}`,
-          {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              title: reelTitle,
-              media_item_ids: reelItems.map((i) => i.id),
-            }),
-          }
-        );
+        // ✨ ЗМІНА: Замінено localhost на змінну
+        const res = await fetch(`${API_BASE_URL}/reels/${editingReel.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: reelTitle,
+            media_item_ids: reelItems.map((i) => i.id),
+          }),
+        });
         if (!res.ok) throw new Error(await res.text());
         const updatedReel = await res.json();
         setModalState({
@@ -411,7 +414,8 @@ const ReelCreatorSidebar = ({
           data: { user },
         } = await supabase.auth.getUser();
         if (!user) throw new Error('User not authenticated.');
-        const res = await fetch('http://localhost:3001/reels', {
+        // ✨ ЗМІНА: Замінено localhost на змінну
+        const res = await fetch(`${API_BASE_URL}/reels`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -460,7 +464,11 @@ const ReelCreatorSidebar = ({
       } else {
         setReelItems([]);
         setReelTitle(
-          `Draft: Showreel (${new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })})`
+          `Draft: Showreel (${new Date().toLocaleDateString('en-US', {
+            month: '2-digit',
+            day: '2-digit',
+            year: 'numeric',
+          })})`
         );
       }
     }
@@ -470,7 +478,11 @@ const ReelCreatorSidebar = ({
   const TabButton = ({ name, label }) => (
     <button
       onClick={() => setActiveTab(name)}
-      className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors w-1/2 ${activeTab === name ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800'}`}
+      className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors w-1/2 ${
+        activeTab === name
+          ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50'
+          : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800'
+      }`}
     >
       {label}
     </button>
@@ -491,7 +503,11 @@ const ReelCreatorSidebar = ({
           <button
             onClick={() => setActiveTab('existing')}
             disabled={isEditing}
-            className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors w-1/2 ${activeTab === 'existing' ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800'} disabled:opacity-50 disabled:cursor-not-allowed`}
+            className={`px-4 py-2 text-sm font-semibold rounded-md transition-colors w-1/2 ${
+              activeTab === 'existing'
+                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-50'
+                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-slate-800'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             Existing Reels
           </button>
@@ -500,7 +516,11 @@ const ReelCreatorSidebar = ({
           onDragOver={handleDragOverContainer}
           onDrop={handleDropIntoContainer}
           onDragLeave={handleDragLeaveContainer}
-          className={`flex flex-col p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 transition-all duration-300 min-h-[400px] ${isDraggingOver ? 'border-2 border-blue-500 ring-4 ring-blue-500/20' : 'border border-slate-200 dark:border-slate-800'}`}
+          className={`flex flex-col p-4 rounded-xl bg-slate-50 dark:bg-slate-900/50 transition-all duration-300 min-h-[400px] ${
+            isDraggingOver
+              ? 'border-2 border-blue-500 ring-4 ring-blue-500/20'
+              : 'border border-slate-200 dark:border-slate-800'
+          }`}
         >
           {activeTab === 'new' ? (
             reelItems.length === 0 ? (
@@ -611,7 +631,6 @@ const ReelCreatorSidebar = ({
   );
 };
 
-// ✨ ЗМІНА: Модальне вікно тепер приймає `itemCount` для обробки множинного видалення
 const LibraryConfirmationModal = ({
   isOpen,
   onClose,
@@ -653,7 +672,9 @@ const LibraryConfirmationModal = ({
   ) : (
     <>
       Are you sure you want to delete{' '}
-      <strong className="text-slate-700 dark:text-slate-200">{itemTitle}</strong>
+      <strong className="text-slate-700 dark:text-slate-200">
+        {itemTitle}
+      </strong>
       ? This action cannot be undone.
     </>
   );
@@ -794,7 +815,6 @@ const Library = () => {
   const [pinnedItemIds, setPinnedItemIds] = useState(new Set());
   const [currentUserId, setCurrentUserId] = useState(null);
 
-  // ✨ ЗМІНА: Додано стан для модального вікна множинного видалення
   const [isMultiDeleteModalOpen, setIsMultiDeleteModalOpen] = useState(false);
 
   const isInitialMount = useRef(true);
@@ -805,7 +825,11 @@ const Library = () => {
   const [activeTab, setActiveTab] = useState('new');
   const [reelItems, setReelItems] = useState([]);
   const [reelTitle, setReelTitle] = useState(
-    `Draft: Showreel (${new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })})`
+    `Draft: Showreel (${new Date().toLocaleDateString('en-US', {
+      month: '2-digit',
+      day: '2-digit',
+      year: 'numeric',
+    })})`
   );
   const [editingReel, setEditingReel] = useState(null);
 
@@ -1031,20 +1055,20 @@ const Library = () => {
 
   const handleConfirmDelete = async () => {
     if (!itemToDelete) return;
-    const res = await fetch(
-      `http://localhost:3001/media-items/${itemToDelete.id}`,
-      { method: 'DELETE' }
-    );
+    // ✨ ЗМІНА: Замінено localhost на змінну
+    const res = await fetch(`${API_BASE_URL}/media-items/${itemToDelete.id}`, {
+      method: 'DELETE',
+    });
     if (!res.ok) throw new Error(await res.text());
     setItems((prev) => prev.filter((item) => item.id !== itemToDelete.id));
     setItemToDelete(null);
   };
 
-  // ✨ ЗМІНА: Нова функція для обробки множинного видалення
   const handleConfirmMultiDelete = async () => {
     const itemIdsToDelete = Array.from(selectedItems);
     const deletePromises = itemIdsToDelete.map((id) =>
-      fetch(`http://localhost:3001/media-items/${id}`, { method: 'DELETE' })
+      // ✨ ЗМІНА: Замінено localhost на змінну
+      fetch(`${API_BASE_URL}/media-items/${id}`, { method: 'DELETE' })
     );
 
     const results = await Promise.allSettled(deletePromises);
@@ -1096,7 +1120,6 @@ const Library = () => {
         onConfirm={handleConfirmDelete}
         itemTitle={itemToDelete?.title}
       />
-      {/* ✨ ЗМІНА: Додано модальне вікно для множинного видалення */}
       <LibraryConfirmationModal
         isOpen={isMultiDeleteModalOpen}
         onClose={() => setIsMultiDeleteModalOpen(false)}
@@ -1119,7 +1142,6 @@ const Library = () => {
                     <Pin size={16} />
                     {pinActionText} ({selectedItems.size})
                   </button>
-                  {/* ✨ ЗМІНА: Додано кнопку видалення вибраних елементів */}
                   <button
                     onClick={() => setIsMultiDeleteModalOpen(true)}
                     className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-red-600 text-white rounded-md hover:bg-red-700"
@@ -1211,7 +1233,9 @@ const Library = () => {
                   {currentItems.map((item, index) => {
                     const isPinned = pinnedItemIds.has(item.id);
                     const addedBy = item.user_profiles
-                      ? `${item.user_profiles.first_name || ''} ${item.user_profiles.last_name || ''}`.trim()
+                      ? `${item.user_profiles.first_name || ''} ${
+                          item.user_profiles.last_name || ''
+                        }`.trim()
                       : 'System';
                     const isLastItemOnPage = index === currentItems.length - 1;
                     return (
@@ -1219,7 +1243,11 @@ const Library = () => {
                         key={item.id}
                         draggable="true"
                         onDragStart={(e) => handleDragStart(e, item)}
-                        className={`border-b border-slate-100 dark:border-slate-800 transition-colors cursor-pointer ${selectedItems.has(item.id) ? 'bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'}`}
+                        className={`border-b border-slate-100 dark:border-slate-800 transition-colors cursor-pointer ${
+                          selectedItems.has(item.id)
+                            ? 'bg-blue-50 dark:bg-blue-900/20'
+                            : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                        }`}
                         onClick={() => handleRowCheck(item.id)}
                         onDoubleClick={() => handleRowDoubleClick(item)}
                       >
@@ -1241,7 +1269,11 @@ const Library = () => {
                               e.stopPropagation();
                               handleTogglePin([item.id]);
                             }}
-                            className={`p-1 rounded-full ${isPinned ? 'text-blue-600' : 'text-slate-300 dark:text-slate-600 hover:text-slate-500'}`}
+                            className={`p-1 rounded-full ${
+                              isPinned
+                                ? 'text-blue-600'
+                                : 'text-slate-300 dark:text-slate-600 hover:text-slate-500'
+                            }`}
                           >
                             {isPinned ? <Pin size={16} /> : <Pin size={16} />}
                           </button>
@@ -1289,7 +1321,9 @@ const Library = () => {
                             onClick={(e) => {
                               e.stopPropagation();
                               setActiveDropdown((prev) =>
-                                prev?.id === item.id ? null : { id: item.id }
+                                prev?.id === item.id
+                                  ? null
+                                  : { id: item.id }
                               );
                             }}
                             className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"

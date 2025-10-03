@@ -936,6 +936,13 @@ app.delete('/media-items/:id', async (req, res) => {
 });
 
 // 5. Запускаємо сервер
-app.listen(PORT, () => {
-  console.log(`✅ Backend server is running on http://localhost:${PORT}`);
+
+const HOST = '0.0.0.0'; // ✨ ЗМІНА: Додано хост для доступу з мережі
+
+app.listen(PORT, HOST, () => {
+  // ✨ ЗМІНА: Оновлено повідомлення в консолі
+  console.log(`✅ Backend server is running on http://${HOST}:${PORT}`);
+  console.log(
+    `✅ Accessible on your network at http://192.168.1.103:${PORT}`
+  );
 });

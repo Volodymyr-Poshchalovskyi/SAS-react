@@ -1,3 +1,5 @@
+// src/context/UploadContext.jsx
+
 import React, { createContext, useState, useContext } from 'react';
 import { supabase } from '../lib/supabaseClient'; // Переконайтесь, що шлях правильний
 
@@ -7,10 +9,14 @@ export const useUpload = () => {
     return useContext(UploadContext);
 };
 
+// ✨ ЗМІНА: Використовуємо змінну середовища для URL
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+
 // Функція завантаження файлу, винесена з компонента
 const uploadFileToGCS = async (file, role, onProgress) => {
     if (!file) return null;
-    const response = await fetch('http://localhost:3001/generate-upload-url', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileName: file.name, fileType: file.type, role: role }), });
+    // ✨ ЗМІНА: Замінено 'http://localhost:3001' на змінну API_BASE_URL
+    const response = await fetch(`${API_BASE_URL}/generate-upload-url`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileName: file.name, fileType: file.type, role: role }), });
     if (!response.ok) { const errorData = await response.json(); throw new Error(`Failed to get signed URL: ${errorData.details || errorData.error}`); }
     const { signedUrl, gcsPath } = await response.json();
     return new Promise((resolve, reject) => {
@@ -25,7 +31,6 @@ const uploadFileToGCS = async (file, role, onProgress) => {
     });
 };
 
-
 export const UploadProvider = ({ children }) => {
     const [uploadStatus, setUploadStatus] = useState({
         isActive: false, message: '', error: null, isSuccess: false,
@@ -33,6 +38,7 @@ export const UploadProvider = ({ children }) => {
     });
 
     const startUpload = async (reelsToUpload, commonFormData) => {
+        // ... (решта коду залишається без змін)
         if (!reelsToUpload || reelsToUpload.length === 0) return;
 
         setUploadStatus({
@@ -50,7 +56,6 @@ export const UploadProvider = ({ children }) => {
                 const currentIndex = reelsToUpload.indexOf(reel);
                 setUploadStatus(prev => ({ ...prev, message: `Processing file ${currentIndex + 1} of ${prev.totalFiles}`, currentFileName: reel.title, currentFileProgress: 0 }));
                 
-                // Ми очікуємо, що прев'ю вже згенеровано на сторінці CreateReel
                 const finalPreviewFile = reel.customPreviewFile;
 
                 const onMainProgress = p => setUploadStatus(prev => ({ ...prev, message: `Uploading content...`, currentFileProgress: finalPreviewFile ? p / 2 : p }));
