@@ -75,7 +75,8 @@ const MultiSelectCategories = ({ label, options, selectedOptions, onChange, plac
 const MultiCreatableSelect = ({ label, options, selectedOptions, onChange, placeholder, limit = 10, required = false }) => { const [inputValue, setInputValue] = useState(''); const [isOpen, setIsOpen] = useState(false); const wrapperRef = useRef(null); const availableOptions = useMemo(() => options.filter(opt => !selectedOptions.includes(opt.name) && opt.name.toLowerCase().includes(inputValue.toLowerCase())), [options, selectedOptions, inputValue]); const handleAdd = (itemName) => { const trimmedItem = itemName.trim(); if (trimmedItem && selectedOptions.length < limit && !selectedOptions.find(opt => opt.toLowerCase() === trimmedItem.toLowerCase())) { onChange([...selectedOptions, trimmedItem]); } setInputValue(''); setIsOpen(false); }; const handleRemove = (itemName) => onChange(selectedOptions.filter(opt => opt !== itemName)); const handleKeyDown = (e) => { if (e.key === 'Enter' && inputValue) { e.preventDefault(); handleAdd(inputValue); } }; useEffect(() => { function handleClickOutside(event) { if (wrapperRef.current && !wrapperRef.current.contains(event.target)) { setIsOpen(false); setInputValue(''); } } document.addEventListener("mousedown", handleClickOutside); return () => document.removeEventListener("mousedown", handleClickOutside); }, [wrapperRef]); const canAddCustom = inputValue.trim() && !options.some(opt => opt.name.toLowerCase() === inputValue.trim().toLowerCase()) && !selectedOptions.some(opt => opt.toLowerCase() === inputValue.trim().toLowerCase()); return ( <FormField label={`${label} (${selectedOptions.length}/${limit})`} required={required}> <input type="text" value={selectedOptions.join(',')} required={required} className="hidden" onChange={() => {}}/> <div className="relative" ref={wrapperRef}> <div className="flex flex-wrap items-center gap-2 p-2 min-h-[40px] border border-slate-300 dark:border-slate-700 rounded-md" onClick={() => { setIsOpen(true); wrapperRef.current.querySelector('input[type=text]:not(.hidden)').focus(); }}> {selectedOptions.map(option => ( <span key={option} className="flex items-center bg-teal-100 dark:bg-teal-900/50 text-teal-800 dark:text-teal-200 text-sm font-medium px-2.5 py-1 rounded-full"> {option} <button type="button" onClick={(e) => { e.stopPropagation(); handleRemove(option); }} className="ml-2 -mr-1 p-0.5 text-teal-600 dark:text-teal-300 hover:bg-teal-200 dark:hover:bg-teal-700 rounded-full"> <X size={14} /> </button> </span> ))} {selectedOptions.length < limit && ( <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={handleKeyDown} onFocus={() => setIsOpen(true)} placeholder={placeholder} className="flex-grow bg-transparent focus:outline-none p-1 text-sm" /> )} </div> {isOpen && ( <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md shadow-lg max-h-60 overflow-y-auto"> <ul onMouseDown={(e) => e.preventDefault()}> { canAddCustom && ( <li onClick={() => handleAdd(inputValue)} className="px-3 py-2 text-sm text-teal-600 dark:text-teal-400 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer italic"> Add "{inputValue.trim()}" </li> )} {availableOptions.map((option) => ( <li key={option.id} onClick={() => handleAdd(option.name)} className="px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"> {option.name} </li> ))} {!canAddCustom && availableOptions.length === 0 && ( <div className="px-3 py-2 text-sm text-slate-500">No available options</div> )} </ul> </div> )} </div> </FormField> ); };
 
 // --- Компонент ReelPartialForm ---
-const ReelPartialForm = ({ reel, onUpdate, onFilesSelected }) => {
+// ✨ КРОК 1: Додаємо isEditMode до пропсів
+const ReelPartialForm = ({ reel, onUpdate, onFilesSelected, isEditMode }) => {
     const { id, title, selectedFile, customPreviewFile, mainPreviewUrl, customPreviewUrl, } = reel;
     const [isDragging, setIsDragging] = useState(false);
     const [isEditingPreview, setIsEditingPreview] = useState(false);
@@ -93,7 +94,8 @@ const ReelPartialForm = ({ reel, onUpdate, onFilesSelected }) => {
     };
 
     useEffect(() => {
-        if (selectedFile && selectedFile.type.startsWith('video/') && !customPreviewFile) {
+        // ✨ КРОК 2: Запускаємо генерацію прев'ю ТІЛЬКИ в режимі редагування
+        if (isEditMode && selectedFile && selectedFile.type.startsWith('video/') && !customPreviewFile) {
             let isCleanedUp = false;
             const videoElement = document.createElement('video');
             const timer = setTimeout(() => { console.error('Video preview generation timed out.'); cleanup(); }, 5000);
@@ -137,7 +139,7 @@ const ReelPartialForm = ({ reel, onUpdate, onFilesSelected }) => {
             videoElement.currentTime = 0;
             videoElement.play().catch(onError);
         }
-    }, [selectedFile, customPreviewFile, id, onUpdate]);
+    }, [selectedFile, customPreviewFile, id, onUpdate, isEditMode]);
 
     useEffect(() => { return () => { if (editorVideoUrl) { URL.revokeObjectURL(editorVideoUrl); } }; }, [editorVideoUrl]);
 
@@ -208,7 +210,32 @@ const ReelPartialForm = ({ reel, onUpdate, onFilesSelected }) => {
                 <input id={`dropzone-file-${id}`} type="file" className="hidden" ref={fileInputRef} onChange={handleFileInputChange} accept="image/*,video/*" multiple />
             </FormSection>
             <FormSection title="Preview" hasSeparator={false}>
-                {isEditingPreview && isVideo ? (<VideoFrameSelector />) : customPreviewUrl ? (<div className="flex flex-col items-center"><div className="w-full flex justify-center mb-4"><img src={customPreviewUrl} alt="Final Preview" className="w-full h-auto max-w-2xl max-h-[500px] rounded-lg shadow-md object-contain" /></div><div className="flex items-center space-x-2"><button type="button" onClick={handleOpenPreviewEditor} className="px-4 py-1.5 text-xs font-semibold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600">Change preview</button></div></div>) : (selectedFile && !customPreviewUrl) || (mainPreviewUrl && !customPreviewUrl) ? (<div className="text-center text-slate-400 py-8"><Loader2 className="animate-spin inline-block mr-2" />Generating preview...</div>) : (<div className="text-center text-slate-400 py-8"><p>Preview of your content will appear here</p></div>)}
+                {/* ✨ КРОК 3: Оновлюємо JSX для відображення */}
+                { !isEditMode && isVideo && selectedFile ? (
+                    <div className="text-center text-slate-500 dark:text-slate-400 py-8">
+                        <p className="font-medium">Preview will be generated automatically.</p>
+                        <p className="text-xs mt-1">You can edit it after the initial upload.</p>
+                    </div>
+                ) : isEditingPreview && isVideo ? (
+                    <VideoFrameSelector />
+                ) : customPreviewUrl ? (
+                    <div className="flex flex-col items-center">
+                        <div className="w-full flex justify-center mb-4">
+                            <img src={customPreviewUrl} alt="Final Preview" className="w-full h-auto max-w-2xl max-h-[500px] rounded-lg shadow-md object-contain" />
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <button type="button" onClick={handleOpenPreviewEditor} className="px-4 py-1.5 text-xs font-semibold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600">Change preview</button>
+                        </div>
+                    </div>
+                ) : (isEditMode && selectedFile && !customPreviewUrl) || (isEditMode && mainPreviewUrl && !customPreviewUrl) ? (
+                    <div className="text-center text-slate-400 py-8">
+                        <Loader2 className="animate-spin inline-block mr-2" />Generating preview...
+                    </div>
+                ) : (
+                    <div className="text-center text-slate-400 py-8">
+                        <p>Preview of your content will appear here</p>
+                    </div>
+                )}
                 <input type="file" className="hidden" ref={previewFileInputRef} onChange={handleCustomPreviewSelect} accept="image/*" />
             </FormSection>
         </div>
@@ -223,7 +250,6 @@ const CreateReel = () => {
   const location = useLocation();
   const isEditMode = !!itemId;
 
-  // ✨ КРОК 1: Використовуємо глобальний стан для створення та РЕДАГУВАННЯ
   const { uploadStatus, startUpload, startUpdate } = useUpload();
   
   const createNewReelState = () => ({ id: Date.now() + Math.random(), title: '', selectedFile: null, customPreviewFile: null, mainPreviewUrl: null, customPreviewUrl: null, isRemovable: true });
@@ -287,7 +313,6 @@ const CreateReel = () => {
     fetchOptions();
   }, []);
 
-  // ✨ КРОК 2: Відновлюємо логіку завантаження даних для редагування
   useEffect(() => {
     if (isEditMode) {
       const fetchItemData = async () => {
@@ -419,6 +444,7 @@ const CreateReel = () => {
           if (reel.id === reelId) {
             const fileNameWithoutExt = firstFile.name.substring(0, firstFile.name.lastIndexOf('.')) || firstFile.name;
             const fileUrl = URL.createObjectURL(firstFile);
+            // У режимі створення не генеруємо URL для прев'ю відео
             const customPreviewUrl = compressedPreviewForFirst ? URL.createObjectURL(compressedPreviewForFirst) : null;
             return { ...reel, title: reel.title || fileNameWithoutExt, selectedFile: firstFile, customPreviewFile: compressedPreviewForFirst, mainPreviewUrl: fileUrl, customPreviewUrl: customPreviewUrl };
           }
@@ -432,7 +458,6 @@ const CreateReel = () => {
   const handleCommonFormChange = (field, value) => setCommonFormData((prev) => ({ ...prev, [field]: value }));
   const isSchedulingDisabled = commonFormData.publishOption === 'now';
 
-  // ✨ КРОК 3: Оновлюємо handleSubmit для обробки обох режимів
   const handleSubmit = async (event) => {
     event.preventDefault();
     for (const reel of reels) {
@@ -452,7 +477,6 @@ const CreateReel = () => {
 
     if (isEditMode) {
         await startUpdate(itemId, reels[0], commonFormData);
-        // Після успішного оновлення, можна додати перенаправлення
         setTimeout(() => {
            if (!uploadStatus.error) {
               const returnPath = location.pathname.startsWith('/adminpanel') ? '/adminpanel/library' : '/userpanel/library';
@@ -466,7 +490,6 @@ const CreateReel = () => {
             return;
         }
         await startUpload(reelsToUpload, commonFormData);
-        // Очищуємо форму тільки після успішного СТВОРЕННЯ
         if (!uploadStatus.error) {
             setReels([createNewReelState()]);
             setCommonFormData(initialCommonFormData);
@@ -497,10 +520,12 @@ const CreateReel = () => {
           <h2 className="text-xl font-bold text-slate-700 dark:text-slate-200 mb-4">
             {isEditMode ? `Editing Media: ${reel.title}` : `Media #${index + 1}`}
           </h2>
+          {/* ✨ КРОК 4: Передаємо isEditMode в дочірній компонент */}
           <ReelPartialForm
             reel={reel}
             onUpdate={handleUpdateReel}
             onFilesSelected={handleFilesSelected}
+            isEditMode={isEditMode}
           />
         </div>
       ))}

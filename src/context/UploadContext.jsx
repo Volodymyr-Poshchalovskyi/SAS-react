@@ -61,12 +61,20 @@ export const UploadProvider = ({ children }) => {
                 const currentIndex = reelsToUpload.indexOf(reel);
                 setUploadStatus(prev => ({ ...prev, message: `Processing file ${currentIndex + 1} of ${prev.totalFiles}`, currentFileName: reel.title, currentFileProgress: 0 }));
                 
-                const finalPreviewFile = reel.customPreviewFile;
-                const onMainProgress = p => setUploadStatus(prev => ({ ...prev, message: `Uploading content...`, currentFileProgress: finalPreviewFile ? p / 2 : p }));
-                const onPreviewProgress = p => setUploadStatus(prev => ({ ...prev, message: `Uploading preview...`, currentFileProgress: 50 + (p / 2) }));
+                // ✨ ЗМІНА: Ми більше не відправляємо `customPreviewFile` при створенні.
+                // Якщо це зображення, воно буде використане як прев'ю, але для відео прев'ю буде null.
+                const isVideoFile = reel.selectedFile.type.startsWith('video/');
+                const finalPreviewFile = isVideoFile ? null : reel.customPreviewFile;
 
+                const onMainProgress = p => setUploadStatus(prev => ({ ...prev, message: `Uploading content...`, currentFileProgress: p }));
+                
+                // Ми більше не завантажуємо прев'ю окремо для відео, тому логіка прогресу спрощується.
                 const content_gcs_path = await uploadFileToGCS(reel.selectedFile, 'main', onMainProgress);
-                const preview_gcs_path = finalPreviewFile ? await uploadFileToGCS(finalPreviewFile, 'preview', onPreviewProgress) : null;
+                
+                // Бекенд має сам створити preview_gcs_path для відео. 
+                // Для зображень, ми можемо передати той самий шлях або спеціальний. 
+                // Тут ми просто не передаємо прев'ю, якщо це відео.
+                const preview_gcs_path = finalPreviewFile ? await uploadFileToGCS(finalPreviewFile, 'preview', () => {}) : null;
                 
                 allUploadedRecords.push({
                     user_id: user.id, title: reel.title, artists: commonFormData.artist.join(', '), client: commonFormData.client.join(', '), categories: commonFormData.categories.join(', '), publish_date: commonFormData.publishOption === 'now' ? new Date().toISOString() : commonFormData.publicationDate.toISOString(), video_gcs_path: content_gcs_path, preview_gcs_path: preview_gcs_path, description: commonFormData.description, featured_celebrity: commonFormData.featuredCelebrity.join(', '), content_type: commonFormData.contentType, craft: commonFormData.craft, allow_download: commonFormData.allowDownload,
@@ -89,7 +97,6 @@ export const UploadProvider = ({ children }) => {
         }
     };
     
-    // ✨ КРОК 1: Додаємо нову функцію для оновлення
     const startUpdate = async (itemId, reelToUpdate, commonFormData) => {
         setUploadStatus({
             isActive: true, message: 'Preparing to update...', error: null, isSuccess: false,
@@ -103,13 +110,17 @@ export const UploadProvider = ({ children }) => {
             const hasNewContent = reelToUpdate.selectedFile instanceof File;
             const hasNewPreview = reelToUpdate.customPreviewFile instanceof File;
 
-            // Логіка для відстеження прогресу
             const onMainProgress = p => setUploadStatus(prev => ({ ...prev, message: 'Uploading new content...', currentFileProgress: hasNewPreview ? p / 2 : p }));
             const onPreviewProgress = p => setUploadStatus(prev => ({ ...prev, message: 'Uploading new preview...', currentFileProgress: hasNewContent ? 50 + (p / 2) : p }));
 
             if (hasNewContent) {
                 videoPath = await uploadFileToGCS(reelToUpdate.selectedFile, 'main', onMainProgress);
+                 // ✨ ДОДАНО: Якщо завантажується нове відео, скидаємо старе прев'ю, щоб бекенд згенерував нове
+                if (reelToUpdate.selectedFile.type.startsWith('video/')) {
+                    previewPath = null; 
+                }
             }
+            // Користувач може змінити прев'ю, навіть не змінюючи основний файл
             if (hasNewPreview) {
                 previewPath = await uploadFileToGCS(reelToUpdate.customPreviewFile, 'preview', onPreviewProgress);
             }
@@ -155,7 +166,7 @@ export const UploadProvider = ({ children }) => {
     const value = {
         uploadStatus,
         startUpload,
-        startUpdate, // ✨ КРОК 2: Експортуємо нову функцію
+        startUpdate, 
     };
 
     return (
