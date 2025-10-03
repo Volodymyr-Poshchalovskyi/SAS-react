@@ -1,7 +1,7 @@
 // src/context/UploadContext.jsx
 
 import React, { createContext, useState, useContext } from 'react';
-import { supabase } from '../lib/supabaseClient'; // Переконайтесь, що шлях правильний
+import { supabase } from '../lib/supabaseClient';
 
 const UploadContext = createContext();
 
@@ -9,13 +9,10 @@ export const useUpload = () => {
     return useContext(UploadContext);
 };
 
-// ✨ ЗМІНА: Використовуємо змінну середовища для URL
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
-// Функція завантаження файлу, винесена з компонента
 const uploadFileToGCS = async (file, role, onProgress) => {
     if (!file) return null;
-    // ✨ ЗМІНА: Замінено 'http://localhost:3001' на змінну API_BASE_URL
     const response = await fetch(`${API_BASE_URL}/generate-upload-url`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileName: file.name, fileType: file.type, role: role }), });
     if (!response.ok) { const errorData = await response.json(); throw new Error(`Failed to get signed URL: ${errorData.details || errorData.error}`); }
     const { signedUrl, gcsPath } = await response.json();
@@ -37,8 +34,16 @@ export const UploadProvider = ({ children }) => {
         totalFiles: 0, completedFiles: 0, currentFileName: '', currentFileProgress: 0,
     });
 
+    const resetStatus = () => {
+        setTimeout(() => {
+            setUploadStatus({
+                isActive: false, message: '', error: null, isSuccess: false,
+                totalFiles: 0, completedFiles: 0, currentFileName: '', currentFileProgress: 0,
+            });
+        }, 5000);
+    };
+
     const startUpload = async (reelsToUpload, commonFormData) => {
-        // ... (решта коду залишається без змін)
         if (!reelsToUpload || reelsToUpload.length === 0) return;
 
         setUploadStatus({
@@ -57,7 +62,6 @@ export const UploadProvider = ({ children }) => {
                 setUploadStatus(prev => ({ ...prev, message: `Processing file ${currentIndex + 1} of ${prev.totalFiles}`, currentFileName: reel.title, currentFileProgress: 0 }));
                 
                 const finalPreviewFile = reel.customPreviewFile;
-
                 const onMainProgress = p => setUploadStatus(prev => ({ ...prev, message: `Uploading content...`, currentFileProgress: finalPreviewFile ? p / 2 : p }));
                 const onPreviewProgress = p => setUploadStatus(prev => ({ ...prev, message: `Uploading preview...`, currentFileProgress: 50 + (p / 2) }));
 
@@ -81,15 +85,77 @@ export const UploadProvider = ({ children }) => {
             console.error('An error occurred during upload:', err);
             setUploadStatus(prev => ({ ...prev, message: 'Upload Failed!', error: err.message, isSuccess: false }));
         } finally {
-            setTimeout(() => {
-                setUploadStatus(prev => ({ ...prev, isActive: false }));
-            }, 5000);
+            resetStatus();
+        }
+    };
+    
+    // ✨ КРОК 1: Додаємо нову функцію для оновлення
+    const startUpdate = async (itemId, reelToUpdate, commonFormData) => {
+        setUploadStatus({
+            isActive: true, message: 'Preparing to update...', error: null, isSuccess: false,
+            totalFiles: 1, completedFiles: 0, currentFileName: reelToUpdate.title, currentFileProgress: 0,
+        });
+
+        try {
+            let videoPath = reelToUpdate.original_video_path;
+            let previewPath = reelToUpdate.original_preview_path;
+
+            const hasNewContent = reelToUpdate.selectedFile instanceof File;
+            const hasNewPreview = reelToUpdate.customPreviewFile instanceof File;
+
+            // Логіка для відстеження прогресу
+            const onMainProgress = p => setUploadStatus(prev => ({ ...prev, message: 'Uploading new content...', currentFileProgress: hasNewPreview ? p / 2 : p }));
+            const onPreviewProgress = p => setUploadStatus(prev => ({ ...prev, message: 'Uploading new preview...', currentFileProgress: hasNewContent ? 50 + (p / 2) : p }));
+
+            if (hasNewContent) {
+                videoPath = await uploadFileToGCS(reelToUpdate.selectedFile, 'main', onMainProgress);
+            }
+            if (hasNewPreview) {
+                previewPath = await uploadFileToGCS(reelToUpdate.customPreviewFile, 'preview', onPreviewProgress);
+            }
+            
+            setUploadStatus(prev => ({...prev, message: "Updating metadata..."}));
+
+            const recordToUpdate = {
+                title: reelToUpdate.title,
+                artists: commonFormData.artist.join(', '),
+                client: commonFormData.client.join(', '),
+                categories: commonFormData.categories.join(', '),
+                publish_date: commonFormData.publishOption === 'now' ? new Date().toISOString() : commonFormData.publicationDate.toISOString(),
+                video_gcs_path: videoPath,
+                preview_gcs_path: previewPath,
+                description: commonFormData.description,
+                featured_celebrity: commonFormData.featuredCelebrity.join(', '),
+                content_type: commonFormData.contentType,
+                craft: commonFormData.craft,
+                allow_download: commonFormData.allowDownload,
+            };
+
+            const response = await fetch(`${API_BASE_URL}/media-items/${itemId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(recordToUpdate),
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.details || 'Failed to update media item.');
+            }
+
+            setUploadStatus(prev => ({ ...prev, message: 'Changes saved successfully!', isSuccess: true, completedFiles: 1 }));
+
+        } catch (err) {
+             console.error('An error occurred during update:', err);
+            setUploadStatus(prev => ({ ...prev, message: 'Update Failed!', error: err.message, isSuccess: false }));
+        } finally {
+            resetStatus();
         }
     };
 
     const value = {
         uploadStatus,
         startUpload,
+        startUpdate, // ✨ КРОК 2: Експортуємо нову функцію
     };
 
     return (

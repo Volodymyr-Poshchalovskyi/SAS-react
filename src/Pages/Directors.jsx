@@ -1,3 +1,5 @@
+// src/Pages/Directors.jsx
+
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -6,6 +8,8 @@ import PreloaderBanner from '../Components/PreloaderBanner';
 import ScrollProgressBar from '../Components/ScrollProgressBar';
 import { useAnimation } from '../context/AnimationContext';
 import { directorsData } from '../Data/DirectorsData';
+
+const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
 
 const nameAnimation = {
   hidden: { opacity: 0, y: 30 },
@@ -18,27 +22,40 @@ const nameAnimation = {
 
 const DirectorSlide = ({ director, isActive, shouldPreload, isPreloaderActive }) => {
   const [videoSrc, setVideoSrc] = useState('');
-  const publicCdnUrl = `https://storage.googleapis.com/new-sas-media-storage/${director.videos[0].src}`;
+  // ЗМІНА 1: Додаємо стан для URL прев'ю
+  const [previewSrc, setPreviewSrc] = useState('');
+
+  // Отримуємо дані для першого відео, яке буде фоновим
+  const firstVideo = director.videos[0];
+  const publicVideoUrl = `${CDN_BASE_URL}/${firstVideo.src}`;
+  
+  // ЗМІНА 2: Створюємо повний URL для прев'ю-зображення
+  const publicPreviewUrl = firstVideo.preview_src
+    ? `${CDN_BASE_URL}/${firstVideo.preview_src}`
+    : '';
 
   useEffect(() => {
-    // Керуємо джерелом відео: встановлюємо URL, якщо слайд активний
-    // або має бути попередньо завантажений.
     if (isActive || shouldPreload) {
-      setVideoSrc(publicCdnUrl);
-    } 
-    // В іншому випадку — очищуємо src, щоб зупинити завантаження.
-    else {
+      setVideoSrc(publicVideoUrl);
+      // ЗМІНА 3: Встановлюємо URL прев'ю разом з URL відео
+      setPreviewSrc(publicPreviewUrl);
+    } else {
       setVideoSrc('');
+      // ЗМІНА 4: Очищуємо URL прев'ю, коли слайд неактивний
+      setPreviewSrc('');
     }
-  }, [isActive, shouldPreload, publicCdnUrl]);
+    // Додаємо `publicPreviewUrl` до масиву залежностей
+  }, [isActive, shouldPreload, publicVideoUrl, publicPreviewUrl]);
 
   return (
     <div className="relative w-full h-screen snap-start">
-      {/* Рендеримо плеєр, тільки якщо є що завантажувати/відтворювати */}
+      {/* Рендеримо плеєр, тільки якщо є джерело відео */}
       {videoSrc && (
         <HlsVideoPlayer
           src={videoSrc}
-          shouldPlay={isActive && !isPreloaderActive} // Відтворюємо тільки активне відео
+          // ЗМІНА 5: Передаємо `previewSrc` в HlsVideoPlayer
+          previewSrc={previewSrc}
+          shouldPlay={isActive && !isPreloaderActive}
         />
       )}
       <div className="absolute top-[80%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full text-center">
@@ -46,7 +63,6 @@ const DirectorSlide = ({ director, isActive, shouldPreload, isPreloaderActive })
           className="flex flex-col items-center gap-4"
           variants={nameAnimation}
           initial="hidden"
-          // Анімація з'являється тільки для активного слайда
           animate={isActive && !isPreloaderActive ? 'visible' : 'hidden'}
         >
           <Link
@@ -127,7 +143,6 @@ export default function Directors() {
       )}
 
       {directorsData.map((director, index) => {
-        // Визначаємо стан кожного слайду прямо тут
         const isActive = index === currentIndex;
         const shouldPreload = Math.abs(index - currentIndex) === 1;
 

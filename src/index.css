@@ -62,13 +62,30 @@
   font-style: normal;
 }
 
+/* НОВИЙ КОД */
+html {
+  /* Забезпечуємо, щоб html займав усю висоту */
+  height: 100%; 
+}
+
 body {
+  /* Забезпечуємо, щоб body займав усю висоту html */
+  height: 100%;
   font-family: 'abchanel-pb-l', sans-serif;
   color: #fff;
-  /* Градієнт від темно-сірого в центрі до чорного по краях */
-  background: radial-gradient(ellipse at center, #1b1b1b 0%, #000000 100%);
-  /* Забезпечуємо, щоб фон покривав весь екран */
-  min-height: 100vh;
+  /* ПРИБИРАЄМО ФОН І MIN-HEIGHT ЗВІДСИ.
+    Фон буде керуватися компонентом Layout.
+  */
+}
+
+/* Змушуємо root-елемент React також займати 100% висоти */
+#root {
+  height: 100%;
+}
+
+/* Ваше правило для overscroll залишається, але краще застосувати його до html */
+html {
+  overscroll-behavior-y: contain;
 }
 .intro-preloader__sub {
   font-family: 'helvetica', Arial, sans-serif;

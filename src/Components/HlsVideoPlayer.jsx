@@ -1,80 +1,88 @@
+// src/Components/HlsVideoPlayer.jsx
+
 import React, { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 
-const HlsVideoPlayer = ({ src, shouldPlay, isMuted = true, ...props }) => {
+const HlsVideoPlayer = ({
+  src,
+  shouldPlay,
+  isMuted = true,
+  previewSrc,
+  ...props
+}) => {
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isVideoVisible, setIsVideoVisible] = useState(false);
 
   useEffect(() => {
-    setIsLoading(true);
-    if (!src) return;
+    if (!src || !videoRef.current) return;
 
     const video = videoRef.current;
-    const hls = new Hls({
-      autoLevelEnabled: false,
-    });
+    let hls;
 
-    hlsRef.current = hls;
-
-    // --- ПОЧАТОК ЗМІН ---
-
-    // 1. Створюємо функцію, яка вимкне лоадер
-    const onVideoReady = () => {
-      setIsLoading(false);
+    const showVideo = () => {
+      setIsVideoVisible(true);
     };
 
-    // 2. Прибираємо логіку з hls.on(...) і додаємо нативний слухач подій
-    //    Подія 'loadeddata' спрацьовує, коли перший кадр відео завантажено і готовий до показу
-    video.addEventListener('loadeddata', onVideoReady);
+    // ВИПРАВЛЕННЯ 1: Оголошуємо функцію тут, щоб вона була доступна
+    // як для додавання слухача, так і для його видалення у cleanup-функції.
+    const onManifestParsed = (event, data) => {
+      hls.startLevel = data.levels.length - 1;
+    };
 
-    // --- КІНЕЦЬ ЗМІН ---
+    if (Hls.isSupported()) {
+      hls = new Hls();
+      hlsRef.current = hls;
 
-    hls.on(Hls.Events.MANIFEST_PARSED, (event, data) => {
-      if (data.levels && data.levels.length > 0) {
-        const highestLevel = data.levels.length - 1;
-        hls.currentLevel = highestLevel;
-        hls.startLevel = highestLevel;
-        hls.nextLevel = highestLevel;
-      }
-    });
+      // Тепер функція onManifestParsed знаходиться у правильній області видимості
+      hls.on(Hls.Events.MANIFEST_PARSED, onManifestParsed);
 
-    hls.loadSource(src);
-    hls.attachMedia(video);
+      hls.loadSource(src);
+      hls.attachMedia(video);
+      video.addEventListener('canplay', showVideo);
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = src;
+      video.addEventListener('canplay', showVideo);
+    }
 
     return () => {
-      // Важливо прибирати слухач подій, щоб уникнути витоків пам'яті
-      video.removeEventListener('loadeddata', onVideoReady);
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
-        hlsRef.current = null;
+      video.removeEventListener('canplay', showVideo);
+      if (hls) {
+        // ВИПРАВЛЕННЯ 2: Тепер функція очищення має доступ до onManifestParsed
+        // і може коректно видалити слухач подій.
+        hls.off(Hls.Events.MANIFEST_PARSED, onManifestParsed);
+        hls.destroy();
       }
     };
   }, [src]);
 
   useEffect(() => {
+    if (!videoRef.current) return;
     const video = videoRef.current;
-    if (!video) return;
 
-    if (shouldPlay && !isLoading) {
+    if (shouldPlay && isVideoVisible) {
       video.play().catch(error => console.log("Autoplay was prevented:", error));
     } else {
       video.pause();
     }
-  }, [shouldPlay, isLoading]);
+  }, [shouldPlay, isVideoVisible]);
 
   return (
     <>
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-solid border-white border-t-transparent"></div>
-        </div>
+      {previewSrc && (
+        <img
+          src={previewSrc}
+          alt="Video preview"
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
+            isVideoVisible ? 'opacity-0' : 'opacity-100'
+          }`}
+        />
       )}
 
       <video
         ref={videoRef}
         className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${
-          isLoading ? 'opacity-0' : 'opacity-100'
+          isVideoVisible ? 'opacity-100' : 'opacity-0'
         }`}
         playsInline
         loop

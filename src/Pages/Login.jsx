@@ -82,7 +82,9 @@ const Login = () => {
     setLocalError('');
     setLoading(true);
     try {
+
       await signInWithPassword(email, password);
+      
     } catch (err) {
       setLocalError(err.message || 'Incorrect email or password.');
     } finally {

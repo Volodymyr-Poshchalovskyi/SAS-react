@@ -4,20 +4,22 @@ import React, { useState, useLayoutEffect } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { directorsData } from '../Data/DirectorsData';
 import { assignmentData } from '../Data/AssignmentData';
-import HlsVideoPlayer from '../Components/HlsVideoPlayer'; // <-- ЗМІНА 1: Новий імпорт
+import HlsVideoPlayer from '../Components/HlsVideoPlayer';
 import VideoModal from '../Components/VideoModal';
 import { useInView } from 'react-intersection-observer';
 
 const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
 
-const DirectorVideoBlock = ({ video, videoSrc, onExpand }) => {
+// ЗМІНА 1: Додаємо `previewSrc` до пропсів
+const DirectorVideoBlock = ({ video, videoSrc, previewSrc, onExpand }) => {
   const { ref, inView } = useInView({
     threshold: 0.5,
   });
 
   return (
     <section ref={ref} className="relative w-full h-[75vh] bg-black">
-      <HlsVideoPlayer src={videoSrc} shouldPlay={inView} />
+      {/* ЗМІНА 2: Передаємо `previewSrc` в HlsVideoPlayer */}
+      <HlsVideoPlayer src={videoSrc} previewSrc={previewSrc} shouldPlay={inView} />
       <div className="absolute inset-0 z-10 flex items-end justify-center">
         <div className="flex flex-col items-center text-white pb-24 px-4">
           <div className="mb-6 text-shadow text-center">
@@ -97,11 +99,16 @@ export default function DirectorPage() {
       <div className="bg-black">
         {director.videos.map((video, index) => {
           const publicVideoUrl = `${CDN_BASE_URL}/${video.src}`;
+          // ЗМІНА 3: Створюємо URL для прев'ю
+          const publicPreviewUrl = video.preview_src
+            ? `${CDN_BASE_URL}/${video.preview_src}`
+            : '';
           return (
             <DirectorVideoBlock
               key={index}
               video={video}
               videoSrc={publicVideoUrl}
+              previewSrc={publicPreviewUrl} // ЗМІНА 4: Передаємо URL прев'ю
               onExpand={setExpandedVideo}
             />
           );
@@ -109,9 +116,6 @@ export default function DirectorPage() {
       </div>
 
       <section className="relative w-full min-h-screen bg-black flex flex-col justify-end">
-        {/* 1. Image as a true background */}
-        {/* We use absolute positioning and object-cover to make the image fill the entire section without distorting it. */}
-        {/* This completely decouples the layout from the image's dimensions. */}
         {publicPhotoUrl && (
           <img
             src={publicPhotoUrl}
@@ -119,10 +123,6 @@ export default function DirectorPage() {
             className="absolute inset-0 w-full h-full object-cover z-0"
           />
         )}
-
-        {/* 2. Unified Content Container */}
-        {/* This single div now holds the name and bio. It has a gradient background and is pushed to the bottom by the parent's flexbox (`justify-end`). */}
-        {/* Its height is flexible, determined by its padding and content, preventing text overflow. */}
         <div className="relative z-10 w-full bg-gradient-to-t from-black via-black/90 to-transparent pt-24 pb-20 md:pb-32">
           <div className="container mx-auto px-4 flex flex-col items-center text-center text-white">
             <h2 className="font-normal text-[80px] leading-none tracking-[-0.15em] mb-8">
