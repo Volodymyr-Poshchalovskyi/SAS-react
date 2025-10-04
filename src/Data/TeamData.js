@@ -5,41 +5,56 @@
  * Note: photoSrc should be the path to the image file within your GCS bucket.
  * The front-end will request a signed URL for this path from the server.
  */
+import heatherPhoto from '../assets/Photos/Heather.jpg';
+import tommyPhoto from '../assets/Photos/Tommy.jpg';
+import candicePhoto from '../assets/Photos/Candice.png';
+import rostPhoto from '../assets/Photos/Rost.jpg';
+import dalePhoto from '../assets/Photos/Dale.jpg';
 export const teamData = [
   {
     id: 1,
-    firstName: 'candice',
-    lastName: 'BECKMAN',
-    role: 'CO-FOUNDER / PHOTOGRAPHER',
-    category: 'MUSIC & CULTURE',
-    photoSrc: 'front-end/08-about/01-Team/Candice.png', // Example GCS path
-    bio: 'IS A BRITISH-BORN PHOTOGRAPHER WHO NOW LIVES AND WORKS IN NEW YORK. SHE IS KNOWN FOR HER WORK WITH MUSICIANS AND HER DOCUMENTATION OF URBAN SUBCULTURES. HER PHOTOGRAPHS HAVE APPEARED IN PUBLICATIONS SUCH AS THE FACE, I-D, MELODY MAKER, ROLLING STONE, AND VIBE.',
+    firstName: 'heather',
+    lastName: 'HELLER',
+    role: 'MANAGING DIRECTOR & FOUNDER - EXECUTIVE PRODUCER',
+    category: 'EXECUTIVE PRODUCER & FOUNDER',
+    photoSrc: heatherPhoto, // Example GCS path
+    bio: "Heather is a Grammy and Clio award-winning executive producer with over two decades of experience in the entertainment and advertising industry. She is the driving force behind Sinners and Saints. Heather's impressive portfolio includes collaborations with iconic artists like Lady Gaga and Lana Del Rey, stars such as Nicole Kidman and Jennifer Lawrence, and directors Francis Lawrence and Lisa Joy.Heather's dedication to excellence has made Sinners and Saints the preferred choice for global brands like Dior, Chanel, and Louis Vuitton. She routinely exceeds client expectations due to her industry expertise. Heather's extensive network of connections with industry crews and vendors is unmatched, guaranteeing a seamless and exceptional production experience for every project. With her dedication to quality, industry knowledge, and creative prowess, Heather Heller continues to set industry standards and push boundaries, making her a true luminary in the world of entertainment and advertising.",
   },
   {
     id: 2,
-    firstName: 'heather',
-    lastName: 'TERRERO',
-    role: 'CO-FOUNDER / CEO',
-    category: 'FILM & BRANDED CONTENT',
-    photoSrc: 'front-end/08-about/01-Team/Heather.jpg', // Example GCS path
-    bio: 'IS A DOMINICAN-AMERICAN DIRECTOR, PRODUCER, AND FOUNDER OF THE PRODUCTION COMPANY CINEMA GIANTS. WITH A CAREER SPANNING OVER TWO DECADES, HE HAS BECOME ONE OF THE MOST INFLUENTIAL VISUAL STORYTELLERS IN LATIN AND URBAN MUSIC CULTURE. HE HAS DIRECTED ICONIC MUSIC VIDEOS FOR GLOBAL SUPERSTARS.',
+    firstName: 'THOMAS',
+    lastName: 'CARROLL',
+    role: 'EXECUTIVER PRODUCER FEATURES',
+    category: 'EXECUTIVE PRODUCER FEATURES & PARTNER',
+    photoSrc: tommyPhoto, // Example GCS path
+    bio: "At Sinners and Saints, Thomas occupies a pivotal role, steering the company towards new horizons beyond commercials and short-form content. With an entrepreneurial spirit at his core, he has spearheaded the expansion of the brand into the world of entertainment, imbuing it with his trademark commitment to premium quality content.Under Thomas's leadership, Sinners and Saints has flourished, optioning seven projects that embody the company's ethos of storytelling excellence. Each project resonates with unique and compelling narratives, echoing the distinctive creative voices that define the brand.In 2024, Thomas embarked on a new chapter with the production of a psychological thriller starring Jack Kilmer, Paris Jackson, and Eric Roberts. This feature film, set to premiere in early 2025, stands as a testament to his ability to craft compelling narratives that captivate audiences worldwide. He navigates seamlessly across the media landscape, overseeing projects spanning branded entertainment, features, and documentaries.",
   },
   {
     id: 3,
-    firstName: 'rost',
-    lastName: 'MULLER',
-    role: 'DIRECTOR',
-    category: 'MUSIC VIDEOS',
-    photoSrc: 'front-end/08-about/01-Team/Rost.jpg', // Example GCS path
-    bio: 'IS A BRITISH MUSIC VIDEO DIRECTOR, WHO HAS DIRECTED OVER 200 MUSIC VIDEOS. SHE IS BEST KNOWN FOR HER FREQUENT COLLABORATIONS WITH ARTISTS SUCH AS NO DOUBT, GWEN STEFANI, SHAKIRA, AND RIHANNA. HER WORK IS CHARACTERIZED BY A STRONG VISUAL STYLE AND A FOCUS ON PERFORMANCE.',
+    firstName: 'candice',
+    lastName: 'LAWLER',
+    role: 'EXECUTIVE PRODUCER PHOTO & MUSIC VIDEO',
+    category: 'EXECUTIVE PRODUCER PHOTO & MUSIC VIDEO',
+    photoSrc: candicePhoto, // Example GCS path
+    bio: "Candice is a Los Angeles based creative director who’s career spans 20 years across brand marketing, tech, entertainment and musicAfter graduating from New York’s School Of Visual Arts, Candice spent time both behind the camera working with some of the biggest acts across music as well as leading brand creative for companies such as BET Networks, MTV, and Apple. During her 8 years at Apple she led global teams managing all aspects of video campaigns, photo, and design for Apple Music, APP Store, and TV+. Candice developed and executed the creative marketing for all first and second year platform launch titles for the TV+ team.Candice currently acts as Executive Producer and Creative Director across brand advertising campaigns for clients that include automotive, finance, fashion, pharma, tech, luxury and lifestyle brands. Her vast network and dedication to creative and strategic innovation makes her a trusted creative leader in today's advertising industry.",
   },
   {
     id: 4,
-    firstName: 'tommy',
-    lastName: 'LACHAPELLE',
-    role: 'DIRECTOR / ARTIST',
-    category: 'FASHION & ART',
-    photoSrc: 'front-end/08-about/01-Team/front-end_08-about_01-Team_Tommy.jpg', // Example GCS path
-    bio: 'IS AN AMERICAN COMMERCIAL PHOTOGRAPHER, FINE-ART PHOTOGRAPHER, MUSIC VIDEO DIRECTOR, AND FILM DIRECTOR. HE IS KNOWN FOR HIS PHOTOGRAPHY, WHICH OFTEN REFERENCES ART HISTORY AND SOMETIMES CONVEYS SOCIAL MESSAGES. HIS PHOTOGRAPHIC STYLE HAS BEEN DESCRIBED AS "HYPER-REAL AND SLICKLY SURREALIST".',
+    firstName: 'Rost',
+    lastName: 'Tolmachev',
+    role: 'PRODUCTION OFFICE COORDINATOR',
+    category: 'PRODUCTION OFFICE COORDINATOR',
+    photoSrc: rostPhoto, // Example GCS path
+    bio: 'Head of Production at Sinners and Saints. Born in Samara, Russia, forged in Los Angeles — Rost runs the show with a rare blend of precision, style, and international swagger.Fluent in Russian and fluent in getting sh*t done, he leads with vision and grit. Rost is the go-to for making the impossible happen — merging sharp creative instincts with airtight production and a cross-continental hustle that keeps S&S plugged in from LA to Eastern Europe.',
   },
+  {
+    id: 5,
+    firstName: 'Dale',
+    lastName: 'Smith',
+    role: 'PRODUCTION OFFICE COORDINATOR',
+    category: 'PRODUCTION OFFICE COORDINATOR',
+    photoSrc: dalePhoto, // Example GCS path
+    bio: 'Head of Production at Sinners and Saints. Born in Samara, Russia, forged in Los Angeles — Rost runs the show with a rare blend of precision, style, and international swagger.Fluent in Russian and fluent in getting sh*t done, he leads with vision and grit. Rost is the go-to for making the impossible happen — merging sharp creative instincts with airtight production and a cross-continental hustle that keeps S&S plugged in from LA to Eastern Europe.',
+  },
+  
 ];

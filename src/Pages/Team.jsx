@@ -5,8 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import PreloaderBanner from '../Components/PreloaderBanner';
 import { useAnimation } from '../context/AnimationContext';
 import { X } from 'lucide-react';
-// ✨ ЗМІНА: Імпортуємо дані з нового файлу
-import { teamData } from '../Data/TeamData';
+import { teamData } from '../Data/TeamData'; // Дані вже містять імпортовані зображення
 import sinnersLogoBlack from '../assets/Logo/Sinners logo black.png';
 
 // --- Анімації (без змін) ---
@@ -29,9 +28,9 @@ const tabsData = [
 ];
 
 // ===================================
-// ✨ REVISED: Модальне вікно учасника команди (приймає динамічні дані)
+// ✨ ОНОВЛЕНО: Модальне вікно учасника команди
 // ===================================
-const TeamMemberModal = ({ member, photoUrl, onClose }) => {
+const TeamMemberModal = ({ member, onClose }) => { // ✨ ЗМІНА: Проп `photoUrl` видалено
   useEffect(() => {
     const handleEsc = (event) => {
       if (event.key === 'Escape') onClose();
@@ -92,35 +91,35 @@ const TeamMemberModal = ({ member, photoUrl, onClose }) => {
 
         <div className="flex-grow flex flex-col px-8 md:px-16 pb-12">
           <h1 className="flex-shrink-0 text-6xl md:text-[120px] text-center font-chanel font-semibold uppercase mb-8 leading-none">
-            {/* ЗМІНЕНО: Динамічне ім'я */}
             {member.firstName} {member.lastName}
           </h1>
           <div className="flex-grow flex flex-col md:flex-row gap-12 md:gap-16 min-h-0">
             <div className="w-full md:w-2/5 flex-shrink-0">
-              {/* ЗМІНЕНО: Динамічне фото */}
-              {photoUrl ? (
+              {/* ✨ ЗМІНА: Використовуємо `member.photoSrc` напряму */}
+              {member.photoSrc ? (
                 <img
-                  src={photoUrl}
+                  src={member.photoSrc}
                   alt={`${member.firstName} ${member.lastName}`}
                   className="w-full aspect-square object-cover"
                 />
               ) : (
-                <div className="w-full aspect-square bg-gray-200 dark:bg-gray-800" /> // Placeholder while loading
+                <div className="w-full aspect-square bg-gray-200 dark:bg-gray-800" />
               )}
             </div>
-            <div className="w-full md:w-3/5 flex flex-col">
-              <div className="flex-grow" />
-              <div>
-                {/* ЗМІНЕНО: Динамічна посада */}
-                <h2 className="text-3xl font-bold uppercase tracking-widest mb-4">
-                  {member.role}
-                </h2>
-                {/* ЗМІНЕНО: Динамічне біо */}
-                <p className="text-base leading-relaxed whitespace-pre-line max-h-[40vh] md:max-h-full overflow-y-auto">
-                  {member.bio}
-                </p>
-              </div>
-            </div>
+            <div className="w-full md:w-3/5 flex flex-col justify-center">
+  
+  {/* ✨ 2. Видаляємо цей зайвий елемент-розпірку */}
+  {/* <div className="flex-grow" /> */}
+  
+  <div>
+    <h2 className="text-3xl font-bold uppercase tracking-widest mb-4">
+      {member.role}
+    </h2>
+    <p className="text-base leading-relaxed whitespace-pre-line max-h-[40vh] md:max-h-full overflow-y-auto">
+      {member.bio}
+    </p>
+  </div>
+</div>
           </div>
         </div>
       </motion.div>
@@ -129,9 +128,9 @@ const TeamMemberModal = ({ member, photoUrl, onClose }) => {
 };
 
 // ===================================
-// ✨ REVISED: Сітка з учасниками команди (приймає динамічні дані)
+// ✨ ОНОВЛЕНО: Сітка з учасниками команди
 // ===================================
-const TeamGrid = ({ teamMembers, photoUrls, onSelectMember }) => {
+const TeamGrid = ({ teamMembers, onSelectMember }) => { // ✨ ЗМІНА: Проп `photoUrls` видалено
   return (
     <motion.div
       variants={contentAnimation}
@@ -143,25 +142,23 @@ const TeamGrid = ({ teamMembers, photoUrls, onSelectMember }) => {
       <div>
         {teamMembers.map((member, index) => {
           const isReversed = index % 2 !== 0;
-          const memberPhotoUrl = photoUrls[member.photoSrc];
           return (
             <div key={member.id} className="grid grid-cols-1 md:grid-cols-2">
               <div
                 className={`w-full h-[50vw] ${isReversed ? 'md:order-last' : ''}`}
               >
-                {/* ЗМІНЕНО: Динамічне фото */}
-                {memberPhotoUrl ? (
+                {/* ✨ ЗМІНА: Використовуємо `member.photoSrc` напряму */}
+                {member.photoSrc ? (
                   <img
-                    src={memberPhotoUrl}
+                    src={member.photoSrc}
                     alt={`${member.firstName} ${member.lastName}`}
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gray-200 dark:bg-gray-800" /> // Placeholder while loading
+                  <div className="w-full h-full bg-gray-200 dark:bg-gray-800" />
                 )}
               </div>
               <div className="w-full flex flex-col items-center justify-center text-center p-8">
-                {/* ЗМІНЕНО: Динамічні дані */}
                 <p className="text-sm uppercase tracking-[0.2em] mb-3">
                   {member.category}
                 </p>
@@ -184,18 +181,14 @@ const TeamGrid = ({ teamMembers, photoUrls, onSelectMember }) => {
 // ===================================
 // Компонент секції контактів (без змін)
 // ===================================
-// ===================================
-// ✨ REVISED: Компонент секції контактів
-// ===================================
 const ContactInfoSection = () => {
-  // ЗМІНЕНО: Адреса тепер є масивом для переносу на новий рядок
   const contactDetails = [
     { label: 'PHONE', value: '+1 (000) 123-4567' },
     {
       label: 'ADDRESS',
-      value: ['1234 SUNSET BOULEVARD, LOS ANGELES,', 'CA 90028'],
+      value: ['7080 Hollywood Boulevard, LOS ANGELES,', 'CA 90028'],
     },
-    { label: 'EMAIL', value: 'CONTACT@SINNERSANDSAINTS.COM' },
+    { label: 'EMAIL', value: 'ROST@SINNERSANDSAINTS.LA' },
     {
       label: 'FACILITIES / OFFICES',
       value: [
@@ -218,15 +211,12 @@ const ContactInfoSection = () => {
       exit="exit"
       className="bg-white dark:bg-black text-black dark:text-white"
     >
-      {/* ЗМІНЕНО: Зменшено верхній відступ (pt-12) для меншої відстані від заголовка */}
       <div className="max-w-2xl mx-auto text-center pt-12 pb-20 px-4">
         {contactDetails.map((item) => (
           <div key={item.label} className="mb-10">
-            {/* ЗМІНЕНО: Заголовки тепер мають жирніший шрифт (font-bold) */}
             <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-black dark:text-white mb-2">
               {item.label}
             </h3>
-            {/* ЗМІНЕНО: Значення тепер мають звичайну товщину шрифту (font-normal) */}
             <div className="text-lg tracking-wider font-normal">
               {Array.isArray(item.value) ? (
                 item.value.map((line, index) => <p key={index}>{line}</p>)
@@ -236,9 +226,7 @@ const ContactInfoSection = () => {
             </div>
           </div>
         ))}
-        {/* ЗМІНЕНО: Зменшено вертикальні відступи (my-12) */}
         <hr className="my-12 border-black dark:border-gray-700 w-full mx-auto" />
-        {/* ЗМІНЕНО: Збільшено розмір тексту (text-4xl) та зменшено нижній відступ (mb-12) */}
         <h2 className="text-4xl font-chanel font-semibold uppercase tracking-[0.15em] mb-12">
           SALES
         </h2>
@@ -260,42 +248,21 @@ const ContactInfoSection = () => {
 };
 
 // ===================================
-// ✨ REVISED: ГОЛОВНИЙ КОМПОНЕНТ СТОРІНКИ
+// ✨ ОНОВЛЕНО: ГОЛОВНИЙ КОМПОНЕНТ СТОРІНКИ
 // ===================================
 export default function Team() {
   const { isPreloaderActive, setIsPreloaderActive } = useAnimation();
   const [activeTab, setActiveTab] = useState(tabsData[0].id);
   const [selectedMember, setSelectedMember] = useState(null);
-  // ✨ НОВЕ: Стан для зберігання підписаних URL-адрес фотографій
-  const [photoUrls, setPhotoUrls] = useState({});
+  
+  // ✨ ВИДАЛЕНО: Стан `photoUrls` більше не потрібен.
+  // const [photoUrls, setPhotoUrls] = useState({});
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  // ✨ НОВЕ: useEffect для завантаження URL-адрес з GCS
-  useEffect(() => {
-    const fetchPhotoUrls = async () => {
-      const gcsPaths = teamData.map((member) => member.photoSrc);
-      try {
-        const response = await fetch(
-          'http://localhost:3001/generate-read-urls',
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ gcsPaths }),
-          }
-        );
-        if (!response.ok) throw new Error('Failed to fetch photo URLs');
-        const urlsMap = await response.json();
-        setPhotoUrls(urlsMap);
-      } catch (error) {
-        console.error('Error fetching team member photo URLs:', error);
-      }
-    };
-
-    fetchPhotoUrls();
-  }, []); // Пустий масив залежностей означає, що ефект виконається один раз при монтуванні
+  // ✨ ВИДАЛЕНО: `useEffect` для завантаження URL-адрес з GCS більше не потрібен.
 
   useEffect(() => {
     document.body.style.overflow =
@@ -329,18 +296,16 @@ export default function Team() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {/* ЗМІНЕНО: Передача URL фото до модального вікна */}
         {selectedMember && (
           <TeamMemberModal
             member={selectedMember}
-            photoUrl={photoUrls[selectedMember.photoSrc]}
             onClose={handleCloseModal}
+            // ✨ ЗМІНА: Проп `photoUrl` видалено
           />
         )}
       </AnimatePresence>
 
       <header className="bg-white dark:bg-black pt-[150px] pb-16 text-center">
-        {/* ... (код хедера залишається без змін) */}
         <div className="max-w-7xl mx-auto px-4">
           <nav className="flex items-center justify-center">
             <div className="flex space-x-10 border-b border-gray-300 dark:border-gray-700">
@@ -391,12 +356,11 @@ export default function Team() {
       <main>
         <AnimatePresence mode="wait">
           {activeTab === 'team' ? (
-            // ✨ ЗМІНА: Передача динамічних даних до сітки
             <TeamGrid
               key="team-content"
               teamMembers={teamData}
-              photoUrls={photoUrls}
               onSelectMember={handleOpenModal}
+              // ✨ ЗМІНА: Проп `photoUrls` видалено
             />
           ) : (
             <ContactInfoSection key="contact-content" />

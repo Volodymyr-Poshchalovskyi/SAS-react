@@ -10,6 +10,7 @@ import { useUpload } from '../../context/UploadContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
+// This helper function remains unchanged.
 const compressImage = (file, maxSize = 800) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -62,20 +63,19 @@ const compressImage = (file, maxSize = 800) => {
   });
 };
 
-// --- Іконки та базові компоненти (без змін) ---
+// --- Icons and basic components remain unchanged ---
 const UploadIcon = () => ( <svg className="w-12 h-12 text-slate-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16" > <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2" /> </svg> );
 const CalendarIcon = () => ( <svg className="w-5 h-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" > <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /> </svg> );
 const FormSection = ({ title, children, hasSeparator = true }) => ( <div className="bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl p-6"> {title && ( <h2 className="text-base font-semibold text-slate-500 dark:text-slate-400 mb-4 uppercase tracking-wider"> {title} </h2> )} {children} {hasSeparator && ( <div className="mt-6 border-t border-slate-200 dark:border-slate-800"></div> )} </div> );
 const FormField = ({ label, children, required = false }) => ( <div className="mb-4"> <label className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300"> {label} {required && <span className="text-red-500">*</span>} </label> {children} </div> );
 const inputClasses = 'flex h-10 w-full rounded-md border border-slate-300 bg-white dark:bg-slate-800 px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500 disabled:cursor-not-allowed disabled:bg-slate-100 dark:disabled:bg-slate-800/50';
-
-// --- Компоненти для вибору (без змін) ---
+// --- Select components remain unchanged ---
 const SingleSearchableSelect = ({ label, options, value, onChange, placeholder, required = false }) => { const [inputValue, setInputValue] = useState(value || ''); const [isOpen, setIsOpen] = useState(false); const wrapperRef = useRef(null); const filteredOptions = useMemo(() => options.filter(option => option.name.toLowerCase().includes((inputValue || '').toLowerCase())), [inputValue, options]); useEffect(() => { function handleClickOutside(event) { if (wrapperRef.current && !wrapperRef.current.contains(event.target)) setIsOpen(false); } document.addEventListener("mousedown", handleClickOutside); return () => document.removeEventListener("mousedown", handleClickOutside); }, []); useEffect(() => { if (!isOpen) { const isValid = options.some(opt => opt.name === inputValue); if (!isValid) setInputValue(value || ''); } }, [isOpen, value, options, inputValue]); useEffect(() => { setInputValue(value || ''); }, [value]); const handleSelectOption = (optionName) => { onChange(optionName); setInputValue(optionName); setIsOpen(false); }; return ( <FormField label={label} required={required}> <div className="relative" ref={wrapperRef}> <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onFocus={() => setIsOpen(true)} placeholder={placeholder} className={inputClasses} required={required} /> {isOpen && ( <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md shadow-lg max-h-60 overflow-y-auto"> {filteredOptions.length > 0 ? ( <ul> {filteredOptions.map((option) => ( <li key={option.id} onMouseDown={() => handleSelectOption(option.name)} className="px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"> {option.name} </li> ))} </ul> ) : ( <div className="px-3 py-2 text-sm text-slate-500">No matches found.</div> )} </div> )} </div> </FormField> ); };
 const MultiSelectCategories = ({ label, options, selectedOptions, onChange, placeholder, limit = 10 }) => { const [inputValue, setInputValue] = useState(''); const [isOpen, setIsOpen] = useState(false); const wrapperRef = useRef(null); const availableOptions = useMemo(() => options.filter(opt => !selectedOptions.includes(opt.name)).filter(opt => opt.name.toLowerCase().includes(inputValue.toLowerCase())), [options, selectedOptions, inputValue]); const handleSelect = (optionName) => { if (selectedOptions.length < limit) onChange([...selectedOptions, optionName]); setInputValue(''); setIsOpen(false); }; const handleRemove = (optionName) => onChange(selectedOptions.filter(opt => opt !== optionName)); useEffect(() => { function handleClickOutside(event) { if (wrapperRef.current && !wrapperRef.current.contains(event.target)) setIsOpen(false); } document.addEventListener("mousedown", handleClickOutside); return () => document.removeEventListener("mousedown", handleClickOutside); }, [wrapperRef]); return ( <FormField label={`${label} (${selectedOptions.length}/${limit})`}> <div className="relative" ref={wrapperRef}> <div className="flex flex-wrap items-center gap-2 p-2 min-h-[40px] border border-slate-300 dark:border-slate-700 rounded-md" onClick={() => setIsOpen(true)}> {selectedOptions.map(option => ( <span key={option} className="flex items-center bg-teal-100 dark:bg-teal-900/50 text-teal-800 dark:text-teal-200 text-sm font-medium px-2.5 py-1 rounded-full"> {option} <button type="button" onClick={(e) => { e.stopPropagation(); handleRemove(option); }} className="ml-2 -mr-1 p-0.5 text-teal-600 dark:text-teal-300 hover:bg-teal-200 dark:hover:bg-teal-700 rounded-full"> <X size={14} /> </button> </span> ))} {selectedOptions.length < limit && ( <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onFocus={() => setIsOpen(true)} placeholder={placeholder} className="flex-grow bg-transparent focus:outline-none p-1 text-sm" /> )} </div> {isOpen && ( <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md shadow-lg max-h-60 overflow-y-auto"> {availableOptions.length > 0 ? ( <ul> {availableOptions.map((option) => ( <li key={option.id} onMouseDown={() => handleSelect(option.name)} className="px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"> {option.name} </li> ))} </ul> ) : ( <div className="px-3 py-2 text-sm text-slate-500">No available options.</div> )} </div> )} </div> </FormField> ); };
 const MultiCreatableSelect = ({ label, options, selectedOptions, onChange, placeholder, limit = 10, required = false }) => { const [inputValue, setInputValue] = useState(''); const [isOpen, setIsOpen] = useState(false); const wrapperRef = useRef(null); const availableOptions = useMemo(() => options.filter(opt => !selectedOptions.includes(opt.name) && opt.name.toLowerCase().includes(inputValue.toLowerCase())), [options, selectedOptions, inputValue]); const handleAdd = (itemName) => { const trimmedItem = itemName.trim(); if (trimmedItem && selectedOptions.length < limit && !selectedOptions.find(opt => opt.toLowerCase() === trimmedItem.toLowerCase())) { onChange([...selectedOptions, trimmedItem]); } setInputValue(''); setIsOpen(false); }; const handleRemove = (itemName) => onChange(selectedOptions.filter(opt => opt !== itemName)); const handleKeyDown = (e) => { if (e.key === 'Enter' && inputValue) { e.preventDefault(); handleAdd(inputValue); } }; useEffect(() => { function handleClickOutside(event) { if (wrapperRef.current && !wrapperRef.current.contains(event.target)) { setIsOpen(false); setInputValue(''); } } document.addEventListener("mousedown", handleClickOutside); return () => document.removeEventListener("mousedown", handleClickOutside); }, [wrapperRef]); const canAddCustom = inputValue.trim() && !options.some(opt => opt.name.toLowerCase() === inputValue.trim().toLowerCase()) && !selectedOptions.some(opt => opt.toLowerCase() === inputValue.trim().toLowerCase()); return ( <FormField label={`${label} (${selectedOptions.length}/${limit})`} required={required}> <input type="text" value={selectedOptions.join(',')} required={required} className="hidden" onChange={() => {}}/> <div className="relative" ref={wrapperRef}> <div className="flex flex-wrap items-center gap-2 p-2 min-h-[40px] border border-slate-300 dark:border-slate-700 rounded-md" onClick={() => { setIsOpen(true); wrapperRef.current.querySelector('input[type=text]:not(.hidden)').focus(); }}> {selectedOptions.map(option => ( <span key={option} className="flex items-center bg-teal-100 dark:bg-teal-900/50 text-teal-800 dark:text-teal-200 text-sm font-medium px-2.5 py-1 rounded-full"> {option} <button type="button" onClick={(e) => { e.stopPropagation(); handleRemove(option); }} className="ml-2 -mr-1 p-0.5 text-teal-600 dark:text-teal-300 hover:bg-teal-200 dark:hover:bg-teal-700 rounded-full"> <X size={14} /> </button> </span> ))} {selectedOptions.length < limit && ( <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={handleKeyDown} onFocus={() => setIsOpen(true)} placeholder={placeholder} className="flex-grow bg-transparent focus:outline-none p-1 text-sm" /> )} </div> {isOpen && ( <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md shadow-lg max-h-60 overflow-y-auto"> <ul onMouseDown={(e) => e.preventDefault()}> { canAddCustom && ( <li onClick={() => handleAdd(inputValue)} className="px-3 py-2 text-sm text-teal-600 dark:text-teal-400 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer italic"> Add "{inputValue.trim()}" </li> )} {availableOptions.map((option) => ( <li key={option.id} onClick={() => handleAdd(option.name)} className="px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"> {option.name} </li> ))} {!canAddCustom && availableOptions.length === 0 && ( <div className="px-3 py-2 text-sm text-slate-500">No available options</div> )} </ul> </div> )} </div> </FormField> ); };
 
-// --- Компонент ReelPartialForm ---
-// ✨ КРОК 1: Додаємо isEditMode до пропсів
+
+// --- ReelPartialForm Component ---
 const ReelPartialForm = ({ reel, onUpdate, onFilesSelected, isEditMode }) => {
     const { id, title, selectedFile, customPreviewFile, mainPreviewUrl, customPreviewUrl, } = reel;
     const [isDragging, setIsDragging] = useState(false);
@@ -94,7 +94,7 @@ const ReelPartialForm = ({ reel, onUpdate, onFilesSelected, isEditMode }) => {
     };
 
     useEffect(() => {
-        // ✨ КРОК 2: Запускаємо генерацію прев'ю ТІЛЬКИ в режимі редагування
+        // ✨ MODIFIED: Preview generation now ONLY runs in edit mode.
         if (isEditMode && selectedFile && selectedFile.type.startsWith('video/') && !customPreviewFile) {
             let isCleanedUp = false;
             const videoElement = document.createElement('video');
@@ -143,6 +143,7 @@ const ReelPartialForm = ({ reel, onUpdate, onFilesSelected, isEditMode }) => {
 
     useEffect(() => { return () => { if (editorVideoUrl) { URL.revokeObjectURL(editorVideoUrl); } }; }, [editorVideoUrl]);
 
+    // Handlers remain the same.
     const handleDrop = (e) => { e.preventDefault(); setIsDragging(false); onFilesSelected(e.dataTransfer.files, id); };
     const handleFileInputChange = (e) => { onFilesSelected(e.target.files, id); };
     const handleRemoveFile = () => onFilesSelected(null, id);
@@ -190,6 +191,8 @@ const ReelPartialForm = ({ reel, onUpdate, onFilesSelected, isEditMode }) => {
             previewFileInputRef.current.click();
         }
     };
+
+    // VideoFrameSelector component remains unchanged
     const VideoFrameSelector = () => (
         <div className="flex flex-col items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
             <video key={editorVideoUrl} ref={videoRef} src={editorVideoUrl} controls muted className="w-full h-auto max-h-[400px] rounded-md mb-4 object-contain" onLoadedMetadata={() => { const video = videoRef.current; if (video) { video.currentTime = video.duration > 1 ? 1 : 0; } }} />
@@ -210,7 +213,7 @@ const ReelPartialForm = ({ reel, onUpdate, onFilesSelected, isEditMode }) => {
                 <input id={`dropzone-file-${id}`} type="file" className="hidden" ref={fileInputRef} onChange={handleFileInputChange} accept="image/*,video/*" multiple />
             </FormSection>
             <FormSection title="Preview" hasSeparator={false}>
-                {/* ✨ КРОК 3: Оновлюємо JSX для відображення */}
+                {/* ✨ MODIFIED: Conditional rendering for previews */}
                 { !isEditMode && isVideo && selectedFile ? (
                     <div className="text-center text-slate-500 dark:text-slate-400 py-8">
                         <p className="font-medium">Preview will be generated automatically.</p>
@@ -227,7 +230,7 @@ const ReelPartialForm = ({ reel, onUpdate, onFilesSelected, isEditMode }) => {
                             <button type="button" onClick={handleOpenPreviewEditor} className="px-4 py-1.5 text-xs font-semibold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600">Change preview</button>
                         </div>
                     </div>
-                ) : (isEditMode && selectedFile && !customPreviewUrl) || (isEditMode && mainPreviewUrl && !customPreviewUrl) ? (
+                ) : (isEditMode && selectedFile && !customPreviewUrl && isVideo) ? (
                     <div className="text-center text-slate-400 py-8">
                         <Loader2 className="animate-spin inline-block mr-2" />Generating preview...
                     </div>
@@ -243,7 +246,10 @@ const ReelPartialForm = ({ reel, onUpdate, onFilesSelected, isEditMode }) => {
 };
 
 
-// --- Основний компонент CreateReel ---
+// --- Main CreateReel Component ---
+// This component passes the `isEditMode` prop down. The rest of the logic,
+// especially in `handleFilesSelected`, is updated to prevent client-side
+// preview generation for videos in create mode.
 const CreateReel = () => {
   const { itemId } = useParams();
   const navigate = useNavigate();
@@ -257,6 +263,7 @@ const CreateReel = () => {
   const initialCommonFormData = { allowDownload: false, publicationDate: new Date(), publishOption: 'now', artist: [], client: [], description: '', featuredCelebrity: [], contentType: '', craft: '', categories: [] };
   const [commonFormData, setCommonFormData] = useState(initialCommonFormData);
 
+  // State for options, toast, etc., remains the same
   const [artists, setArtists] = useState([]);
   const [clients, setClients] = useState([]);
   const [celebrities, setCelebrities] = useState([]);
@@ -264,7 +271,6 @@ const CreateReel = () => {
   const [categories, setCategories] = useState([]);
   const [crafts, setCrafts] = useState([]);
   const [isLoadingOptions, setIsLoadingOptions] = useState(true);
-
   const [toast, setToast] = useState({ message: '', visible: false });
 
   const showToast = (message) => {
@@ -274,6 +280,7 @@ const CreateReel = () => {
     }, 3000);
   };
 
+  // useEffect hooks for cleanup and fetching options remain the same
   useEffect(() => {
     return () => {
       reels.forEach((reel) => {
@@ -312,7 +319,8 @@ const CreateReel = () => {
     };
     fetchOptions();
   }, []);
-
+  
+  // useEffect for fetching data in edit mode remains the same
   useEffect(() => {
     if (isEditMode) {
       const fetchItemData = async () => {
@@ -425,6 +433,7 @@ const CreateReel = () => {
             try { customPreview = await compressImage(file); } 
             catch (error) { console.error('Failed to compress additional file preview:', error); customPreview = file; }
           }
+          // In create mode, customPreviewUrl for videos will be null.
           const customPreviewUrl = customPreview ? URL.createObjectURL(customPreview) : null;
   
           return { ...createNewReelState(), title: fileNameWithoutExt, selectedFile: file, customPreviewFile: customPreview, mainPreviewUrl: fileUrl, customPreviewUrl: customPreviewUrl };
@@ -444,7 +453,7 @@ const CreateReel = () => {
           if (reel.id === reelId) {
             const fileNameWithoutExt = firstFile.name.substring(0, firstFile.name.lastIndexOf('.')) || firstFile.name;
             const fileUrl = URL.createObjectURL(firstFile);
-            // У режимі створення не генеруємо URL для прев'ю відео
+            // In create mode, don't generate a blob URL for video previews
             const customPreviewUrl = compressedPreviewForFirst ? URL.createObjectURL(compressedPreviewForFirst) : null;
             return { ...reel, title: reel.title || fileNameWithoutExt, selectedFile: firstFile, customPreviewFile: compressedPreviewForFirst, mainPreviewUrl: fileUrl, customPreviewUrl: customPreviewUrl };
           }
@@ -453,7 +462,8 @@ const CreateReel = () => {
         return [...updatedExistingReels, ...newReels];
       });
   };
-
+  
+  // Handlers for form changes and submit remain largely the same.
   const handleAddReel = () => setReels((prev) => [...prev, createNewReelState()]);
   const handleCommonFormChange = (field, value) => setCommonFormData((prev) => ({ ...prev, [field]: value }));
   const isSchedulingDisabled = commonFormData.publishOption === 'now';
@@ -497,7 +507,6 @@ const CreateReel = () => {
     }
   };
 
-
   if (isLoadingOptions && isEditMode) {
     return (
       <div className="p-8 text-center text-slate-500">
@@ -506,6 +515,7 @@ const CreateReel = () => {
     );
   }
 
+  // The main JSX return structure remains the same
   return (
     <form onSubmit={handleSubmit} className="max-w-7xl mx-auto space-y-8 pb-36">
       {toast.visible && (
@@ -520,7 +530,7 @@ const CreateReel = () => {
           <h2 className="text-xl font-bold text-slate-700 dark:text-slate-200 mb-4">
             {isEditMode ? `Editing Media: ${reel.title}` : `Media #${index + 1}`}
           </h2>
-          {/* ✨ КРОК 4: Передаємо isEditMode в дочірній компонент */}
+          {/* ✨ PASSING THE PROP HERE */}
           <ReelPartialForm
             reel={reel}
             onUpdate={handleUpdateReel}
@@ -529,6 +539,8 @@ const CreateReel = () => {
           />
         </div>
       ))}
+
+      {/* The rest of the form JSX is unchanged */}
       {!isEditMode && (
         <div className="flex justify-center">
           <button type="button" onClick={handleAddReel} className="px-6 py-2 border-2 border-dashed border-teal-500 text-teal-600 font-semibold rounded-lg hover:bg-teal-50 dark:hover:bg-slate-800 transition-colors">
@@ -537,9 +549,7 @@ const CreateReel = () => {
         </div>
       )}
       <hr className="border-slate-300 dark:border-slate-700" />
-
       <FormSection title="Common Content Data">
-         {/* ... (решта JSX форми залишається без змін) ... */}
          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="md:col-span-2">
             <FormField label="Publication Date" required>
@@ -573,7 +583,6 @@ const CreateReel = () => {
           <div className="flex items-center"><input id="allow-download" type="checkbox" checked={commonFormData.allowDownload} onChange={(e) => handleCommonFormChange('allowDownload', e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500" /><label htmlFor="allow-download" className="ml-3 text-sm font-medium text-slate-700 dark:text-slate-300">Allow download</label></div>
         </div>
       </FormSection>
-
       <FormSection title="Common Meta Data" hasSeparator={false}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
           <div className="md:col-span-2"><SingleSearchableSelect label="Content Type" options={contentTypes} value={commonFormData.contentType} onChange={(newValue) => handleCommonFormChange('contentType', newValue)} placeholder={isLoadingOptions ? 'Loading...' : 'Choose content type...'}/></div>
@@ -581,7 +590,6 @@ const CreateReel = () => {
           <div className="md:col-span-2"><MultiSelectCategories label="Categories" options={categories} selectedOptions={commonFormData.categories} onChange={(newSelection) => handleCommonFormChange('categories', newSelection)} placeholder="Search and add categories..." limit={10} /></div>
         </div>
       </FormSection>
-
       <div className="fixed bottom-6 right-6 z-50">
           <div className={`mt-4 flex justify-end`}>
             <button type="submit" disabled={uploadStatus.isActive} className="px-4 py-2 bg-teal-600 text-white text-sm font-semibold rounded-lg shadow-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-75 transition-all transform hover:scale-105 disabled:bg-slate-400 disabled:cursor-not-allowed disabled:scale-100">

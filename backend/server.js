@@ -888,18 +888,15 @@ app.delete('/media-items/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Крок 1: Отримати шляхи до файлів з бази даних ПЕРЕД видаленням запису.
+    // Step 1: Get file paths from the database BEFORE deleting the record.
     const { data: item, error: fetchError } = await supabase
       .from('media_items')
       .select('video_gcs_path, preview_gcs_path')
       .eq('id', id)
       .single();
 
-    // Якщо запис не знайдено, можливо, він уже видалений.
     if (fetchError && fetchError.code === 'PGRST116') {
-      return res
-        .status(200)
-        .json({ message: 'Item not found, assumed already deleted.' });
+      return res.status(200).json({ message: 'Item not found, assumed already deleted.' });
     }
     if (fetchError) {
       throw new Error(`Could not fetch media item to delete: ${fetchError.message}`);
@@ -908,52 +905,44 @@ app.delete('/media-items/:id', async (req, res) => {
       return res.status(404).json({ error: `Media item with id ${id} not found.` });
     }
     
-    // Крок 2: Спробувати видалити файли з Google Cloud Storage.
-    // Це найважливіший крок. Робимо це ПЕРЕД видаленням запису з БД.
+    // Step 2: Try to delete files from Google Cloud Storage first.
+    // This is the most critical step.
     const pathsToDelete = [item.video_gcs_path, item.preview_gcs_path].filter(Boolean);
 
     if (pathsToDelete.length > 0) {
       console.log(`Attempting to delete files from GCS: ${pathsToDelete.join(', ')}`);
       try {
-        // Promise.all гарантує, що ми дочекаємося завершення всіх видалень.
-        // Якщо хоча б одне видалення не вдасться, воно викине помилку.
         await Promise.all(
           pathsToDelete.map((path) => bucket.file(path).delete())
         );
         console.log('Successfully deleted files from GCS.');
       } catch (gcsError) {
-        // Якщо сталася помилка при видаленні з GCS, ми НЕ продовжуємо
-        // і повертаємо помилку клієнту.
+        // If an error occurs during GCS deletion, STOP and return an error.
         console.error(`CRITICAL: Failed to delete one or more files from GCS for item ${id}.`, gcsError);
-        // Повідомляємо клієнту, що щось пішло не так саме зі сховищем.
         throw new Error(`Failed to delete files from storage. Database record was NOT deleted. Details: ${gcsError.message}`);
       }
     }
 
-    // Крок 3: Видалити всі пов'язані записи (з `reel_media_items`).
-    // Ваша логіка для очищення пов'язаних рілсів вже була хорошою, залишаємо її.
+    // Step 3: Delete all related records (from `reel_media_items`).
     const { data: affectedReelLinks, error: linksError } = await supabase
       .from('reel_media_items')
       .select('reel_id')
       .eq('media_item_id', id);
-
     if (linksError) throw linksError;
 
     const { error: deleteLinksError } = await supabase
       .from('reel_media_items')
       .delete()
       .eq('media_item_id', id);
-
     if (deleteLinksError) throw deleteLinksError;
 
-    // Перевірка та видалення порожніх рілсів
+    // Check for and delete any reels that are now empty
     if (affectedReelLinks && affectedReelLinks.length > 0) {
       const affectedReelIds = affectedReelLinks.map((link) => link.reel_id);
       const { data: remainingLinks, error: checkError } = await supabase
         .from('reel_media_items')
         .select('reel_id')
         .in('reel_id', affectedReelIds);
-
       if (checkError) throw checkError;
       
       const reelsThatStillHaveItems = new Set((remainingLinks || []).map((link) => link.reel_id));
@@ -964,24 +953,22 @@ app.delete('/media-items/:id', async (req, res) => {
       }
     }
 
-    // Крок 4: Тільки після успішного видалення файлів з GCS, видаляємо запис з БД.
+    // Step 4: Only after GCS files are gone, delete the database record.
     const { error: deleteItemError } = await supabase
       .from('media_items')
       .delete()
       .eq('id', id);
-
     if (deleteItemError) {
-      // Ця помилка малоймовірна, якщо попередні кроки пройшли, але обробка потрібна.
       throw new Error(`Failed to delete database record after cleaning storage: ${deleteItemError.message}`);
     }
 
-    // Крок 5: Повідомити про успіх.
+    // Step 5: Report success.
     res.status(200).json({
       message: 'Media item and all associated files/reels deleted successfully.',
     });
 
   } catch (error) {
-    // Загальний блок для відлову всіх помилок
+    // General catch block for all errors
     console.error(`FATAL: Error during deletion process for media item ${id}:`, error);
     res.status(500).json({ 
       error: 'Failed to complete the deletion process.', 

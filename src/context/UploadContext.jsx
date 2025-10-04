@@ -61,20 +61,26 @@ export const UploadProvider = ({ children }) => {
                 const currentIndex = reelsToUpload.indexOf(reel);
                 setUploadStatus(prev => ({ ...prev, message: `Processing file ${currentIndex + 1} of ${prev.totalFiles}`, currentFileName: reel.title, currentFileProgress: 0 }));
                 
-                // ✨ ЗМІНА: Ми більше не відправляємо `customPreviewFile` при створенні.
-                // Якщо це зображення, воно буде використане як прев'ю, але для відео прев'ю буде null.
-                const isVideoFile = reel.selectedFile.type.startsWith('video/');
-                const finalPreviewFile = isVideoFile ? null : reel.customPreviewFile;
-
                 const onMainProgress = p => setUploadStatus(prev => ({ ...prev, message: `Uploading content...`, currentFileProgress: p }));
                 
-                // Ми більше не завантажуємо прев'ю окремо для відео, тому логіка прогресу спрощується.
                 const content_gcs_path = await uploadFileToGCS(reel.selectedFile, 'main', onMainProgress);
                 
-                // Бекенд має сам створити preview_gcs_path для відео. 
-                // Для зображень, ми можемо передати той самий шлях або спеціальний. 
-                // Тут ми просто не передаємо прев'ю, якщо це відео.
-                const preview_gcs_path = finalPreviewFile ? await uploadFileToGCS(finalPreviewFile, 'preview', () => {}) : null;
+                let preview_gcs_path;
+                const isVideoFile = reel.selectedFile.type.startsWith('video/');
+
+                if (isVideoFile) {
+                    // ✨ NEW LOGIC FOR VIDEOS:
+                    // We don't upload a preview. Instead, we construct the path where
+                    // the Google Cloud Function will place the generated preview.
+                    const fileName = content_gcs_path.split('/').pop();
+                    preview_gcs_path = `back-end/previews/${fileName}.jpg`;
+                } else {
+                    // ✨ EXISTING LOGIC FOR IMAGES:
+                    // If a custom preview exists, upload it. Otherwise, use the main file itself.
+                    const previewFile = reel.customPreviewFile || reel.selectedFile;
+                    // For images, we pass a dummy progress function as it's a quick upload.
+                    preview_gcs_path = await uploadFileToGCS(previewFile, 'preview', () => {});
+                }
                 
                 allUploadedRecords.push({
                     user_id: user.id, title: reel.title, artists: commonFormData.artist.join(', '), client: commonFormData.client.join(', '), categories: commonFormData.categories.join(', '), publish_date: commonFormData.publishOption === 'now' ? new Date().toISOString() : commonFormData.publicationDate.toISOString(), video_gcs_path: content_gcs_path, preview_gcs_path: preview_gcs_path, description: commonFormData.description, featured_celebrity: commonFormData.featuredCelebrity.join(', '), content_type: commonFormData.contentType, craft: commonFormData.craft, allow_download: commonFormData.allowDownload,
@@ -115,12 +121,14 @@ export const UploadProvider = ({ children }) => {
 
             if (hasNewContent) {
                 videoPath = await uploadFileToGCS(reelToUpdate.selectedFile, 'main', onMainProgress);
-                 // ✨ ДОДАНО: Якщо завантажується нове відео, скидаємо старе прев'ю, щоб бекенд згенерував нове
+                // ✨ UPDATED LOGIC: If a new video is uploaded, set its preview path to null.
+                // This triggers the Cloud Function to generate a new preview for the new video.
                 if (reelToUpdate.selectedFile.type.startsWith('video/')) {
                     previewPath = null; 
                 }
             }
-            // Користувач може змінити прев'ю, навіть не змінюючи основний файл
+            
+            // A user can still change the preview manually, even without changing the main file.
             if (hasNewPreview) {
                 previewPath = await uploadFileToGCS(reelToUpdate.customPreviewFile, 'preview', onPreviewProgress);
             }
@@ -134,7 +142,7 @@ export const UploadProvider = ({ children }) => {
                 categories: commonFormData.categories.join(', '),
                 publish_date: commonFormData.publishOption === 'now' ? new Date().toISOString() : commonFormData.publicationDate.toISOString(),
                 video_gcs_path: videoPath,
-                preview_gcs_path: previewPath,
+                preview_gcs_path: previewPath, // Will be `null` if a new video was just uploaded
                 description: commonFormData.description,
                 featured_celebrity: commonFormData.featuredCelebrity.join(', '),
                 content_type: commonFormData.contentType,
