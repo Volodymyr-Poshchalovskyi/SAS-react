@@ -227,8 +227,15 @@ export default function PhotographerPage() {
                     backgroundRepeat: 'no-repeat',
                     backgroundAttachment: 'fixed',
                     backgroundPosition: `center ${backgroundOffsetY}px`,
+                    display: 'flex', // Add flexbox for centering
+                    alignItems: 'center', // Center vertically
+                    justifyContent: 'center', // Center horizontally
                   }}
-                />
+                >
+                  <span className="text-white text-5xl font-bold bg-black bg-opacity-50 p-4 rounded-full">
+                    {index + 1}
+                  </span>
+                </div>
               );
             }
             return (
@@ -241,6 +248,9 @@ export default function PhotographerPage() {
                   left: `${img.left}px`,
                   top: `${img.top - topOffset}px`,
                   zIndex: index === 7 ? 1 : 0,
+                  display: 'flex', // Add flexbox for centering
+                  alignItems: 'center', // Center vertically
+                  justifyContent: 'center', // Center horizontally
                 }}
               >
                 <img
@@ -248,6 +258,9 @@ export default function PhotographerPage() {
                   alt={`Collage view ${index + 1}`}
                   className="w-full h-full object-cover"
                 />
+                <span className="absolute text-white text-5xl font-bold bg-black bg-opacity-50 p-4 rounded-full">
+                  {index + 1}
+                </span>
               </div>
             );
           })}
