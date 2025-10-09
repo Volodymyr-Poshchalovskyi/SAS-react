@@ -1,108 +1,104 @@
-# main.py
+# main.py для функції generate-video-preview
 import os
 import tempfile
 import subprocess
 from google.cloud import storage
 from supabase import create_client, Client
+import re
 
-# Initialize clients once per function instance for efficiency
 storage_client = storage.Client()
 
-# Fetch Supabase config from environment variables during deployment
 supabase_url = os.environ.get("SUPABASE_URL")
 supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 supabase: Client = create_client(supabase_url, supabase_key)
 
 def generate_video_preview(event, context):
-    """
-    Cloud Function triggered by a new GCS object creation.
-    It generates a preview for videos and updates the Supabase database.
-    """
     bucket_name = event['bucket']
-    file_path = event['name']
+    file_path = event['name'] # Шлях до master.m3u8
+
+    if not file_path.startswith('back-end/transcoded_videos/'):
+        return
+    if not file_path.endswith('master.m3u8'):
+        return
     
-    # --- 1. Filter Triggers ---
-    if not file_path.startswith('back-end/videos/'):
-        print(f"File '{file_path}' is not in the target video directory. Skipping.")
-        return
-    if file_path.endswith('/'):
-        print(f"Path '{file_path}' is a directory. Skipping.")
-        return
-    video_extensions = ['.mp4', '.mov', '.webm', '.mkv', '.avi']
-    if not any(file_path.lower().endswith(ext) for ext in video_extensions):
-        print(f"File '{file_path}' is not a video file. Skipping.")
-        return
+    print(f"✅ Отримано новий HLS-плейлист: gs://{bucket_name}/{file_path}")
 
-    print(f"Processing new video: gs://{bucket_name}/{file_path}")
+    video_name_folder = os.path.basename(os.path.dirname(file_path))
+    original_video_path_prefix = f"back-end/videos/{video_name_folder}"
+    blobs = storage_client.list_blobs(bucket_name, prefix=original_video_path_prefix)
+    original_blob = next(blobs, None)
 
-    # --- 2. Define File Paths ---
-    file_name = os.path.basename(file_path)
-    # The preview will be a JPG with the same name as the video file
-    preview_file_name = f"{file_name}.jpg"
+    if not original_blob:
+        print(f"ПОМИЛКА: Не вдалося знайти оригінальний відеофайл для '{video_name_folder}'.")
+        return
+        
+    original_file_path = original_blob.name
+    print(f"Знайдено оригінальний відеофайл: {original_file_path}")
+    preview_file_name = f"{os.path.basename(original_file_path)}.jpg"
     preview_gcs_path = f"back-end/previews/{preview_file_name}"
-
     bucket = storage_client.bucket(bucket_name)
-    source_blob = bucket.blob(file_path)
     destination_blob = bucket.blob(preview_gcs_path)
 
     if destination_blob.exists():
-        print(f"Preview already exists at '{preview_gcs_path}'. Skipping generation.")
+        print(f"Прев'ю вже існує в '{preview_gcs_path}'. Пропускаємо.")
         return
 
-    # --- 3. Generate Preview with FFmpeg ---
     with tempfile.TemporaryDirectory() as temp_dir:
-        local_video_path = os.path.join(temp_dir, file_name)
-        local_preview_path = os.path.join(temp_dir, preview_file_name)
-
         try:
-            print(f"Downloading video to temporary location...")
-            source_blob.download_to_filename(local_video_path)
+            # --- ✨ ПОЧАТОК ЗМІН ---
+            # Крок 1: Завантажуємо головний плейлист (master.m3u8)
+            master_manifest_blob = bucket.blob(file_path)
+            master_manifest_content = master_manifest_blob.download_as_text()
             
-            # Command to extract a single frame from the 1-second mark
-            command = [
-                'ffmpeg', '-i', local_video_path, '-ss', '00:00:01.000',
-                '-vframes', '1', '-q:v', '2', '-y', local_preview_path
-            ]
-            subprocess.run(command, check=True, capture_output=True, text=True)
-            print("FFmpeg: Frame extracted successfully.")
+            # Крок 2: Шукаємо в ньому посилання на плейлист якості (напр., hls-720p.m3u8)
+            # Ми беремо перший знайдений плейлист, зазвичай цього достатньо.
+            variant_playlists = re.findall(r'.*\.m3u8', master_manifest_content)
+            if not variant_playlists:
+                raise ValueError("Не знайдено плейлистів якості (*.m3u8) всередині master.m3u8.")
+            
+            first_variant_playlist_name = variant_playlists[0]
+            variant_playlist_gcs_path = os.path.join(os.path.dirname(file_path), first_variant_playlist_name)
+            
+            print(f"Знайдено плейлист якості: {first_variant_playlist_name}")
 
-        except subprocess.CalledProcessError as e:
-            print(f"FFmpeg failed (video might be <1s). Retrying with the first frame. Error: {e.stderr}")
-            try:
-                # Fallback command to get the very first frame
-                command = ['ffmpeg', '-i', local_video_path, '-vframes', '1', '-q:v', '2', '-y', local_preview_path]
-                subprocess.run(command, check=True, capture_output=True, text=True)
-                print("FFmpeg: First frame extracted successfully on retry.")
-            except Exception as retry_e:
-                print(f"CRITICAL: Retry with first frame also failed: {retry_e}")
-                return # Stop if preview generation fails
+            # Крок 3: Завантажуємо плейлист якості, щоб знайти .ts файл
+            variant_blob = bucket.blob(variant_playlist_gcs_path)
+            variant_content = variant_blob.download_as_text()
+            
+            ts_files = re.findall(r'.*\.ts', variant_content)
+            if not ts_files:
+                raise ValueError(f"Не знайдено .ts файлів у плейлисті якості '{first_variant_playlist_name}'.")
+            
+            first_ts_filename = ts_files[0]
+            # --- ✨ КІНЕЦЬ ЗМІН ---
+
+            ts_gcs_path = os.path.join(os.path.dirname(file_path), first_ts_filename)
+            ts_blob = bucket.blob(ts_gcs_path)
+            local_ts_path = os.path.join(temp_dir, first_ts_filename)
+            local_preview_path = os.path.join(temp_dir, preview_file_name)
+            
+            print(f"Завантаження першого сегмента: gs://{bucket_name}/{ts_gcs_path}...")
+            ts_blob.download_to_filename(local_ts_path)
+            
+            command = ['ffmpeg', '-i', local_ts_path, '-vframes', '1', '-q:v', '2', '-y', local_preview_path]
+            subprocess.run(command, check=True, capture_output=True, text=True)
+            print("FFmpeg: Кадр успішно вилучено.")
+            destination_blob.upload_from_filename(local_preview_path, content_type='image/jpeg')
+            print("Завантаження прев'ю завершено.")
         except Exception as e:
-            print(f"CRITICAL: An error occurred during file processing: {e}")
+            print(f"КРИТИЧНА ПОМИЛКА: Не вдалося згенерувати прев'ю. Деталі: {e}")
             return
 
-        # --- 4. Upload Preview to GCS ---
-        print(f"Uploading preview to 'gs://{bucket_name}/{preview_gcs_path}'...")
-        destination_blob.upload_from_filename(local_preview_path, content_type='image/jpeg')
-        print("Upload complete.")
-
-    # --- 5. Update Supabase Database ---
-    if not supabase_url or not supabase_key:
-        print("ERROR: Supabase environment variables not set. Cannot update database.")
-        return
-
+    # ... (решта коду для оновлення Supabase залишається без змін)
+    if not supabase: return
     try:
-        print(f"Updating Supabase record where video_gcs_path = '{file_path}'")
-        response = supabase.from_('media_items') \
-            .update({'preview_gcs_path': preview_gcs_path}) \
-            .eq('video_gcs_path', file_path) \
-            .execute()
-        
+        print(f"Оновлення запису Supabase для '{original_file_path}'")
+        response = supabase.from_('media_items').update({'preview_gcs_path': preview_gcs_path}).eq('video_gcs_path', original_file_path).execute()
         if response.data and len(response.data) > 0:
-            print(f"Successfully updated {len(response.data)} record(s) in 'media_items'.")
+            print(f"Успішно оновлено запис.")
         else:
-            print(f"WARNING: A database record for video '{file_path}' was not found. DB was not updated.")
-            
+            print(f"УВАГА: Запис для відео '{original_file_path}' не знайдено.")
     except Exception as e:
-        print(f"CRITICAL ERROR: Failed to communicate with Supabase. Details: {e}")
+        print(f"КРИТИЧНА ПОМИЛКА: Не вдалося зв'язатися з Supabase. Деталі: {e}")
 
-    print("Function execution finished successfully.")
+    print("Роботу функції успішно завершено.")

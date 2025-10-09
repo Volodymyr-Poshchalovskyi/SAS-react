@@ -1,10 +1,11 @@
 // src/Pages/ProjectPage.jsx
 
-import React, { useLayoutEffect, useMemo } from 'react';
+// ✨ Зміни тут: імпортуємо useState
+import React, { useLayoutEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { productionData } from '../Data/ProductionData';
 import { tableTopData } from '../Data/TableTopData';
-import VideoContainer from '../Components/VideoContainer';
+import HlsVideoPlayer from '../Components/HlsVideoPlayer';
 
 const shuffleArray = (array) => {
   const newArr = [...array];
@@ -15,13 +16,12 @@ const shuffleArray = (array) => {
   return newArr;
 };
 
-// ✨ Додаємо константу для базового URL нашого CDN
-const CDN_BASE_URL = 'http://34.54.191.201';
+const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
 
 export default function ProjectPage() {
   const { projectSlug } = useParams();
-  
-  // ❗️ Ми видалили стан `signedUrls` і `useEffect` для запиту на бекенд.
+  // ✨ Зміни тут: додаємо стан для відстеження наведення
+  const [hoveredIndex, setHoveredIndex] = useState(null);
 
   const projectData = useMemo(() => {
     const productionProject = productionData.find(
@@ -31,15 +31,18 @@ export default function ProjectPage() {
       return {
         ...productionProject,
         videoSrc: productionProject.src,
+        preview_src: productionProject.preview_src,
         relatedProjects: shuffleArray(
           productionData.filter((p) => p.projectSlug !== projectSlug)
         )
           .slice(0, 4)
+          // ✨ Зміни тут: передаємо і відео, і прев'ю
           .map((p) => ({
             slug: p.projectSlug,
             title: p.title,
             subtitle: 'Service',
-            preview: p.src,
+            videoSrc: p.src,
+            previewSrc: p.preview_src,
           })),
         type: 'production',
       };
@@ -52,6 +55,7 @@ export default function ProjectPage() {
       return {
         ...tableTopProject,
         videoSrc: tableTopProject.src,
+        preview_src: tableTopProject.preview_src,
         relatedProjects: shuffleArray(
           tableTopData.filter((p) => p.projectSlug !== projectSlug)
         )
@@ -60,7 +64,8 @@ export default function ProjectPage() {
             slug: p.projectSlug,
             title: p.title,
             subtitle: 'Table Top',
-            preview: p.src,
+            videoSrc: p.src,
+            previewSrc: p.preview_src,
           })),
         type: 'table-top',
       };
@@ -85,10 +90,14 @@ export default function ProjectPage() {
   return (
     <div className="bg-white text-black">
       <section className="relative w-full h-screen bg-black">
-        {/* ✨ Використовуємо пряме посилання на CDN для головного відео */}
         {projectData.videoSrc && (
-          <VideoContainer
-            videoSrc={`${CDN_BASE_URL}/${projectData.videoSrc}`}
+          <HlsVideoPlayer
+            src={`${CDN_BASE_URL}/${projectData.videoSrc}`}
+            previewSrc={
+              projectData.preview_src
+                ? `${CDN_BASE_URL}/${projectData.preview_src}`
+                : ''
+            }
             shouldPlay={true}
           />
         )}
@@ -124,19 +133,27 @@ export default function ProjectPage() {
                   Related Projects
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                  {/* ✨ Зміни тут: оновлюємо всю секцію Related Projects */}
                   {projectData.relatedProjects.map((related, index) => (
                     <Link
                       key={index}
                       to={`/projects/${related.slug}`}
                       className="group"
+                      onMouseEnter={() => setHoveredIndex(index)}
+                      onMouseLeave={() => setHoveredIndex(null)}
                     >
                       <div className="relative aspect-[3/4] overflow-hidden">
-                        {/* ✨ Використовуємо пряме посилання на CDN для прев'ю */}
-                        {related.preview ? (
-                          <video
-                            src={`${CDN_BASE_URL}/${related.preview}`}
-                            muted
-                            playsInline
+                        {related.videoSrc ? (
+                          <HlsVideoPlayer
+                            src={`${CDN_BASE_URL}/${related.videoSrc}`}
+                            previewSrc={
+                              related.previewSrc
+                                ? `${CDN_BASE_URL}/${related.previewSrc}`
+                                : ''
+                            }
+                            shouldPlay={hoveredIndex === index}
+                            isMuted={true}
+                            isLooped={true}
                             className="w-full h-full object-cover transition-transform duration-500 ease-in-out group-hover:scale-110"
                           />
                         ) : (

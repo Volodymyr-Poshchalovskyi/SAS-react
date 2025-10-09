@@ -5,9 +5,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import PreloaderBanner from '../Components/PreloaderBanner';
 import { useAnimation } from '../context/AnimationContext';
-import VideoContainer from '../Components/VideoContainer';
+// ✨ Зміни тут: імпортуємо HlsVideoPlayer замість VideoContainer
+import HlsVideoPlayer from '../Components/HlsVideoPlayer';
 import ScrollProgressBar from '../Components/ScrollProgressBar';
 import { productionData } from '../Data/ProductionData';
+
+// ✨ Зміни тут: додаємо константу для CDN
+const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
 
 const nameAnimation = {
   hidden: { opacity: 0, y: 30 },
@@ -46,8 +50,6 @@ export default function Production() {
   const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } =
     useAnimation();
   const [currentIndex, setCurrentIndex] = useState(0);
-  
-  // ❗️ Ми видалили стан `videoUrls` і `useEffect` для запиту на бекенд.
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
@@ -55,9 +57,10 @@ export default function Production() {
 
   useEffect(() => {
     if (onPreloaderPage) setIsPreloaderActive(true);
-  return () => {
+    return () => {
       setIsPreloaderActive(false);
-    };}, [onPreloaderPage, setIsPreloaderActive]);
+    };
+  }, [onPreloaderPage, setIsPreloaderActive]);
 
   useEffect(() => {
     document.body.style.overflow = isPreloaderActive ? 'hidden' : '';
@@ -105,16 +108,19 @@ export default function Production() {
       )}
 
       {productionData.map((video, index) => {
-        const gcsPath = video.src;
-        
-        // ✨ ФОРМУЄМО ПРЯМЕ ПОСИЛАННЯ НА CDN ДЛЯ КОЖНОГО ВІДЕО
-        const publicCdnUrl = `https://storage.googleapis.com/new-sas-media-storage/${gcsPath}`;
+        // ✨ Зміни тут: формуємо посилання для відео та прев'ю
+        const publicVideoUrl = `${CDN_BASE_URL}/${video.src}`;
+        const publicPreviewUrl = video.preview_src
+          ? `${CDN_BASE_URL}/${video.preview_src}`
+          : '';
 
         return (
           <div key={video.id} className="relative w-full h-screen snap-start">
-            {publicCdnUrl && (
-              <VideoContainer
-                videoSrc={publicCdnUrl}
+            {publicVideoUrl && (
+              // ✨ Зміни тут: використовуємо HlsVideoPlayer
+              <HlsVideoPlayer
+                src={publicVideoUrl}
+                previewSrc={publicPreviewUrl}
                 shouldPlay={!isPreloaderActive && currentIndex === index}
               />
             )}

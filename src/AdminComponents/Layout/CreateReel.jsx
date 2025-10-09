@@ -7,8 +7,46 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { supabase } from '../../lib/supabaseClient';
 import { X, Trash2, Loader2 } from 'lucide-react';
 import { useUpload } from '../../context/UploadContext';
+// ✨ ЗМІНА 1: Імпортуємо hls.js напряму
+import Hls from 'hls.js';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+
+// ✨ ЗМІНА 2: Створюємо новий компонент HLS-плеєра всередині файлу
+const InlineHlsPlayer = React.forwardRef(({ src, ...props }, ref) => {
+  const internalVideoRef = useRef(null);
+  const videoRef = ref || internalVideoRef;
+
+  useEffect(() => {
+    if (!src || !videoRef.current) return;
+
+    const video = videoRef.current;
+    let hls;
+
+    if (Hls.isSupported()) {
+      hls = new Hls();
+      hls.loadSource(src);
+      hls.attachMedia(video);
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = src;
+    }
+
+    return () => {
+      if (hls) {
+        hls.destroy();
+      }
+    };
+  }, [src, videoRef]);
+
+  return (
+    <video
+      ref={videoRef}
+      className="w-full h-full object-contain rounded-md"
+      playsInline
+      {...props}
+    />
+  );
+});
 
 // This helper function remains unchanged.
 const compressImage = (file, maxSize = 800) => {
@@ -86,7 +124,20 @@ const ReelPartialForm = ({ reel, onUpdate, onFilesSelected, isEditMode }) => {
     const previewFileInputRef = useRef(null);
     const videoRef = useRef(null);
 
-    const isVideo = selectedFile ? selectedFile.type.startsWith('video/') : mainPreviewUrl && !mainPreviewUrl.endsWith('.jpg') && !mainPreviewUrl.endsWith('.png') && !mainPreviewUrl.endsWith('.jpeg') && !mainPreviewUrl.endsWith('.gif');
+    // ✨ ЗМІНА 3: Оновлюємо логіку для визначення HLS та звичайного відео
+    const isVideo = useMemo(() => {
+        if (selectedFile) return selectedFile.type.startsWith('video/');
+        if (mainPreviewUrl) {
+            const path = mainPreviewUrl.toLowerCase();
+            return !path.endsWith('.jpg') && !path.endsWith('.jpeg') && !path.endsWith('.png') && !path.endsWith('.gif');
+        }
+        return false;
+    }, [selectedFile, mainPreviewUrl]);
+
+    const isHls = useMemo(() => {
+        return mainPreviewUrl ? mainPreviewUrl.toLowerCase().includes('.m3u8') : false;
+    }, [mainPreviewUrl]);
+
     const isImageFile = (file) => {
         if (!file) return false;
         const imageMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -94,7 +145,6 @@ const ReelPartialForm = ({ reel, onUpdate, onFilesSelected, isEditMode }) => {
     };
 
     useEffect(() => {
-        // ✨ MODIFIED: Preview generation now ONLY runs in edit mode.
         if (isEditMode && selectedFile && selectedFile.type.startsWith('video/') && !customPreviewFile) {
             let isCleanedUp = false;
             const videoElement = document.createElement('video');
@@ -143,7 +193,6 @@ const ReelPartialForm = ({ reel, onUpdate, onFilesSelected, isEditMode }) => {
 
     useEffect(() => { return () => { if (editorVideoUrl) { URL.revokeObjectURL(editorVideoUrl); } }; }, [editorVideoUrl]);
 
-    // Handlers remain the same.
     const handleDrop = (e) => { e.preventDefault(); setIsDragging(false); onFilesSelected(e.dataTransfer.files, id); };
     const handleFileInputChange = (e) => { onFilesSelected(e.target.files, id); };
     const handleRemoveFile = () => onFilesSelected(null, id);
@@ -192,28 +241,47 @@ const ReelPartialForm = ({ reel, onUpdate, onFilesSelected, isEditMode }) => {
         }
     };
 
-    // VideoFrameSelector component remains unchanged
-    const VideoFrameSelector = () => (
-        <div className="flex flex-col items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-            <video key={editorVideoUrl} ref={videoRef} src={editorVideoUrl} controls muted className="w-full h-auto max-h-[400px] rounded-md mb-4 object-contain" onLoadedMetadata={() => { const video = videoRef.current; if (video) { video.currentTime = video.duration > 1 ? 1 : 0; } }} />
-            <div className="flex items-center space-x-4">
-                <button type="button" onClick={() => setIsEditingPreview(false)} className="px-5 py-2 text-sm font-semibold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600">Cancel</button>
-                <button type="button" onClick={handleCaptureFrame} className="px-5 py-2 text-sm font-semibold bg-teal-500 text-white rounded-md hover:bg-teal-600">Capture Frame as Preview</button>
+    const VideoFrameSelector = () => {
+        const isHlsEditor = editorVideoUrl ? editorVideoUrl.toLowerCase().includes('.m3u8') : false;
+        return (
+            <div className="flex flex-col items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
+                {isHlsEditor ? (
+                    <InlineHlsPlayer ref={videoRef} src={editorVideoUrl} controls muted className="w-full h-auto max-h-[400px] rounded-md mb-4 object-contain" />
+                ) : (
+                    <video key={editorVideoUrl} ref={videoRef} src={editorVideoUrl} controls muted className="w-full h-auto max-h-[400px] rounded-md mb-4 object-contain" onLoadedMetadata={() => { const video = videoRef.current; if (video) { video.currentTime = video.duration > 1 ? 1 : 0; } }} />
+                )}
+                <div className="flex items-center space-x-4">
+                    <button type="button" onClick={() => setIsEditingPreview(false)} className="px-5 py-2 text-sm font-semibold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600">Cancel</button>
+                    <button type="button" onClick={handleCaptureFrame} className="px-5 py-2 text-sm font-semibold bg-teal-500 text-white rounded-md hover:bg-teal-600">Capture Frame as Preview</button>
+                </div>
             </div>
-        </div>
-    );
+        );
+    };
+    
     return (
         <div className="border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl p-4 space-y-8 relative mb-8">
             {reel.isRemovable && (<button type="button" onClick={() => onUpdate(id, { shouldRemove: true })} className="absolute -top-4 -right-4 z-10 p-2 bg-red-500 text-white rounded-full shadow-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-75" aria-label="Remove Media"><Trash2 size={18} /></button>)}
             <FormSection><FormField label="Title" required><input type="text" value={title} onChange={(e) => onUpdate(id, { title: e.target.value })} placeholder="Enter unique title..." className={inputClasses} required /></FormField></FormSection>
             <FormSection title="Upload Content">
                 <div onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }} onDragLeave={(e) => { e.preventDefault(); setIsDragging(false); }} onDrop={handleDrop} className={`relative flex flex-col items-center justify-center w-full aspect-[16/9] border-2 border-slate-300 border-dashed rounded-lg cursor-pointer transition-colors dark:border-slate-600 ${isDragging ? 'border-teal-500 bg-teal-50 dark:bg-slate-800' : 'bg-slate-50 dark:bg-slate-800/50'}`}>
-                    {!selectedFile && !mainPreviewUrl ? (<div className="flex flex-col items-center justify-center text-center"><UploadIcon /><p className="mb-2 text-sm text-slate-500 dark:text-slate-400"><span className="font-semibold">Drag & Drop file(s)</span></p><p className="text-xs text-slate-500 dark:text-slate-400 mb-2">or</p><button type="button" onClick={() => fileInputRef.current.click()} className="px-4 py-1.5 text-xs font-semibold bg-teal-500 text-white rounded-md hover:bg-teal-600">Choose File(s)</button></div>) : (<div className="w-full h-full p-2">{mainPreviewUrl && !isVideo && (<img src={mainPreviewUrl} alt="Preview" className="w-full h-full object-contain rounded-md" />)}{mainPreviewUrl && isVideo && (<video key={mainPreviewUrl} src={mainPreviewUrl} controls className="w-full h-full object-contain rounded-md" />)}<button type="button" onClick={handleRemoveFile} className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors" aria-label="Remove file"><X size={16} /></button></div>)}
+                    {!selectedFile && !mainPreviewUrl ? (<div className="flex flex-col items-center justify-center text-center"><UploadIcon /><p className="mb-2 text-sm text-slate-500 dark:text-slate-400"><span className="font-semibold">Drag & Drop file(s)</span></p><p className="text-xs text-slate-500 dark:text-slate-400 mb-2">or</p><button type="button" onClick={() => fileInputRef.current.click()} className="px-4 py-1.5 text-xs font-semibold bg-teal-500 text-white rounded-md hover:bg-teal-600">Choose File(s)</button></div>) : (
+                    <div className="w-full h-full p-2">
+                        {/* ✨ ЗМІНА 4: Оновлюємо блок рендерингу для використання нового плеєра */}
+                        {mainPreviewUrl && isVideo ? (
+                            isHls ? (
+                                <InlineHlsPlayer src={mainPreviewUrl} controls />
+                            ) : (
+                                <video key={mainPreviewUrl} src={mainPreviewUrl} controls className="w-full h-full object-contain rounded-md" />
+                            )
+                        ) : mainPreviewUrl && !isVideo ? (
+                             <img src={mainPreviewUrl} alt="Preview" className="w-full h-full object-contain rounded-md" />
+                        ) : null}
+                        <button type="button" onClick={handleRemoveFile} className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors" aria-label="Remove file"><X size={16} /></button>
+                    </div>)}
                 </div>
                 <input id={`dropzone-file-${id}`} type="file" className="hidden" ref={fileInputRef} onChange={handleFileInputChange} accept="image/*,video/*" multiple />
             </FormSection>
             <FormSection title="Preview" hasSeparator={false}>
-                {/* ✨ MODIFIED: Conditional rendering for previews */}
                 { !isEditMode && isVideo && selectedFile ? (
                     <div className="text-center text-slate-500 dark:text-slate-400 py-8">
                         <p className="font-medium">Preview will be generated automatically.</p>
@@ -247,9 +315,6 @@ const ReelPartialForm = ({ reel, onUpdate, onFilesSelected, isEditMode }) => {
 
 
 // --- Main CreateReel Component ---
-// This component passes the `isEditMode` prop down. The rest of the logic,
-// especially in `handleFilesSelected`, is updated to prevent client-side
-// preview generation for videos in create mode.
 const CreateReel = () => {
   const { itemId } = useParams();
   const navigate = useNavigate();
@@ -263,7 +328,6 @@ const CreateReel = () => {
   const initialCommonFormData = { allowDownload: false, publicationDate: new Date(), publishOption: 'now', artist: [], client: [], description: '', featuredCelebrity: [], contentType: '', craft: '', categories: [] };
   const [commonFormData, setCommonFormData] = useState(initialCommonFormData);
 
-  // State for options, toast, etc., remains the same
   const [artists, setArtists] = useState([]);
   const [clients, setClients] = useState([]);
   const [celebrities, setCelebrities] = useState([]);
@@ -280,7 +344,6 @@ const CreateReel = () => {
     }, 3000);
   };
 
-  // useEffect hooks for cleanup and fetching options remain the same
   useEffect(() => {
     return () => {
       reels.forEach((reel) => {
@@ -320,7 +383,6 @@ const CreateReel = () => {
     fetchOptions();
   }, []);
   
-  // useEffect for fetching data in edit mode remains the same
   useEffect(() => {
     if (isEditMode) {
       const fetchItemData = async () => {
@@ -330,7 +392,8 @@ const CreateReel = () => {
             if (!response.ok) throw new Error('Failed to fetch media item data.');
             const item = await response.json();
 
-            const pathsToSign = [item.video_gcs_path, item.preview_gcs_path].filter(Boolean);
+            // ✨ ЗМІНА: Додаємо video_hls_path до запитуваних шляхів
+            const pathsToSign = [item.video_gcs_path, item.preview_gcs_path, item.video_hls_path].filter(Boolean);
             const urlsMap = {};
             if (pathsToSign.length > 0) {
               const urlsResponse = await fetch(`${API_BASE_URL}/generate-read-urls`, {
@@ -366,8 +429,9 @@ const CreateReel = () => {
               title: item.title,
               selectedFile: null,
               customPreviewFile: null,
-              mainPreviewUrl: urlsMap[item.video_gcs_path] || null,
-              customPreviewUrl: urlsMap[item.preview_gcs_path] || urlsMap[item.video_gcs_path] || null,
+              // ✨ ЗМІНА: Пріоритет віддаємо HLS URL, якщо він є
+              mainPreviewUrl: urlsMap[item.video_hls_path] || urlsMap[item.video_gcs_path] || null,
+              customPreviewUrl: urlsMap[item.preview_gcs_path] || null,
               original_video_path: item.video_gcs_path,
               original_preview_path: item.preview_gcs_path,
               isRemovable: false, 
@@ -433,7 +497,6 @@ const CreateReel = () => {
             try { customPreview = await compressImage(file); } 
             catch (error) { console.error('Failed to compress additional file preview:', error); customPreview = file; }
           }
-          // In create mode, customPreviewUrl for videos will be null.
           const customPreviewUrl = customPreview ? URL.createObjectURL(customPreview) : null;
   
           return { ...createNewReelState(), title: fileNameWithoutExt, selectedFile: file, customPreviewFile: customPreview, mainPreviewUrl: fileUrl, customPreviewUrl: customPreviewUrl };
@@ -453,7 +516,6 @@ const CreateReel = () => {
           if (reel.id === reelId) {
             const fileNameWithoutExt = firstFile.name.substring(0, firstFile.name.lastIndexOf('.')) || firstFile.name;
             const fileUrl = URL.createObjectURL(firstFile);
-            // In create mode, don't generate a blob URL for video previews
             const customPreviewUrl = compressedPreviewForFirst ? URL.createObjectURL(compressedPreviewForFirst) : null;
             return { ...reel, title: reel.title || fileNameWithoutExt, selectedFile: firstFile, customPreviewFile: compressedPreviewForFirst, mainPreviewUrl: fileUrl, customPreviewUrl: customPreviewUrl };
           }
@@ -463,7 +525,6 @@ const CreateReel = () => {
       });
   };
   
-  // Handlers for form changes and submit remain largely the same.
   const handleAddReel = () => setReels((prev) => [...prev, createNewReelState()]);
   const handleCommonFormChange = (field, value) => setCommonFormData((prev) => ({ ...prev, [field]: value }));
   const isSchedulingDisabled = commonFormData.publishOption === 'now';
@@ -515,7 +576,6 @@ const CreateReel = () => {
     );
   }
 
-  // The main JSX return structure remains the same
   return (
     <form onSubmit={handleSubmit} className="max-w-7xl mx-auto space-y-8 pb-36">
       {toast.visible && (
@@ -530,7 +590,6 @@ const CreateReel = () => {
           <h2 className="text-xl font-bold text-slate-700 dark:text-slate-200 mb-4">
             {isEditMode ? `Editing Media: ${reel.title}` : `Media #${index + 1}`}
           </h2>
-          {/* ✨ PASSING THE PROP HERE */}
           <ReelPartialForm
             reel={reel}
             onUpdate={handleUpdateReel}
@@ -539,8 +598,7 @@ const CreateReel = () => {
           />
         </div>
       ))}
-
-      {/* The rest of the form JSX is unchanged */}
+      
       {!isEditMode && (
         <div className="flex justify-center">
           <button type="button" onClick={handleAddReel} className="px-6 py-2 border-2 border-dashed border-teal-500 text-teal-600 font-semibold rounded-lg hover:bg-teal-50 dark:hover:bg-slate-800 transition-colors">

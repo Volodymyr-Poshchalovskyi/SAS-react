@@ -1,4 +1,5 @@
 // 1. Імпортуємо бібліотеки
+const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const { Storage } = require('@google-cloud/storage');
@@ -33,7 +34,8 @@ const allowedOrigins = [
   'http://localhost:5173',           // Для локальної розробки
   'http://192.168.0.123:5173',       // Адреса вашого Vite у локальній мережі
   'http://192.168.1.103:5173',
-  'http://192.168.1.106:5173',       // Можлива інша адреса у локальній мережі
+  'http://192.168.1.106:5173',    
+  'http://192.168.1.110:5173',      // Можлива інша адреса у локальній мережі
   'https://sas-frontend-zhgs.onrender.com' // Для розгорнутого додатка
 ];
 
@@ -712,7 +714,7 @@ app.get('/reels/public/:short_link', async (req, res) => {
     const { data: reel, error: reelError } = await supabase
       .from('reels')
       .select(
-        `id, title, status, reel_media_items(display_order, media_items(id, title, client, artists, video_gcs_path, preview_gcs_path, craft, allow_download))`
+        `id, title, status, reel_media_items(display_order, media_items(id, title, client, artists, video_gcs_path, video_hls_path, preview_gcs_path, craft, allow_download))`
       )
       .eq('short_link', req.params.short_link)
       .single();
@@ -765,8 +767,9 @@ app.get('/reels/public/:short_link', async (req, res) => {
         }
 
         return {
-          ...item,
+            ...item, // ✨ ДОДАНО ЦЕЙ ВАЖЛИВИЙ РЯДОК
           videoGcsPath: item.video_gcs_path,
+          video_hls_path: item.video_hls_path, 
           previewGcsPath: item.preview_gcs_path || item.video_gcs_path,
           artists: enrichedArtists,
         };
@@ -888,7 +891,7 @@ app.delete('/media-items/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Step 1: Get file paths from the database BEFORE deleting the record.
+    // Крок 1: Отримуємо шляхи до файлів з БД ПЕРЕД видаленням запису
     const { data: item, error: fetchError } = await supabase
       .from('media_items')
       .select('video_gcs_path, preview_gcs_path')
@@ -905,25 +908,42 @@ app.delete('/media-items/:id', async (req, res) => {
       return res.status(404).json({ error: `Media item with id ${id} not found.` });
     }
     
-    // Step 2: Try to delete files from Google Cloud Storage first.
-    // This is the most critical step.
-    const pathsToDelete = [item.video_gcs_path, item.preview_gcs_path].filter(Boolean);
+    // Крок 2: Намагаємось видалити файли з Google Cloud Storage
+    // Це найкритичніший крок.
+    const deletePromises = [];
 
-    if (pathsToDelete.length > 0) {
-      console.log(`Attempting to delete files from GCS: ${pathsToDelete.join(', ')}`);
+    // Додаємо оригінальне відео та прев'ю до списку на видалення
+    if (item.video_gcs_path) deletePromises.push(bucket.file(item.video_gcs_path).delete());
+    if (item.preview_gcs_path) deletePromises.push(bucket.file(item.preview_gcs_path).delete());
+
+    // ✨ ПОЧАТОК НОВОЇ ЛОГІКИ ✨
+    // Якщо є оригінальне відео, конструюємо шлях до папки транскодування
+    if (item.video_gcs_path) {
+      const originalVideoPath = item.video_gcs_path;
+      // Отримуємо ім'я файлу без розширення (напр., "uuid-my-video")
+      const fileNameWithoutExt = path.basename(originalVideoPath, path.extname(originalVideoPath));
+      // Формуємо префікс папки, яку треба очистити
+      const transcodedPrefix = `back-end/transcoded_videos/${fileNameWithoutExt}/`;
+      
+      console.log(`Adding transcoded folder to deletion queue: ${transcodedPrefix}`);
+      // Додаємо обіцянку видалення всіх файлів у цій папці
+      deletePromises.push(bucket.deleteFiles({ prefix: transcodedPrefix }));
+    }
+    // ✨ КІНЕЦЬ НОВОЇ ЛОГІКИ ✨
+
+    if (deletePromises.length > 0) {
+      console.log(`Attempting to delete ${deletePromises.length} GCS operations for item ${id}.`);
       try {
-        await Promise.all(
-          pathsToDelete.map((path) => bucket.file(path).delete())
-        );
-        console.log('Successfully deleted files from GCS.');
+        await Promise.all(deletePromises);
+        console.log('Successfully deleted all associated files from GCS.');
       } catch (gcsError) {
-        // If an error occurs during GCS deletion, STOP and return an error.
+        // Якщо помилка під час видалення з GCS, зупиняємось і повертаємо помилку
         console.error(`CRITICAL: Failed to delete one or more files from GCS for item ${id}.`, gcsError);
         throw new Error(`Failed to delete files from storage. Database record was NOT deleted. Details: ${gcsError.message}`);
       }
     }
 
-    // Step 3: Delete all related records (from `reel_media_items`).
+    // Крок 3: Видаляємо всі пов'язані записи (з `reel_media_items`).
     const { data: affectedReelLinks, error: linksError } = await supabase
       .from('reel_media_items')
       .select('reel_id')
@@ -936,7 +956,7 @@ app.delete('/media-items/:id', async (req, res) => {
       .eq('media_item_id', id);
     if (deleteLinksError) throw deleteLinksError;
 
-    // Check for and delete any reels that are now empty
+    // Перевіряємо та видаляємо рілси, що стали порожніми
     if (affectedReelLinks && affectedReelLinks.length > 0) {
       const affectedReelIds = affectedReelLinks.map((link) => link.reel_id);
       const { data: remainingLinks, error: checkError } = await supabase
@@ -953,7 +973,7 @@ app.delete('/media-items/:id', async (req, res) => {
       }
     }
 
-    // Step 4: Only after GCS files are gone, delete the database record.
+    // Крок 4: Тільки після успішного видалення файлів з GCS, видаляємо запис з БД
     const { error: deleteItemError } = await supabase
       .from('media_items')
       .delete()
@@ -962,13 +982,13 @@ app.delete('/media-items/:id', async (req, res) => {
       throw new Error(`Failed to delete database record after cleaning storage: ${deleteItemError.message}`);
     }
 
-    // Step 5: Report success.
+    // Крок 5: Повідомляємо про успіх
     res.status(200).json({
       message: 'Media item and all associated files/reels deleted successfully.',
     });
 
   } catch (error) {
-    // General catch block for all errors
+    // Загальний блок для відлову всіх помилок
     console.error(`FATAL: Error during deletion process for media item ${id}:`, error);
     res.status(500).json({ 
       error: 'Failed to complete the deletion process.', 

@@ -2,17 +2,21 @@
 
 import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import VideoContainer from '../Components/VideoContainer';
+// ✨ Зміни тут: імпортуємо HlsVideoPlayer
+import HlsVideoPlayer from '../Components/HlsVideoPlayer';
 import { AnimatePresence } from 'framer-motion';
 import PreloaderBanner from '../Components/PreloaderBanner';
 import { useAnimation } from '../context/AnimationContext';
 import { tableTopData } from '../Data/TableTopData';
 
+// ✨ Зміни тут: оновлюємо URL для HLS-формату
 const showreelURL =
-  'front-end/04-Service/01-ROUGE ALLURE VELVET NUIT BLANCHE, lipstick for a moment, allure for a night — CHANEL Makeup (1080p_25fps_H264-128kbit_AAC).mp4';
+  'front-end/04-Service/TRANSCODED/01-ROUGE ALLURE VELVET NUIT BLANCHE, lipstick for a moment, allure for a night — CHANEL Makeup (1080p_25fps_H264-128kbit_AAC)/master.m3u8';
+const showreelPreviewURL =
+  'front-end/04-Service/VIDEO_PREVIEW/04-Service/01-ROUGE ALLURE VELVET NUIT BLANCHE, lipstick for a moment, allure for a night — CHANEL Makeup (1080p_25fps_H264-128kbit_AAC).jpg';
 
-// ✨ Додаємо константу для базового URL нашого CDN
-const CDN_BASE_URL = 'https://storage.googleapis.com';
+// ✨ Зміни тут: виправляємо базовий URL CDN
+const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
 
 const TableTopStudio = () => {
   const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } =
@@ -21,9 +25,10 @@ const TableTopStudio = () => {
   // Логіка прелоадера (без змін)
   useEffect(() => {
     if (onPreloaderPage) setIsPreloaderActive(true);
-  return () => {
+    return () => {
       setIsPreloaderActive(false);
-    };}, [onPreloaderPage, setIsPreloaderActive]);
+    };
+  }, [onPreloaderPage, setIsPreloaderActive]);
 
   useEffect(() => {
     document.body.style.overflow = isPreloaderActive ? 'hidden' : '';
@@ -48,13 +53,14 @@ const TableTopStudio = () => {
         )}
       </AnimatePresence>
 
-      {/* ✨ ЗМІНА: Заголовок "TABLE TOP DIVISION" було видалено звідси. */}
-
       <div className="relative w-full h-screen bg-black">
-        {/* ✨ Використовуємо пряме посилання на CDN для шоуріла */}
-        <VideoContainer
-          videoSrc={`${CDN_BASE_URL}/${showreelURL}`}
+        {/* ✨ Зміни тут: використовуємо HlsVideoPlayer для шоуріла */}
+        <HlsVideoPlayer
+          src={`${CDN_BASE_URL}/${showreelURL}`}
+          previewSrc={`${CDN_BASE_URL}/${showreelPreviewURL}`}
           shouldPlay={!isPreloaderActive}
+          isMuted={true}
+          isLooped={true}
         />
       </div>
 
@@ -68,10 +74,15 @@ const TableTopStudio = () => {
 
       {tableTopData.map((project) => (
         <div key={project.id} className="relative w-full h-screen bg-black">
-          {/* ✨ Використовуємо пряме посилання на CDN для кожного проєкту */}
-          <VideoContainer
-            videoSrc={`${CDN_BASE_URL}/${project.src}`}
+          {/* ✨ Зміни тут: використовуємо HlsVideoPlayer для кожного проєкту */}
+          <HlsVideoPlayer
+            src={`${CDN_BASE_URL}/${project.src}`}
+            previewSrc={`${CDN_BASE_URL}/${project.preview_src}`}
+            // Примітка: ця логіка може бути неефективною, якщо на сторінці багато відео.
+            // Розгляньте можливість програвання відео лише тоді, коли воно видиме на екрані.
             shouldPlay={!isPreloaderActive}
+            isMuted={true}
+            isLooped={true}
           />
           <div className="absolute top-[80%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full text-center">
             <Link to={`/projects/${project.projectSlug}`}>
