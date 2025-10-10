@@ -138,7 +138,7 @@ const Header = forwardRef(function Header(props, ref) {
         animate={isNavExpanded ? 'visible' : 'hidden'}
         onMouseLeave={handleNavMouseLeave}
       >
-        <div className="flex items-center gap-8 pb-4 pt-2 relative">
+        <div className="flex items-center gap-8 pb-1 pt-2 relative">
           {navLinks.map((link) => (
             <Link
               key={link.path}
