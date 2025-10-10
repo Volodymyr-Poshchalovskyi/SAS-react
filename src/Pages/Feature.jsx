@@ -10,16 +10,17 @@ const nameAnimation = {
 };
 
 export default function Feature() {
-  const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } =
-    useAnimation();
-  // ✨ NEW: Стан для збереження URL відео з GCS
+  // ✅ ЗМІНА 1: Відновлюємо setIsPreloaderActive, щоб передати його в банер.
+  const { isPreloaderActive, setIsPreloaderActive } = useAnimation();
   const [videoUrl, setVideoUrl] = useState('');
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  // --- Логіка прелоадера ---
+  // ❌❌❌ ЦЕЙ БЛОК ПОВНІСТЮ ВИДАЛЯЄТЬСЯ ❌❌❌
+  // Він є причиною того, що анімація "застрягає".
+  /*
   useEffect(() => {
     if (onPreloaderPage) {
       setIsPreloaderActive(true);
@@ -28,6 +29,8 @@ export default function Feature() {
       setIsPreloaderActive(false);
     };
   }, [onPreloaderPage, setIsPreloaderActive]);
+  */
+  // ❌❌❌ КІНЕЦЬ БЛОКУ ДЛЯ ВИДАЛЕННЯ ❌❌❌
 
   useEffect(() => {
     document.body.style.overflow = isPreloaderActive ? 'hidden' : '';
@@ -36,10 +39,8 @@ export default function Feature() {
     };
   }, [isPreloaderActive]);
 
-  // ✨ NEW: Завантаження URL для відео з GCS під час роботи прелоадера
   useEffect(() => {
     const fetchVideoUrl = async () => {
-      // Використовуємо той самий шлях до головного відео, що й на сторінці Main
       const gcsPath =
         'front-end/00-Main Page/SHOWREEL SINNERS AND SAINTS 2024.mp4';
       try {
@@ -63,7 +64,6 @@ export default function Feature() {
     fetchVideoUrl();
   }, []);
 
-  // --- Текст для банера ---
   const bannerTitle = 'From Script to Screen.';
   const bannerDescription =
     'Our feature film division specializes in packaging commercially viable projects with top-tier talent, financing strategies, and distribution plans. Whether building a festival hit or a streamer-ready series, we develop narratives with lasting impact.';
@@ -75,6 +75,8 @@ export default function Feature() {
       <AnimatePresence>
         {isPreloaderActive && (
           <PreloaderBanner
+            // ✅ ЗМІНА 2: Відновлюємо onAnimationComplete. Це дозволить банеру повідомити,
+            // коли він закінчив свою роботу, і встановити isPreloaderActive в false.
             onAnimationComplete={() => setIsPreloaderActive(false)}
             title={bannerTitle}
             description={bannerDescription}
@@ -82,9 +84,7 @@ export default function Feature() {
         )}
       </AnimatePresence>
 
-      {/* ✨ MODIFIED: Контент тепер рендериться одразу, а не чекає на прелоадер */}
       <div className="relative w-full h-screen overflow-hidden">
-        {/* ✨ MODIFIED: VideoContainer рендериться, коли є URL */}
         {videoUrl && (
           <VideoContainer videoSrc={videoUrl} shouldPlay={!isPreloaderActive} />
         )}
@@ -93,7 +93,6 @@ export default function Feature() {
             className="text-white font-chanel font-normal uppercase text-4xl sm:text-6xl md:text-[5rem] tracking-[-0.3rem] md:tracking-[-0.6rem] transition-opacity duration-500 hover:opacity-50"
             variants={nameAnimation}
             initial="hidden"
-            // Анімація спрацює, коли зникне прелоадер
             animate={!isPreloaderActive ? 'visible' : 'hidden'}
           >
             {featureTitle}

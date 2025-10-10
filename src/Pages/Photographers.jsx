@@ -1,5 +1,3 @@
-// src/Pages/Photographers.jsx
-
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -13,27 +11,13 @@ const nameAnimation = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: 'easeOut' } },
 };
 
-// MotionLink більше не потрібен
-// const MotionLink = motion(Link);
-
 export default function Photographers() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } =
-    useAnimation();
+  const { isPreloaderActive, setIsPreloaderActive } = useAnimation();
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
   }, []);
-
-  // ... (решта коду без змін) ...
-  useEffect(() => {
-    if (onPreloaderPage) {
-      setIsPreloaderActive(true);
-    }
-    return () => {
-      setIsPreloaderActive(false);
-    };
-  }, [onPreloaderPage, setIsPreloaderActive]);
 
   useEffect(() => {
     document.body.style.overflow = isPreloaderActive ? 'hidden' : '';
@@ -83,24 +67,23 @@ export default function Photographers() {
       {photographersData.map((photographer, index) => (
         <div
           key={photographer.id}
-          className="relative w-full h-screen snap-start bg-black"
+          // ✅ ОСЬ ЄДИНА ЗМІНА: додано 'overflow-hidden'
+          className="relative w-full h-screen snap-start bg-black overflow-hidden"
         >
           <div
-            className="absolute inset-0 w-full h-full bg-cover bg-center"
-            style={{ backgroundImage: `url(${photographer.coverImage})` }}
+            className="absolute inset-0 w-full h-full bg-cover bg-center transition-transform duration-500 ease-in-out"
+            style={{
+              backgroundImage: `url(${photographer.coverImage})`,
+              transform: index === currentIndex && !isPreloaderActive ? 'scale(1)' : 'scale(1.05)',
+            }}
           />
           <div className="absolute inset-0 bg-black opacity-30" />
           <div className="absolute top-[80%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full text-center">
-            {/* ✨ Зміни тут: Анімуємо батьківський div замість MotionLink */}
             <motion.div
               className="flex flex-col items-center gap-4"
               variants={nameAnimation}
               initial="hidden"
-              animate={
-                index === 0 && !isPreloaderActive ? 'visible' : undefined
-              }
-              whileInView={index > 0 ? 'visible' : undefined}
-              viewport={{ once: true, amount: 0.5 }}
+              animate={index === currentIndex && !isPreloaderActive ? 'visible' : 'hidden'}
             >
               <Link
                 to={`/photographers/${photographer.slug}`}
@@ -108,8 +91,6 @@ export default function Photographers() {
               >
                 {photographer.name}
               </Link>
-              
-              
             </motion.div>
           </div>
         </div>

@@ -1,5 +1,3 @@
-// src/Pages/Directors.jsx
-
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -22,14 +20,11 @@ const nameAnimation = {
 
 const DirectorSlide = ({ director, isActive, shouldPreload, isPreloaderActive }) => {
   const [videoSrc, setVideoSrc] = useState('');
-  // ЗМІНА 1: Додаємо стан для URL прев'ю
   const [previewSrc, setPreviewSrc] = useState('');
 
-  // Отримуємо дані для першого відео, яке буде фоновим
   const firstVideo = director.videos[0];
   const publicVideoUrl = `${CDN_BASE_URL}/${firstVideo.src}`;
   
-  // ЗМІНА 2: Створюємо повний URL для прев'ю-зображення
   const publicPreviewUrl = firstVideo.preview_src
     ? `${CDN_BASE_URL}/${firstVideo.preview_src}`
     : '';
@@ -37,23 +32,18 @@ const DirectorSlide = ({ director, isActive, shouldPreload, isPreloaderActive })
   useEffect(() => {
     if (isActive || shouldPreload) {
       setVideoSrc(publicVideoUrl);
-      // ЗМІНА 3: Встановлюємо URL прев'ю разом з URL відео
       setPreviewSrc(publicPreviewUrl);
     } else {
       setVideoSrc('');
-      // ЗМІНА 4: Очищуємо URL прев'ю, коли слайд неактивний
       setPreviewSrc('');
     }
-    // Додаємо `publicPreviewUrl` до масиву залежностей
   }, [isActive, shouldPreload, publicVideoUrl, publicPreviewUrl]);
 
   return (
     <div className="relative w-full h-screen snap-start">
-      {/* Рендеримо плеєр, тільки якщо є джерело відео */}
       {videoSrc && (
         <HlsVideoPlayer
           src={videoSrc}
-          // ЗМІНА 5: Передаємо `previewSrc` в HlsVideoPlayer
           previewSrc={previewSrc}
           shouldPlay={isActive && !isPreloaderActive}
         />
@@ -79,20 +69,14 @@ const DirectorSlide = ({ director, isActive, shouldPreload, isPreloaderActive })
 
 export default function Directors() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } = useAnimation();
+  const { isPreloaderActive, setIsPreloaderActive } = useAnimation();
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  useEffect(() => {
-    if (onPreloaderPage) {
-      setIsPreloaderActive(true);
-    }
-    return () => {
-      setIsPreloaderActive(false);
-    };
-  }, [onPreloaderPage, setIsPreloaderActive]);
+  
+
 
   useEffect(() => {
     document.body.style.overflow = isPreloaderActive ? 'hidden' : '';

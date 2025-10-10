@@ -1,11 +1,13 @@
 // src/pages/Team.js
 
-import React, { useState, useLayoutEffect, useEffect } from 'react';
+import React, { useState, useLayoutEffect, useEffect, useRef } from 'react';
+// ✨ КРОК 1: Імпортуємо useOutletContext для доступу до даних з Layout
+import { useOutletContext } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import PreloaderBanner from '../Components/PreloaderBanner';
 import { useAnimation } from '../context/AnimationContext';
 import { X } from 'lucide-react';
-import { teamData } from '../Data/TeamData'; // Дані вже містять імпортовані зображення
+import { teamData } from '../Data/TeamData';
 import sinnersLogoBlack from '../assets/Logo/Sinners logo black.png';
 
 // --- Анімації (без змін) ---
@@ -30,7 +32,15 @@ const tabsData = [
 // ===================================
 // ✨ ОНОВЛЕНО: Модальне вікно учасника команди
 // ===================================
-const TeamMemberModal = ({ member, onClose }) => { // ✨ ЗМІНА: Проп `photoUrl` видалено
+// ===================================
+// ✨ ОНОВЛЕНО: Модальне вікно учасника команди (з подвійним регулюванням шрифтів)
+// ===================================
+const TeamMemberModal = ({ member, onClose }) => {
+  // Створюємо refs для імені та біографії
+  const nameRef = useRef(null);
+  const bioRef = useRef(null); // ✨ НОВИЙ REF
+
+  // Ефект для закриття модалки і блокування скролу (без змін)
   useEffect(() => {
     const handleEsc = (event) => {
       if (event.key === 'Escape') onClose();
@@ -42,6 +52,63 @@ const TeamMemberModal = ({ member, onClose }) => { // ✨ ЗМІНА: Проп `
       document.body.style.overflow = '';
     };
   }, [onClose]);
+
+  // ✨ ОНОВЛЕНИЙ ЕФЕКТ: Динамічно змінює розмір шрифту імені
+  useLayoutEffect(() => {
+    const adjustNameFontSize = () => {
+      const element = nameRef.current;
+      if (!element) return;
+      const container = element.parentElement;
+      if (!container) return;
+
+      const containerStyle = window.getComputedStyle(container);
+      const paddingLeft = parseFloat(containerStyle.paddingLeft);
+      const paddingRight = parseFloat(containerStyle.paddingRight);
+      const availableWidth = container.clientWidth - paddingLeft - paddingRight;
+
+      const maxFontSize = window.innerWidth < 768 ? 60 : 120;
+      const minFontSize = 24;
+      let currentFontSize = maxFontSize;
+      element.style.fontSize = `${currentFontSize}px`;
+
+      while (
+        element.scrollWidth > availableWidth && // ✨ ВИПРАВЛЕНА УМОВА
+        currentFontSize > minFontSize
+      ) {
+        currentFontSize--;
+        element.style.fontSize = `${currentFontSize}px`;
+      }
+    };
+    adjustNameFontSize();
+    window.addEventListener('resize', adjustNameFontSize);
+    return () => window.removeEventListener('resize', adjustNameFontSize);
+  }, [member]);
+
+  // ✨ НОВИЙ ЕФЕКТ: Динамічно змінює розмір шрифту біографії
+  useLayoutEffect(() => {
+    const adjustBioFontSize = () => {
+      const element = bioRef.current;
+      if (!element) return;
+      
+      // Скидаємо стиль, щоб правильно розрахувати початкову висоту
+      element.style.fontSize = '';
+      const initialFontSize = parseFloat(window.getComputedStyle(element).fontSize);
+      let currentFontSize = initialFontSize;
+      const minFontSize = 10; // Мінімальний розмір шрифту для біографії
+
+      // Зменшуємо шрифт, поки висота контенту більша за висоту блоку
+      while (
+        element.scrollHeight > element.clientHeight &&
+        currentFontSize > minFontSize
+      ) {
+        currentFontSize -= 0.5; // Зменшуємо плавно
+        element.style.fontSize = `${currentFontSize}px`;
+      }
+    };
+    adjustBioFontSize();
+    window.addEventListener('resize', adjustBioFontSize);
+    return () => window.removeEventListener('resize', adjustBioFontSize);
+  }, [member]);
 
   const modalVariants = {
     hidden: { x: '-100%', opacity: 0.8 },
@@ -89,13 +156,16 @@ const TeamMemberModal = ({ member, onClose }) => { // ✨ ЗМІНА: Проп `
           </button>
         </header>
 
-        <div className="flex-grow flex flex-col px-8 md:px-16 pb-12">
-          <h1 className="flex-shrink-0 text-6xl md:text-[120px] text-center font-chanel font-semibold uppercase mb-8 leading-none">
+        <div className="flex-grow flex flex-col px-8 md:px-16 pb-12 overflow-hidden">
+          <h1
+            ref={nameRef}
+            className="flex-shrink-0 text-center font-chanel font-semibold uppercase mb-9 -mt-5 leading-none"
+            style={{ whiteSpace: 'nowrap' }}
+          >
             {member.firstName} {member.lastName}
           </h1>
           <div className="flex-grow flex flex-col md:flex-row gap-12 md:gap-16 min-h-0">
             <div className="w-full md:w-2/5 flex-shrink-0">
-              {/* ✨ ЗМІНА: Використовуємо `member.photoSrc` напряму */}
               {member.photoSrc ? (
                 <img
                   src={member.photoSrc}
@@ -107,19 +177,19 @@ const TeamMemberModal = ({ member, onClose }) => { // ✨ ЗМІНА: Проп `
               )}
             </div>
             <div className="w-full md:w-3/5 flex flex-col justify-center">
-  
-  {/* ✨ 2. Видаляємо цей зайвий елемент-розпірку */}
-  {/* <div className="flex-grow" /> */}
-  
-  <div>
-    <h2 className="text-3xl font-bold uppercase tracking-widest mb-4">
-      {member.role}
-    </h2>
-    <p className="text-base leading-relaxed whitespace-pre-line max-h-[40vh] md:max-h-full overflow-y-auto">
-      {member.bio}
-    </p>
-  </div>
-</div>
+              <div>
+                <h2 className="text-3xl font-bold uppercase tracking-widest mb-4">
+                  {member.role}
+                </h2>
+                {/* ✨ ЗМІНЕНО: Додано ref та прибрано overflow-y-auto */}
+                <p
+                  ref={bioRef}
+                  className="text-base leading-relaxed whitespace-pre-line max-h-[40vh] md:max-h-full"
+                >
+                  {member.bio}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </motion.div>
@@ -127,10 +197,11 @@ const TeamMemberModal = ({ member, onClose }) => { // ✨ ЗМІНА: Проп `
   );
 };
 
+
 // ===================================
-// ✨ ОНОВЛЕНО: Сітка з учасниками команди
+// Сітка з учасниками команди (без змін)
 // ===================================
-const TeamGrid = ({ teamMembers, onSelectMember }) => { // ✨ ЗМІНА: Проп `photoUrls` видалено
+const TeamGrid = ({ teamMembers, onSelectMember }) => {
   return (
     <motion.div
       variants={contentAnimation}
@@ -145,9 +216,10 @@ const TeamGrid = ({ teamMembers, onSelectMember }) => { // ✨ ЗМІНА: Пр�
           return (
             <div key={member.id} className="grid grid-cols-1 md:grid-cols-2">
               <div
-                className={`w-full h-[50vw] ${isReversed ? 'md:order-last' : ''}`}
+                className={`w-full h-[50vw] ${
+                  isReversed ? 'md:order-last' : ''
+                }`}
               >
-                {/* ✨ ЗМІНА: Використовуємо `member.photoSrc` напряму */}
                 {member.photoSrc ? (
                   <img
                     src={member.photoSrc}
@@ -254,15 +326,13 @@ export default function Team() {
   const { isPreloaderActive, setIsPreloaderActive } = useAnimation();
   const [activeTab, setActiveTab] = useState(tabsData[0].id);
   const [selectedMember, setSelectedMember] = useState(null);
-  
-  // ✨ ВИДАЛЕНО: Стан `photoUrls` більше не потрібен.
-  // const [photoUrls, setPhotoUrls] = useState({});
+
+  // ✨ КРОК 2: Отримуємо висоту хедера з контексту
+  const { headerHeight } = useOutletContext();
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
   }, []);
-
-  // ✨ ВИДАЛЕНО: `useEffect` для завантаження URL-адрес з GCS більше не потрібен.
 
   useEffect(() => {
     document.body.style.overflow =
@@ -282,6 +352,10 @@ export default function Team() {
     'From award-winning filmmakers to fashion-forward image makers, our directors and hybrid talent deliver world-class content across commercials, music videos, branded series, and global campaigns.';
 
   const currentTabData = tabsData.find((tab) => tab.id === activeTab);
+  
+  // ✨ КРОК 3: Розраховуємо загальний відступ. До висоти хедера додаємо невеликий проміжок (24px).
+  // Надаємо запасний варіант (150px) на випадок, якщо headerHeight ще не визначено.
+  const topPadding = headerHeight ? `${headerHeight}px` : '150px';
 
   return (
     <div className="bg-white dark:bg-black">
@@ -300,12 +374,15 @@ export default function Team() {
           <TeamMemberModal
             member={selectedMember}
             onClose={handleCloseModal}
-            // ✨ ЗМІНА: Проп `photoUrl` видалено
           />
         )}
       </AnimatePresence>
 
-      <header className="bg-white dark:bg-black pt-[150px] pb-16 text-center">
+      {/* ✨ КРОК 4: Замінюємо клас pt-[150px] на динамічний стиль */}
+      <header
+        className="bg-white dark:bg-black pb-16 text-center"
+        style={{ paddingTop: topPadding }}
+      >
         <div className="max-w-7xl mx-auto px-4">
           <nav className="flex items-center justify-center">
             <div className="flex space-x-10 border-b border-gray-300 dark:border-gray-700">
@@ -336,7 +413,7 @@ export default function Team() {
             </div>
           </nav>
 
-          <div className="mt-12">
+          <div className="mt-12"> {/* Додано невеликий відступ для заголовка */}
             <AnimatePresence mode="wait">
               <motion.h1
                 key={activeTab}
@@ -360,7 +437,6 @@ export default function Team() {
               key="team-content"
               teamMembers={teamData}
               onSelectMember={handleOpenModal}
-              // ✨ ЗМІНА: Проп `photoUrls` видалено
             />
           ) : (
             <ContactInfoSection key="contact-content" />

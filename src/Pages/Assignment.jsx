@@ -16,30 +16,24 @@ const nameAnimation = {
   },
 };
 
-const AssignmentSlide = ({ director, index, isActive, shouldPreload, isPreloaderActive }) => {
+const AssignmentSlide = ({ director, isActive, shouldPreload, isPreloaderActive }) => {
   const [videoSrc, setVideoSrc] = useState('');
-  // ✨ Формуємо посилання на відео один раз
   const publicCdnUrl = `https://storage.googleapis.com/new-sas-media-storage/${director.videos[0].src}`;
 
   useEffect(() => {
-    // Керуємо джерелом відео: встановлюємо URL, якщо слайд активний
-    // або має бути попередньо завантажений.
     if (isActive || shouldPreload) {
       setVideoSrc(publicCdnUrl);
-    } 
-    // В іншому випадку — очищуємо src, щоб зупинити завантаження.
-    else {
+    } else {
       setVideoSrc('');
     }
   }, [isActive, shouldPreload, publicCdnUrl]);
 
   return (
     <div className="relative w-full h-screen snap-start">
-      {/* Рендеримо плеєр, тільки якщо є що завантажувати/відтворювати */}
       {videoSrc && (
         <HlsVideoPlayer
           src={videoSrc}
-          shouldPlay={isActive && !isPreloaderActive} // Відтворюємо тільки активне відео
+          shouldPlay={isActive && !isPreloaderActive}
         />
       )}
       <div className="absolute top-[80%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full text-center">
@@ -47,9 +41,7 @@ const AssignmentSlide = ({ director, index, isActive, shouldPreload, isPreloader
           className="flex flex-col items-center gap-4"
           variants={nameAnimation}
           initial="hidden"
-          // Анімація з'являється тільки для активного слайда
           animate={isActive && !isPreloaderActive ? 'visible' : 'hidden'}
-          // Viewport тут вже не потрібен, оскільки анімація керується станом
         >
           <Link
             to={`/assignment/${director.slug}`}
@@ -65,20 +57,12 @@ const AssignmentSlide = ({ director, index, isActive, shouldPreload, isPreloader
 
 export default function Assignment() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } = useAnimation();
+  // ✅ ВИПРАВЛЕННЯ 1: Отримуємо setIsPreloaderActive з контексту
+  const { isPreloaderActive, setIsPreloaderActive } = useAnimation();
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
   }, []);
-
-  useEffect(() => {
-    if (onPreloaderPage) {
-      setIsPreloaderActive(true);
-    }
-    return () => {
-      setIsPreloaderActive(false);
-    };
-  }, [onPreloaderPage, setIsPreloaderActive]);
 
   useEffect(() => {
     document.body.style.overflow = isPreloaderActive ? 'hidden' : '';
@@ -114,6 +98,7 @@ export default function Assignment() {
       <AnimatePresence>
         {isPreloaderActive && (
           <PreloaderBanner
+            // ✅ ВИПРАВЛЕННЯ 2: Передаємо callback для оновлення стану
             onAnimationComplete={() => setIsPreloaderActive(false)}
             title={bannerTitle}
             description={bannerDescription}
@@ -129,7 +114,6 @@ export default function Assignment() {
       )}
 
       {assignmentData.map((director, index) => {
-        // Визначаємо стан кожного слайду прямо тут
         const isActive = index === currentIndex;
         const shouldPreload = Math.abs(index - currentIndex) === 1;
 
@@ -137,7 +121,6 @@ export default function Assignment() {
           <AssignmentSlide
             key={director.id}
             director={director}
-            index={index}
             isActive={isActive}
             shouldPreload={shouldPreload}
             isPreloaderActive={isPreloaderActive}

@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useAnimation } from '../context/AnimationContext';
 
-// Конфігурація анімації зникнення
 const fadeAnimation = {
   duration: 0.8,
   ease: 'easeInOut',
@@ -13,28 +12,22 @@ export default function PreloaderBanner({
   description,
   onAnimationComplete,
 }) {
-  const { isBannerFadingOut, setIsBannerFadingOut } = useAnimation();
+  const { isBannerFadingOut, setIsBannerFadingOut, markPreloaderAsShown } = useAnimation();
   const [isUnmounted, setIsUnmounted] = useState(false);
-
-  // ✅ Крок 1: Створюємо ref для зберігання ID таймера
   const timerRef = useRef(null);
 
-  // ✅ Крок 2: Додаємо ефект для очищення таймера при демонтуванні компонента
   useEffect(() => {
-    // Ця функція буде викликана, коли компонент зникає (unmounts)
     return () => {
-      // Якщо таймер ще існує, очищуємо його
       if (timerRef.current) {
         clearTimeout(timerRef.current);
       }
     };
-  }, []); // Пустий масив залежностей означає, що очищення спрацює тільки один раз при демонтуванні
+  }, []);
 
-  // Розбиваємо текст на слова для анімації
   const titleWords = title ? title.split(' ') : [];
   const descriptionWords = description ? description.split(' ') : [];
+  const lastWordIndex = descriptionWords.length - 1;
 
-  // Варіанти анімації для контейнерів
   const titleContainerVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { staggerChildren: 0.3 } },
@@ -45,21 +38,23 @@ export default function PreloaderBanner({
     visible: { opacity: 1, transition: { delay: 1, staggerChildren: 0.15 } },
   };
 
-  // Варіанти анімації для окремих слів
   const wordVariants = {
     hidden: { opacity: 0 },
     visible: { opacity: 1, transition: { duration: 0.5 } },
   };
 
-  // Функція, що викликається після завершення анімації тексту
+  // ✅ ПОВЕРТАЄМОСЯ ДО ПРАВИЛЬНОЇ ЛОГІКИ
   const handleTextAnimationComplete = () => {
-    // ✅ Крок 3: Зберігаємо ID таймера в ref, щоб мати до нього доступ пізніше
+    // 1. Позначаємо сторінку як переглянуту. Завдяки змінам у контексті,
+    // це більше не призведе до миттєвого зникнення банера.
+    markPreloaderAsShown();
+
+    // 2. Запускаємо таймер на затримку перед зникненням.
     timerRef.current = setTimeout(() => {
-      setIsBannerFadingOut(true); // Запускаємо анімацію зникнення банера
-    }, 2000); // Затримка у 2 секунди
+      setIsBannerFadingOut(true);
+    }, 2000);
   };
 
-  // Не рендеримо нічого, якщо компонент повністю демонтований
   if (isUnmounted) {
     return null;
   }
@@ -71,13 +66,12 @@ export default function PreloaderBanner({
       animate={{ opacity: isBannerFadingOut ? 0 : 1 }}
       transition={fadeAnimation}
       onAnimationComplete={() => {
-        // Коли анімація зникнення завершена
         if (isBannerFadingOut) {
-          setIsUnmounted(true); // Позначаємо, що компонент можна демонтувати
+          setIsUnmounted(true);
           if (onAnimationComplete) {
-            onAnimationComplete(); // Викликаємо колбек для батьківського компонента
+            onAnimationComplete();
           }
-          setIsBannerFadingOut(false); // Скидаємо стан у контексті
+          setIsBannerFadingOut(false);
         }
       }}
     >
@@ -88,11 +82,7 @@ export default function PreloaderBanner({
         animate="visible"
       >
         {titleWords.map((word, index) => (
-          <motion.span
-            key={index}
-            variants={wordVariants}
-            className="inline-block mr-3"
-          >
+          <motion.span key={index} variants={wordVariants} className="inline-block mr-3">
             {word}
           </motion.span>
         ))}
@@ -103,13 +93,17 @@ export default function PreloaderBanner({
         variants={descriptionContainerVariants}
         initial="hidden"
         animate="visible"
-        onAnimationComplete={handleTextAnimationComplete} // Запускаємо таймер після анімації
       >
         {descriptionWords.map((word, index) => (
           <motion.span
             key={index}
             variants={wordVariants}
             className="inline-block mr-2"
+            onAnimationComplete={() => {
+              if (index === lastWordIndex) {
+                handleTextAnimationComplete();
+              }
+            }}
           >
             {word}
           </motion.span>

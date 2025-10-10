@@ -81,6 +81,9 @@ body {
 /* Змушуємо root-елемент React також займати 100% висоти */
 #root {
   height: 100%;
+  .will-change-transform {
+  will-change: transform, opacity;
+}
 }
 
 /* Ваше правило для overscroll залишається, але краще застосувати його до html */

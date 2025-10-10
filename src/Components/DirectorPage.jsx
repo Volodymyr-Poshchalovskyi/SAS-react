@@ -10,15 +10,14 @@ import { useInView } from 'react-intersection-observer';
 
 const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
 
-// ЗМІНА 1: Додаємо `previewSrc` до пропсів
-const DirectorVideoBlock = ({ video, videoSrc, previewSrc, onExpand }) => {
+// ✨ ЗМІНА 1: Передаємо `index` в onExpand, щоб знати, який елемент натиснуто
+const DirectorVideoBlock = ({ video, videoSrc, previewSrc, onExpand, index }) => {
   const { ref, inView } = useInView({
     threshold: 0.5,
   });
 
   return (
     <section ref={ref} className="relative w-full h-[75vh] bg-black">
-      {/* ЗМІНА 2: Передаємо `previewSrc` в HlsVideoPlayer */}
       <HlsVideoPlayer src={videoSrc} previewSrc={previewSrc} shouldPlay={inView} />
       <div className="absolute inset-0 z-10 flex items-end justify-center">
         <div className="flex flex-col items-center text-white pb-24 px-4">
@@ -28,8 +27,9 @@ const DirectorVideoBlock = ({ video, videoSrc, previewSrc, onExpand }) => {
               <p className="text-xl font-light mt-1">{video.client}</p>
             )}
           </div>
+          {/* ✨ ЗМІНА 2: Викликаємо onExpand з індексом відео */}
           <button
-            onClick={() => onExpand({ ...video, src: videoSrc })}
+            onClick={() => onExpand(index)}
             className="bg-white text-black py-4 px-6 text-xs font-semibold uppercase tracking-wider flex items-center gap-2 transition-transform hover:scale-105"
           >
             <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
@@ -52,7 +52,9 @@ export default function DirectorPage() {
   const backLink = isAssignmentPage ? '/assignment' : '/directors';
 
   const director = dataSource.find((d) => d.slug === directorSlug);
-  const [expandedVideo, setExpandedVideo] = useState(null);
+
+  // ✨ ЗМІНА 3: Стейт тепер зберігає індекс активного відео, а не об'єкт. null - модалка закрита
+  const [activeVideoIndex, setActiveVideoIndex] = useState(null);
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
@@ -99,17 +101,17 @@ export default function DirectorPage() {
       <div className="bg-black">
         {director.videos.map((video, index) => {
           const publicVideoUrl = `${CDN_BASE_URL}/${video.src}`;
-          // ЗМІНА 3: Створюємо URL для прев'ю
           const publicPreviewUrl = video.preview_src
             ? `${CDN_BASE_URL}/${video.preview_src}`
             : '';
           return (
             <DirectorVideoBlock
               key={index}
+              index={index} // ✨ ЗМІНА 4: Передаємо індекс в компонент
               video={video}
               videoSrc={publicVideoUrl}
-              previewSrc={publicPreviewUrl} // ЗМІНА 4: Передаємо URL прев'ю
-              onExpand={setExpandedVideo}
+              previewSrc={publicPreviewUrl}
+              onExpand={setActiveVideoIndex} // ✨ ЗМІНА 5: Передаємо функцію для встановлення індексу
             />
           );
         })}
@@ -138,10 +140,14 @@ export default function DirectorPage() {
         </div>
       </section>
 
-      {expandedVideo && (
+      {/* ✨ ЗМІНА 6: Передаємо в модалку весь список відео, поточний індекс і функції для навігації */}
+      {activeVideoIndex !== null && (
         <VideoModal
-          video={expandedVideo}
-          onClose={() => setExpandedVideo(null)}
+          videos={director.videos}
+          currentIndex={activeVideoIndex}
+          onClose={() => setActiveVideoIndex(null)}
+          onNavigate={setActiveVideoIndex}
+          cdnBaseUrl={CDN_BASE_URL}
         />
       )}
     </div>
