@@ -390,7 +390,7 @@ export default function Team() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`relative w-32 py-3 text-xs font-semibold uppercase tracking-[0.2em] transition-colors duration-300 focus:outline-none ${
+                  className={`relative w-32 py-4 text-xs font-semibold uppercase tracking-[0.2em] transition-colors duration-300 focus:outline-none ${
                     activeTab === tab.id
                       ? 'text-black dark:text-white'
                       : 'text-gray-500 hover:text-black dark:text-gray-400 dark:hover:text-white'
