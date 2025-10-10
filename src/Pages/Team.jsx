@@ -1,7 +1,6 @@
 // src/pages/Team.js
 
 import React, { useState, useLayoutEffect, useEffect, useRef } from 'react';
-// ✨ КРОК 1: Імпортуємо useOutletContext для доступу до даних з Layout
 import { useOutletContext } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import PreloaderBanner from '../Components/PreloaderBanner';
@@ -30,17 +29,12 @@ const tabsData = [
 ];
 
 // ===================================
-// ✨ ОНОВЛЕНО: Модальне вікно учасника команди
-// ===================================
-// ===================================
-// ✨ ОНОВЛЕНО: Модальне вікно учасника команди (з подвійним регулюванням шрифтів)
+// Модальне вікно учасника команди
 // ===================================
 const TeamMemberModal = ({ member, onClose }) => {
-  // Створюємо refs для імені та біографії
   const nameRef = useRef(null);
-  const bioRef = useRef(null); // ✨ НОВИЙ REF
+  const bioRef = useRef(null);
 
-  // Ефект для закриття модалки і блокування скролу (без змін)
   useEffect(() => {
     const handleEsc = (event) => {
       if (event.key === 'Escape') onClose();
@@ -53,26 +47,22 @@ const TeamMemberModal = ({ member, onClose }) => {
     };
   }, [onClose]);
 
-  // ✨ ОНОВЛЕНИЙ ЕФЕКТ: Динамічно змінює розмір шрифту імені
   useLayoutEffect(() => {
     const adjustNameFontSize = () => {
       const element = nameRef.current;
       if (!element) return;
       const container = element.parentElement;
       if (!container) return;
-
       const containerStyle = window.getComputedStyle(container);
       const paddingLeft = parseFloat(containerStyle.paddingLeft);
       const paddingRight = parseFloat(containerStyle.paddingRight);
       const availableWidth = container.clientWidth - paddingLeft - paddingRight;
-
       const maxFontSize = window.innerWidth < 768 ? 60 : 120;
       const minFontSize = 24;
       let currentFontSize = maxFontSize;
       element.style.fontSize = `${currentFontSize}px`;
-
       while (
-        element.scrollWidth > availableWidth && // ✨ ВИПРАВЛЕНА УМОВА
+        element.scrollWidth > availableWidth &&
         currentFontSize > minFontSize
       ) {
         currentFontSize--;
@@ -84,24 +74,19 @@ const TeamMemberModal = ({ member, onClose }) => {
     return () => window.removeEventListener('resize', adjustNameFontSize);
   }, [member]);
 
-  // ✨ НОВИЙ ЕФЕКТ: Динамічно змінює розмір шрифту біографії
   useLayoutEffect(() => {
     const adjustBioFontSize = () => {
       const element = bioRef.current;
       if (!element) return;
-      
-      // Скидаємо стиль, щоб правильно розрахувати початкову висоту
       element.style.fontSize = '';
       const initialFontSize = parseFloat(window.getComputedStyle(element).fontSize);
       let currentFontSize = initialFontSize;
-      const minFontSize = 10; // Мінімальний розмір шрифту для біографії
-
-      // Зменшуємо шрифт, поки висота контенту більша за висоту блоку
+      const minFontSize = 10;
       while (
         element.scrollHeight > element.clientHeight &&
         currentFontSize > minFontSize
       ) {
-        currentFontSize -= 0.5; // Зменшуємо плавно
+        currentFontSize -= 0.5;
         element.style.fontSize = `${currentFontSize}px`;
       }
     };
@@ -133,7 +118,7 @@ const TeamMemberModal = ({ member, onClose }) => {
       onClick={onClose}
     >
       <motion.div
-        className="w-[90vw] h-full bg-white dark:bg-black text-black dark:text-white shadow-2xl flex flex-col"
+        className="w-[90vw] h-full bg-white text-black shadow-2xl flex flex-col"
         variants={modalVariants}
         initial="hidden"
         animate="visible"
@@ -149,7 +134,7 @@ const TeamMemberModal = ({ member, onClose }) => {
           />
           <button
             onClick={onClose}
-            className="text-black dark:text-white hover:opacity-70 transition-opacity justify-self-end"
+            className="text-black hover:opacity-70 transition-opacity justify-self-end"
             aria-label="Close"
           >
             <X size={32} />
@@ -173,7 +158,7 @@ const TeamMemberModal = ({ member, onClose }) => {
                   className="w-full aspect-square object-cover"
                 />
               ) : (
-                <div className="w-full aspect-square bg-gray-200 dark:bg-gray-800" />
+                <div className="w-full aspect-square bg-gray-200" />
               )}
             </div>
             <div className="w-full md:w-3/5 flex flex-col justify-center">
@@ -181,7 +166,6 @@ const TeamMemberModal = ({ member, onClose }) => {
                 <h2 className="text-3xl font-bold uppercase tracking-widest mb-4">
                   {member.role}
                 </h2>
-                {/* ✨ ЗМІНЕНО: Додано ref та прибрано overflow-y-auto */}
                 <p
                   ref={bioRef}
                   className="text-base leading-relaxed whitespace-pre-line max-h-[40vh] md:max-h-full"
@@ -197,9 +181,8 @@ const TeamMemberModal = ({ member, onClose }) => {
   );
 };
 
-
 // ===================================
-// Сітка з учасниками команди (без змін)
+// Сітка з учасниками команди
 // ===================================
 const TeamGrid = ({ teamMembers, onSelectMember }) => {
   return (
@@ -208,7 +191,7 @@ const TeamGrid = ({ teamMembers, onSelectMember }) => {
       initial="initial"
       animate="animate"
       exit="exit"
-      className="bg-white dark:bg-black text-black dark:text-white"
+      className="bg-white text-black"
     >
       <div>
         {teamMembers.map((member, index) => {
@@ -227,7 +210,7 @@ const TeamGrid = ({ teamMembers, onSelectMember }) => {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gray-200 dark:bg-gray-800" />
+                  <div className="w-full h-full bg-gray-200" />
                 )}
               </div>
               <div className="w-full flex flex-col items-center justify-center text-center p-8">
@@ -237,7 +220,7 @@ const TeamGrid = ({ teamMembers, onSelectMember }) => {
                 <h2 className="text-4xl font-chanel font-semibold uppercase mb-6">{`${member.firstName} ${member.lastName}`}</h2>
                 <button
                   onClick={() => onSelectMember(member)}
-                  className="px-6 py-2 border border-black dark:border-white text-xs font-semibold uppercase tracking-widest hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black transition-colors"
+                  className="px-6 py-2 border border-black text-xs font-semibold uppercase tracking-widest hover:bg-black hover:text-white transition-colors"
                 >
                   See More
                 </button>
@@ -251,7 +234,7 @@ const TeamGrid = ({ teamMembers, onSelectMember }) => {
 };
 
 // ===================================
-// Компонент секції контактів (без змін)
+// Компонент секції контактів
 // ===================================
 const ContactInfoSection = () => {
   const contactDetails = [
@@ -281,12 +264,12 @@ const ContactInfoSection = () => {
       initial="initial"
       animate="animate"
       exit="exit"
-      className="bg-white dark:bg-black text-black dark:text-white"
+      className="bg-white text-black"
     >
       <div className="max-w-2xl mx-auto text-center pt-12 pb-20 px-4">
         {contactDetails.map((item) => (
           <div key={item.label} className="mb-10">
-            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-black dark:text-white mb-2">
+            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-black mb-2">
               {item.label}
             </h3>
             <div className="text-lg tracking-wider font-normal">
@@ -298,7 +281,7 @@ const ContactInfoSection = () => {
             </div>
           </div>
         ))}
-        <hr className="my-12 border-black dark:border-gray-700 w-full mx-auto" />
+        <hr className="my-12 border-black w-full mx-auto" />
         <h2 className="text-4xl font-chanel font-semibold uppercase tracking-[0.15em] mb-12">
           SALES
         </h2>
@@ -308,7 +291,7 @@ const ContactInfoSection = () => {
               <h3 className="text-base font-semibold tracking-[0.2em]">
                 {contact.name}
               </h3>
-              <p className="text-xs tracking-[0.2em] text-gray-500 dark:text-gray-400 mt-1">
+              <p className="text-xs tracking-[0.2em] text-gray-500 mt-1">
                 {contact.role}
               </p>
             </div>
@@ -320,14 +303,12 @@ const ContactInfoSection = () => {
 };
 
 // ===================================
-// ✨ ОНОВЛЕНО: ГОЛОВНИЙ КОМПОНЕНТ СТОРІНКИ
+// ГОЛОВНИЙ КОМПОНЕНТ СТОРІНКИ
 // ===================================
 export default function Team() {
   const { isPreloaderActive, setIsPreloaderActive } = useAnimation();
   const [activeTab, setActiveTab] = useState(tabsData[0].id);
   const [selectedMember, setSelectedMember] = useState(null);
-
-  // ✨ КРОК 2: Отримуємо висоту хедера з контексту
   const { headerHeight } = useOutletContext();
 
   useLayoutEffect(() => {
@@ -352,13 +333,10 @@ export default function Team() {
     'From award-winning filmmakers to fashion-forward image makers, our directors and hybrid talent deliver world-class content across commercials, music videos, branded series, and global campaigns.';
 
   const currentTabData = tabsData.find((tab) => tab.id === activeTab);
-  
-  // ✨ КРОК 3: Розраховуємо загальний відступ. До висоти хедера додаємо невеликий проміжок (24px).
-  // Надаємо запасний варіант (150px) на випадок, якщо headerHeight ще не визначено.
   const topPadding = headerHeight ? `${headerHeight}px` : '150px';
 
   return (
-    <div className="bg-white dark:bg-black">
+    <div className="bg-white">
       <AnimatePresence>
         {isPreloaderActive && (
           <PreloaderBanner
@@ -378,28 +356,27 @@ export default function Team() {
         )}
       </AnimatePresence>
 
-      {/* ✨ КРОК 4: Замінюємо клас pt-[150px] на динамічний стиль */}
       <header
-        className="bg-white dark:bg-black pb-16 text-center"
+        className="bg-white pb-16 text-center"
         style={{ paddingTop: topPadding }}
       >
         <div className="max-w-7xl mx-auto px-4">
           <nav className="flex items-center justify-center">
-            <div className="flex space-x-10 border-b border-gray-300 dark:border-gray-700">
+            <div className="flex space-x-10 border-b border-gray-300">
               {tabsData.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`relative w-32 py-4 text-xs font-semibold uppercase tracking-[0.2em] transition-colors duration-300 focus:outline-none ${
                     activeTab === tab.id
-                      ? 'text-black dark:text-white'
-                      : 'text-gray-500 hover:text-black dark:text-gray-400 dark:hover:text-white'
+                      ? 'text-black'
+                      : 'text-gray-500 hover:text-black'
                   }`}
                 >
                   {tab.label}
                   {activeTab === tab.id && (
                     <motion.div
-                      className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-black dark:bg-white"
+                      className="absolute bottom-[-1px] left-0 right-0 h-[2px] bg-black"
                       layoutId="underline"
                       transition={{
                         type: 'spring',
@@ -413,11 +390,11 @@ export default function Team() {
             </div>
           </nav>
 
-          <div className="mt-12"> {/* Додано невеликий відступ для заголовка */}
+          <div className="mt-12">
             <AnimatePresence mode="wait">
               <motion.h1
                 key={activeTab}
-                className="text-black dark:text-white text-4xl sm:text-5xl md:text-6xl font-chanel font-semibold uppercase px-4"
+                className="text-black text-4xl sm:text-5xl md:text-6xl font-chanel font-semibold uppercase px-4"
                 variants={titleAnimation}
                 initial="hidden"
                 animate={!isPreloaderActive ? 'visible' : 'hidden'}

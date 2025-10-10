@@ -18,8 +18,8 @@ export default function Layout() {
   }, [location.pathname]);
 
   return (
-    // ✨ ДОДАЙТЕ КЛАС ДЛЯ ФОНУ СЮДИ, НАПРИКЛАД, bg-white dark:bg-black
-    <div className="min-h-full bg-white dark:bg-black text-black dark:text-white flex flex-col">
+    // Класи для темного режиму видалено
+    <div className="min-h-full bg-white text-black flex flex-col">
       <Header ref={headerRef} />
       <main className="flex-grow">
         <Outlet context={{ headerHeight }} />
