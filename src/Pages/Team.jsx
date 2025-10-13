@@ -28,9 +28,6 @@ const tabsData = [
   { id: 'contact', label: 'CONTACT', title: 'CONNECT WITH US' },
 ];
 
-// ===================================
-// Модальне вікно учасника команди
-// ===================================
 const TeamMemberModal = ({ member, onClose }) => {
   const nameRef = useRef(null);
   const bioRef = useRef(null);
@@ -144,7 +141,7 @@ const TeamMemberModal = ({ member, onClose }) => {
         <div className="flex-grow flex flex-col px-8 md:px-16 pb-12 overflow-hidden">
           <h1
             ref={nameRef}
-            className="flex-shrink-0 text-center font-chanel font-semibold uppercase mb-9 -mt-5 leading-none"
+            className="flex-shrink-0 text-center font-chanel font-semibold uppercase mb-9 leading-none"
             style={{ whiteSpace: 'nowrap' }}
           >
             {member.firstName} {member.lastName}
@@ -163,12 +160,14 @@ const TeamMemberModal = ({ member, onClose }) => {
             </div>
             <div className="w-full md:w-3/5 flex flex-col justify-center">
               <div>
-                <h2 className="text-3xl font-bold uppercase tracking-widest mb-4">
+                {/* --- ЗМІНА 1: Посада --- */}
+                <h2 className="text-2xl font-bold uppercase  mb-4 whitespace-nowrap">
                   {member.role}
                 </h2>
+                {/* --- ЗМІНА 2: Біографія --- */}
                 <p
                   ref={bioRef}
-                  className="text-base leading-relaxed whitespace-pre-line max-h-[40vh] md:max-h-full"
+                  className="text-sm leading-relaxed whitespace-pre-line max-h-[40vh] md:max-h-full text-justify"
                 >
                   {member.bio}
                 </p>
@@ -180,6 +179,7 @@ const TeamMemberModal = ({ member, onClose }) => {
     </motion.div>
   );
 };
+
 
 // ===================================
 // Сітка з учасниками команди
