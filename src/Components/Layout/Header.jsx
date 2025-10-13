@@ -14,7 +14,7 @@ const navLinks = [
   { path: '/assignment', label: 'On Assignment' },
   { path: '/service', label: 'Service' },
   { path: '/feature', label: 'Feature Film Packaging' },
-  { path: '/post-production', label: 'Post Production' },
+  { path: '/post-production', label: 'AI | Post Production' },
   { path: '/table-top-studio', label: 'TableTop Studio' },
   { path: '/about', label: 'About' },
 ];
