@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useEffect, useState } from 'react';
+import React, { useLayoutEffect, useEffect, useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PreloaderBanner from '../Components/PreloaderBanner';
 import { useAnimation } from '../context/AnimationContext';
@@ -19,7 +19,6 @@ const nameAnimation = {
   },
 };
 
-// --- Анімація для слайдера ---
 const sliderVariants = {
   enter: (direction) => ({
     x: direction > 0 ? '100%' : '-100%',
@@ -41,25 +40,41 @@ const sliderVariants = {
 export default function Feature() {
   const { isPreloaderActive, setIsPreloaderActive } = useAnimation();
   const [numPages, setNumPages] = useState(null);
-  
-  // 1. Стан для поточної сторінки та напрямку анімації
   const [[currentPage, direction], setCurrentPage] = useState([1, 0]);
+
+  const pdfContainerRef = useRef(null);
+  const [pdfWidth, setPdfWidth] = useState(0);
 
   function onDocumentLoadSuccess({ numPages }) {
     setNumPages(numPages);
   }
 
-  // 2. Функції для навігації
   const paginate = (newDirection) => {
-    // Перевірка, щоб не вийти за межі документа
     if (currentPage + newDirection > 0 && currentPage + newDirection <= numPages) {
       setCurrentPage([currentPage + newDirection, newDirection]);
     }
   };
 
-  useLayoutEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
+ // Новий, виправлений код
+useLayoutEffect(() => {
+  window.scrollTo(0, 0);
+  
+  const updateWidth = () => {
+    if (pdfContainerRef.current) {
+      setPdfWidth(pdfContainerRef.current.clientWidth);
+    }
+  };
+
+  // Викликаємо функцію, щоб отримати початкову ширину
+  updateWidth();
+
+  // Додаємо слухача на зміну розміру вікна
+  window.addEventListener('resize', updateWidth);
+  
+  // Прибираємо слухача при розмонтуванні
+  return () => window.removeEventListener('resize', updateWidth);
+
+}, [isPreloaderActive]); // <--- ВИПРАВЛЕННЯ: додано isPreloaderActive
 
   useEffect(() => {
     document.body.style.overflow = isPreloaderActive ? 'hidden' : '';
@@ -96,16 +111,17 @@ export default function Feature() {
                   {featureTitle}
               </motion.h1>
               
-              {/* --- 3. Контейнер для слайдера PDF --- */}
               <motion.div
-                  className="w-full max-w-4xl" // Задає максимальну ширину
+                  className="w-full max-w-4xl"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: !isPreloaderActive ? 1 : 0 }}
                   transition={{ delay: 0.5, duration: 0.8 }}
               >
                   <Document file={bicPdf} onLoadSuccess={onDocumentLoadSuccess}>
-                      {/* --- 4. Контейнер для самої сторінки, щоб приховати те, що виходить за межі --- */}
-                      <div className="relative overflow-hidden w-full shadow-lg" style={{ height: '70vh' }}>
+                      <div 
+                        ref={pdfContainerRef}
+                        className="relative overflow-hidden w-full shadow-lg aspect-video"
+                      >
                         <AnimatePresence initial={false} custom={direction}>
                             <motion.div
                                 key={currentPage}
@@ -114,38 +130,38 @@ export default function Feature() {
                                 initial="enter"
                                 animate="center"
                                 exit="exit"
-                                className="absolute top-0 left-0 w-full h-full"
+                                className="absolute top-0 left-0 w-full h-full flex justify-center items-center"
                             >
-                                {/* Рендеримо тільки поточну сторінку */}
-                                <Page
-                                    pageNumber={currentPage}
-                                    renderTextLayer={false}
-                                    renderAnnotationLayer={false}
-                                    // робимо сторінку адаптивною
-                                    width={document.querySelector('.overflow-hidden')?.clientWidth} 
-                                />
+                                {pdfWidth > 0 && (
+                                  <Page
+                                      pageNumber={currentPage}
+                                      renderTextLayer={false}
+                                      renderAnnotationLayer={false}
+                                      width={pdfWidth}
+                                  />
+                                )}
                             </motion.div>
                         </AnimatePresence>
                       </div>
                   </Document>
 
-                  {/* --- 5. Навігація та лічильник сторінок --- */}
+                  {/* --- Змінено стиль та текст кнопок --- */}
                   {numPages && (
-                      <div className="flex items-center justify-center mt-4 gap-4">
+                      <div className="flex items-center justify-center mt-8 gap-4">
                           <button 
                               onClick={() => paginate(-1)} 
                               disabled={currentPage <= 1}
-                              className="px-4 py-2 bg-black text-white rounded-md disabled:bg-gray-400 transition-colors"
+                              className="px-6 py-3 bg-black text-white font-semibold text-xs uppercase tracking-widest hover:bg-gray-800 transition-colors disabled:bg-gray-400"
                           >
                               Previous
                           </button>
-                          <p className="text-lg font-semibold">
+                          <p className="text-lg font-semibold text-black">
                               Page {currentPage} of {numPages}
                           </p>
                           <button 
                               onClick={() => paginate(1)} 
                               disabled={currentPage >= numPages}
-                              className="px-4 py-2 bg-black text-white rounded-md disabled:bg-gray-400 transition-colors"
+                              className="px-6 py-3 bg-black text-white font-semibold text-xs uppercase tracking-widest hover:bg-gray-800 transition-colors disabled:bg-gray-400"
                           >
                               Next
                           </button>
