@@ -11,7 +11,7 @@ export const directorsData = [
       {
         client: 'L’ORÉAL',
         title: 'DREAM OR REALITY',
-        src: 'front-end/01-Directors/TRANSCODED/01-SUPERNOVA/1Loreal/master.m3u8',
+        src: 'front-end/01-Directors/01-SUPERNOVA/1Loreal.mp4',
         preview_src: 'front-end/01-Directors/VIDEO_PREVIEW/01-SUPERNOVA/1Loreal.jpg',
       },
       {

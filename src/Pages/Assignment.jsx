@@ -7,6 +7,9 @@ import ScrollProgressBar from '../Components/ScrollProgressBar';
 import { useAnimation } from '../context/AnimationContext';
 import { assignmentData } from '../Data/AssignmentData';
 
+// ✅ ЗМІНА 1: Додаємо базовий URL для CDN, як у компоненті Directors
+const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
+
 const nameAnimation = {
   hidden: { opacity: 0, y: 30 },
   visible: {
@@ -18,21 +21,35 @@ const nameAnimation = {
 
 const AssignmentSlide = ({ director, isActive, shouldPreload, isPreloaderActive }) => {
   const [videoSrc, setVideoSrc] = useState('');
-  const publicCdnUrl = `https://storage.googleapis.com/new-sas-media-storage/${director.videos[0].src}`;
+  // ✅ ЗМІНА 2: Додаємо стан для прев'ю
+  const [previewSrc, setPreviewSrc] = useState('');
+
+  // ✅ ЗМІНА 3: Оновлюємо логіку, щоб отримувати і відео, і прев'ю
+  const firstVideo = director.videos[0];
+  const publicVideoUrl = `${CDN_BASE_URL}/${firstVideo.src}`;
+  const publicPreviewUrl = firstVideo.preview_src
+    ? `${CDN_BASE_URL}/${firstVideo.preview_src}`
+    : '';
 
   useEffect(() => {
     if (isActive || shouldPreload) {
-      setVideoSrc(publicCdnUrl);
+      setVideoSrc(publicVideoUrl);
+      // ✅ ЗМІНА 4: Встановлюємо URL для прев'ю
+      setPreviewSrc(publicPreviewUrl);
     } else {
       setVideoSrc('');
+      setPreviewSrc('');
     }
-  }, [isActive, shouldPreload, publicCdnUrl]);
+    // ✅ ЗМІНА 5: Додаємо publicPreviewUrl в залежності
+  }, [isActive, shouldPreload, publicVideoUrl, publicPreviewUrl]);
 
   return (
     <div className="relative w-full h-screen snap-start">
       {videoSrc && (
         <HlsVideoPlayer
           src={videoSrc}
+          // ✅ ЗМІНА 6: Передаємо пропс previewSrc до плеєра
+          previewSrc={previewSrc}
           shouldPlay={isActive && !isPreloaderActive}
         />
       )}
@@ -57,7 +74,6 @@ const AssignmentSlide = ({ director, isActive, shouldPreload, isPreloaderActive 
 
 export default function Assignment() {
   const [currentIndex, setCurrentIndex] = useState(0);
-  // ✅ ВИПРАВЛЕННЯ 1: Отримуємо setIsPreloaderActive з контексту
   const { isPreloaderActive, setIsPreloaderActive } = useAnimation();
 
   useLayoutEffect(() => {
@@ -98,7 +114,6 @@ export default function Assignment() {
       <AnimatePresence>
         {isPreloaderActive && (
           <PreloaderBanner
-            // ✅ ВИПРАВЛЕННЯ 2: Передаємо callback для оновлення стану
             onAnimationComplete={() => setIsPreloaderActive(false)}
             title={bannerTitle}
             description={bannerDescription}
