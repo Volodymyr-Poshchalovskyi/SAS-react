@@ -34,6 +34,9 @@ import ManagementPage from '../AdminComponents/Layout/Management.jsx';
 import ApplicationsForAdmin from '../AdminComponents/ApplicationsForAdmin.jsx';
 import UserManagement from '../AdminComponents/UserManagement.jsx';
 import MetaDataManagement from '../AdminComponents/Layout/MetaDataManagement.jsx';
+// ✨ ЗМІНИ ТУТ: 1. Імпортуємо новий компонент
+import FeatureManagement from '../AdminComponents/FeatureManagement.jsx'; 
+
 
 // Auth & Utility Pages
 import AuthCallback from '../Pages/AuthCallback.jsx';
@@ -54,22 +57,15 @@ export default function AppRouter() {
       <Route element={<Layout />}>
         <Route path="/" element={<Main />} />
         <Route path="/reel/:reelId" element={<PublicReelPage />} />
-
-        {/* Assignment Routes */}
         <Route path="/assignment" element={<Assignment />} />
-        {/* ✨ This route reuses DirectorPage for the assignment detail view */}
         <Route path="/assignment/:directorSlug" element={<DirectorPage />} />
-
-        {/* Directors Routes */}
         <Route path="/directors" element={<Directors />} />
         <Route path="/directors/:directorSlug" element={<DirectorPage />} />
-
         <Route path="/photographers" element={<Photographers />} />
         <Route
           path="/photographers/:photographerSlug"
           element={<PhotographerPage />}
         />
-
         <Route path="/projects/:projectSlug" element={<ProjectPage />} />
         <Route path="/feature" element={<Feature />} />
         <Route path="/management" element={<Management />} />
@@ -106,6 +102,8 @@ export default function AppRouter() {
               <Route path="library" element={<Library />} />
               <Route path="management" element={<ManagementPage />} />
               <Route path="analytics" element={<MyAnalytic />} />
+              {/* ✨ ЗМІНИ ТУТ: 2. Додаємо новий маршрут */}
+              <Route path="feature" element={<FeatureManagement />} />
               <Route
                 path="metadata-management"
                 element={<MetaDataManagement />}

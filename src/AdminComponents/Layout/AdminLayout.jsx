@@ -8,7 +8,8 @@ import {
   FileText,
   Users,
   LogOut,
-  Tags, // ✨ ЗМІНИ ТУТ: 1. Імпортуємо нову іконку
+  Tags,
+  Sparkles, // ✨ ЗМІНИ ТУТ: 1. Імпортуємо нову іконку
 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -60,7 +61,12 @@ function AdminLayout() {
   ];
 
   const adminNavItems = [
-    // ✨ ЗМІНИ ТУТ: 2. Додаємо новий пункт меню для адмінів
+    // ✨ ЗМІНИ ТУТ: 2. Додаємо новий пункт меню
+    {
+      to: '/adminpanel/feature',
+      label: 'Feature management',
+      icon: Sparkles,
+    },
     {
       to: '/adminpanel/metadata-management',
       label: 'Metadata',
