@@ -214,38 +214,43 @@ const AuthProvider = ({ children }) => {
   };
 
   const updateApplicationStatus = async (applicationId, newStatus, email) => {
-    if (newStatus === 'approved') {
-      const { error: inviteError } = await supabase.functions.invoke(
-        'invite-user',
-        {
-          body: JSON.stringify({ email }), // <--- ОСЬ ЗМІНА
-        }
-      );
-      if (inviteError)
-        throw new Error(`Failed to invite user: ${inviteError.message}`);
+  if (newStatus === 'approved') {
+    console.log('🚀 Sending invite to:', email);
 
-      const { data, error } = await supabase
-        .from('applications')
-        .update({ status: 'approved' })
-        .eq('id', applicationId);
+    const { data, error: inviteError } = await supabase.functions.invoke(
+      'invite-user',
+      { body: { email } }
+    );
 
-      if (error)
-        throw new Error(
-          `Failed to update application status: ${error.message}`
-        );
-      return data;
-    } else if (newStatus === 'denied') {
-      const { data, error } = await supabase
-        .from('applications')
-        .update({ status: 'denied' })
-        .eq('id', applicationId);
-      if (error) throw error;
-      console.log(
-        `Application for ${email} denied. Email sending is currently disabled.`
-      );
-      return data;
-    }
-  };
+    console.log('📩 Invite response:', { data, inviteError });
+
+    if (inviteError)
+      throw new Error(`Failed to invite user: ${inviteError.message}`);
+
+    const { data: updateData, error } = await supabase
+      .from('applications')
+      .update({ status: 'approved' })
+      .eq('id', applicationId);
+
+    if (error)
+      throw new Error(`Failed to update application status: ${error.message}`);
+
+    console.log('✅ Application status updated to approved:', updateData);
+    return updateData;
+  } else if (newStatus === 'denied') {
+    console.log(`🚫 Denying application for ${email}`);
+
+    const { data, error } = await supabase
+      .from('applications')
+      .update({ status: 'denied' })
+      .eq('id', applicationId);
+
+    if (error) throw error;
+    console.log(`ℹ️ Application denied for ${email}`);
+    return data;
+  }
+};
+
 
   // ---------- User Management Methods ----------
   const getUsers = async () => {
