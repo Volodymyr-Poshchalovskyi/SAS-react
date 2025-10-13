@@ -31,12 +31,12 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 // 3. Налаштування Express (Middleware)
 const allowedOrigins = [
-  'http://localhost:5173',           // Для локальної розробки
-  'http://192.168.0.123:5173',       // Адреса вашого Vite у локальній мережі
+  'http://localhost:5173',
+  'http://192.168.0.123:5173',
   'http://192.168.1.103:5173',
-  'http://192.168.1.106:5173',    
-  'http://192.168.1.110:5173',      // Можлива інша адреса у локальній мережі
-  'https://sas-frontend-zhgs.onrender.com' // Для розгорнутого додатка
+  'http://192.168.1.106:5173',
+  'http://192.168.1.110:5173',
+  'https://sas-frontend-zhgs.onrender.com',
 ];
 
 const corsOptions = {
@@ -52,8 +52,8 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-// ✨ КІНЕЦЬ ЗМІН
-
+// ВАЖЛИВО: Додаємо парсер для 'text/plain', щоб navigator.sendBeacon працював
+app.use(express.text());
 app.use(express.json());
 
 function generateShortId(length = 5) {
@@ -65,7 +65,6 @@ function generateShortId(length = 5) {
   }
   return result;
 }
-
 // ========================================================================== //
 // API-ЕНДПОІНТИ ДЛЯ GOOGLE CLOUD STORAGE
 // ========================================================================== //
@@ -999,6 +998,7 @@ app.delete('/media-items/:id', async (req, res) => {
   }
 });
 
+
 // ========================================================================== //
 // ЕНДПОІНТИ ДЛЯ Feature: PDF Password
 // ========================================================================== //
@@ -1006,21 +1006,17 @@ app.delete('/media-items/:id', async (req, res) => {
 // Отримати поточний (останній) пароль
 app.get('/feature-pdf-password/current', async (req, res) => {
   try {
-    // Робимо запит до таблиці, сортуємо за датою створення в спадному порядку
-    // і беремо тільки один, найновіший запис.
     const { data, error } = await supabase
       .from('feature_pdf_password')
       .select('value')
       .order('created_at', { ascending: false })
       .limit(1)
-      .single(); // .single() поверне null, якщо нічого не знайдено, замість порожнього масиву
+      .single();
 
     if (error && error.code !== 'PGRST116') {
-      // Ігноруємо помилку 'PGRST116', яка означає "рядок не знайдено"
       throw error;
     }
 
-    // Якщо data === null, значить пароль ще не встановлено
     res.status(200).json({ value: data ? data.value : null });
   } catch (error) {
     console.error('Error fetching current PDF password:', error);
@@ -1039,7 +1035,6 @@ app.post('/feature-pdf-password', async (req, res) => {
   }
 
   try {
-    // Просто додаємо новий запис. Завдяки сортуванню на GET, він стане поточним.
     const { data, error } = await supabase
       .from('feature_pdf_password')
       .insert({ value: value })
@@ -1057,84 +1052,6 @@ app.post('/feature-pdf-password', async (req, res) => {
   }
 });
 
-
-
-
-// ========================================================================== //
-// ЕНДПОІНТИ ДЛЯ Feature: PDF File
-// ========================================================================== //
-
-// Отримати поточний (останній) PDF файл
-app.get('/feature-pdf/current', async (req, res) => {
-  try {
-    const { data, error } = await supabase
-      .from('feature_pdf_file')
-      .select('id, title, gcs_path')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (error && error.code !== 'PGRST116') {
-      throw error;
-    }
-
-    res.status(200).json(data); // Поверне об'єкт або null
-  } catch (error) {
-    console.error('Error fetching current PDF file:', error);
-    res
-      .status(500)
-      .json({ error: 'Failed to fetch PDF file info.', details: error.message });
-  }
-});
-
-// Завантажити новий PDF файл (і видалити старий з GCS)
-app.post('/feature-pdf', async (req, res) => {
-  const { title, gcs_path } = req.body;
-
-  if (!title || !gcs_path) {
-    return res.status(400).json({ error: 'Title and gcs_path are required.' });
-  }
-
-  try {
-    // 1. Знаходимо поточний файл, щоб потім видалити його з GCS
-    const { data: currentFile, error: fetchError } = await supabase
-      .from('feature_pdf_file')
-      .select('gcs_path')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
-
-    if (fetchError && fetchError.code !== 'PGRST116') {
-      throw fetchError;
-    }
-
-    // 2. Додаємо новий запис в базу даних
-    const { data: newFile, error: insertError } = await supabase
-      .from('feature_pdf_file')
-      .insert({ title, gcs_path })
-      .select()
-      .single();
-
-    if (insertError) throw insertError;
-
-    // 3. Якщо був старий файл, видаляємо його з Google Cloud Storage
-    if (currentFile && currentFile.gcs_path) {
-      await bucket.file(currentFile.gcs_path).delete().catch(err => {
-        // Логуємо помилку, але не перериваємо процес, бо головне - запис в БД
-        console.warn(`Could not delete old PDF file from GCS: ${currentFile.gcs_path}`, err.message);
-      });
-    }
-
-    res.status(201).json({ message: 'PDF file updated successfully.', newFile });
-  } catch (error) {
-    console.error('Error setting new PDF file:', error);
-    res
-      .status(500)
-      .json({ error: 'Failed to set new PDF file.', details: error.message });
-  }
-});
-
-
 // Перевірити пароль (ОНОВЛЕНО)
 app.post('/feature-pdf-password/verify', async (req, res) => {
   const { password } = req.body;
@@ -1146,15 +1063,14 @@ app.post('/feature-pdf-password/verify', async (req, res) => {
   try {
     const { data: correctPasswordRecord, error } = await supabase
       .from('feature_pdf_password')
-      .select('value, created_at') // ✨ ЗМІНА: тепер запитуємо і created_at
+      .select('value, created_at')
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
-      
+
     if (error && error.code !== 'PGRST116') throw error;
 
     if (correctPasswordRecord && correctPasswordRecord.value === password) {
-      // ✨ ЗМІНА: Повертаємо версію (created_at) разом з успішною відповіддю
       return res.status(200).json({ success: true, version: correctPasswordRecord.created_at });
     } else {
       return res.status(401).json({ success: false, error: 'Invalid password.' });
@@ -1164,7 +1080,6 @@ app.post('/feature-pdf-password/verify', async (req, res) => {
     res.status(500).json({ success: false, error: 'An internal error occurred.' });
   }
 });
-
 
 app.get('/feature-pdf-password/version', async (req, res) => {
   try {
@@ -1183,6 +1098,134 @@ app.get('/feature-pdf-password/version', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch password version.' });
   }
 });
+
+
+
+
+// ========================================================================== //
+// ЕНДПОІНТИ ДЛЯ Feature: PDF File
+// ========================================================================== //
+
+// Отримати поточний (останній) PDF файл
+app.get('/feature-pdf/current', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('feature_pdf_file')
+      .select('*') // Змінено на '*', щоб отримувати ID
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      throw error;
+    }
+
+    res.status(200).json(data);
+  } catch (error) {
+    console.error('Error fetching current PDF file:', error);
+    res
+      .status(500)
+      .json({ error: 'Failed to fetch PDF file info.', details: error.message });
+  }
+});
+
+// Завантажити новий PDF файл (і видалити старий з GCS)
+app.post('/feature-pdf', async (req, res) => {
+  const { title, gcs_path } = req.body;
+
+  if (!title || !gcs_path) {
+    return res.status(400).json({ error: 'Title and gcs_path are required.' });
+  }
+
+  try {
+    const { data: currentFile, error: fetchError } = await supabase
+      .from('feature_pdf_file')
+      .select('gcs_path')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      throw fetchError;
+    }
+
+    const { data: newFile, error: insertError } = await supabase
+      .from('feature_pdf_file')
+      .insert({ title, gcs_path })
+      .select()
+      .single();
+
+    if (insertError) throw insertError;
+
+    if (currentFile && currentFile.gcs_path) {
+      await bucket.file(currentFile.gcs_path).delete().catch(err => {
+        console.warn(`Could not delete old PDF file from GCS: ${currentFile.gcs_path}`, err.message);
+      });
+    }
+
+    res.status(201).json({ message: 'PDF file updated successfully.', newFile });
+  } catch (error) {
+    console.error('Error setting new PDF file:', error);
+    res
+      .status(500)
+      .json({ error: 'Failed to set new PDF file.', details: error.message });
+  }
+});
+// ========================================================================== //
+// НОВІ ЕНДПОІНТИ ДЛЯ СТАТИСТИКИ
+// ========================================================================== //
+
+// Отримати історію файлів разом з їхньою статистикою
+app.get('/feature-pdf/history-with-stats', async (req, res) => {
+  try {
+    const { data, error } = await supabase.rpc('get_pdf_history_with_stats');
+
+    if (error) {
+      throw error;
+    }
+
+    res.status(200).json(data);
+  } catch (error) {
+    console.error('Error fetching PDF history with stats:', error);
+    res.status(500).json({
+      error: 'Failed to fetch PDF history.',
+      details: error.message
+    });
+  }
+});
+
+// Записати дані про перегляд файлу
+app.post('/feature-pdf/log-view', async (req, res) => {
+  try {
+    // navigator.sendBeacon надсилає дані як текст, тому парсимо їх
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    const { pdf_file_id, completion_percentage } = body;
+
+    if (pdf_file_id == null || completion_percentage == null) {
+      return res.status(400).json({ error: 'pdf_file_id and completion_percentage are required.' });
+    }
+
+    const { error } = await supabase
+      .from('pdf_file_stats')
+      .insert({
+        pdf_file_id: Number(pdf_file_id),
+        completion_percentage: Number(completion_percentage),
+      });
+
+    if (error) {
+      throw error;
+    }
+
+    res.status(201).json({ message: 'View logged successfully.' });
+  } catch (error) {
+    console.error('Error logging PDF view:', error);
+    res.status(500).json({
+      error: 'Failed to log view.',
+      details: error.message
+    });
+  }
+});
+
 
 // 5. Запускаємо сервер
 const HOST = '0.0.0.0'; // ✨ ЗМІНА: Додано хост для доступу з мережі

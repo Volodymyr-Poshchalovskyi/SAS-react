@@ -13,10 +13,11 @@ import {
   AlertTriangle,
   Download,
   Replace,
+  CheckSquare, // Іконка для статистики
 } from 'lucide-react';
 
 // =======================
-// Modal Component (без змін, але з правильним useEffect)
+// Modal Component (без змін)
 // =======================
 const Modal = ({ isOpen, onClose, title, children, confirmText, onConfirm, successTitle = 'Success', successMessage }) => {
   const [actionStatus, setActionStatus] = useState('idle');
@@ -107,7 +108,7 @@ const inputClasses = 'flex h-10 w-full rounded-md border border-slate-300 bg-whi
 const PasswordInputField = ({ label, value, onChange }) => { const [isVisible, setIsVisible] = useState(false); return ( <FormField label={label}> <div className="relative"> <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /> <input type={isVisible ? 'text' : 'password'} value={value} onChange={onChange} placeholder="••••••••••••" className={`${inputClasses} pl-10 pr-10`} /> <button type="button" onClick={() => setIsVisible(prev => !prev)} className="absolute inset-y-0 right-0 flex items-center justify-center w-10 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200" aria-label={isVisible ? 'Hide password' : 'Show password'}> {isVisible ? <EyeOff size={18} /> : <Eye size={18} />} </button> </div> </FormField> ); };
   
 
-// --- Main Page Component ( ✨ ГОЛОВНІ ЗМІНИ ТУТ ✨ ) ---
+// --- Main Page Component ---
 function FeatureManagement() {
   // States for PDF File
   const [currentPdf, setCurrentPdf] = useState(null);
@@ -127,42 +128,61 @@ function FeatureManagement() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  // Стани для статистики та історії
+  const [fileHistory, setFileHistory] = useState([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState(null);
+
+
   // Fetch initial data on component mount
   useEffect(() => {
     const fetchInitialData = async () => {
-      // Fetch PDF
-      setIsPdfLoading(true);
-      try {
-        const pdfResponse = await fetch('http://localhost:3001/feature-pdf/current');
-        if (pdfResponse.ok) {
-          const pdfData = await pdfResponse.json();
-          setCurrentPdf(pdfData); // Can be null
-        } else {
-          throw new Error('Failed to fetch PDF data');
-        }
-      } catch (error) {
-        console.error("Error fetching PDF:", error);
-        setCurrentPdf(null);
-      } finally {
-        setIsPdfLoading(false);
-      }
-
-      // Fetch Password
-      setIsPasswordLoading(true);
-      try {
-        const passwordResponse = await fetch('http://localhost:3001/feature-pdf-password/current');
-        if (passwordResponse.ok) {
-            const passwordData = await passwordResponse.json();
-            setCurrentPassword(passwordData.value);
-        } else {
-            throw new Error('Failed to fetch password');
-        }
-      } catch (error) {
-        console.error("Error fetching password:", error);
-        setCurrentPassword(null);
-      } finally {
-        setIsPasswordLoading(false);
-      }
+      await Promise.all([
+        (async () => {
+          setIsPdfLoading(true);
+          try {
+            const pdfResponse = await fetch('http://localhost:3001/feature-pdf/current');
+            if (pdfResponse.ok) setCurrentPdf(await pdfResponse.json());
+            else throw new Error('Failed to fetch PDF data');
+          } catch (error) {
+            console.error("Error fetching PDF:", error);
+            setCurrentPdf(null);
+          } finally {
+            setIsPdfLoading(false);
+          }
+        })(),
+        (async () => {
+          setIsPasswordLoading(true);
+          try {
+            const passwordResponse = await fetch('http://localhost:3001/feature-pdf-password/current');
+            if (passwordResponse.ok) {
+              const passwordData = await passwordResponse.json();
+              setCurrentPassword(passwordData.value);
+            } else throw new Error('Failed to fetch password');
+          } catch (error) {
+            console.error("Error fetching password:", error);
+            setCurrentPassword(null);
+          } finally {
+            setIsPasswordLoading(false);
+          }
+        })(),
+        (async () => {
+          setIsHistoryLoading(true);
+          setHistoryError(null);
+          try {
+            const historyResponse = await fetch('http://localhost:3001/feature-pdf/history-with-stats');
+            if (historyResponse.ok) {
+              setFileHistory(await historyResponse.json());
+            } else throw new Error('Failed to fetch file history');
+          } catch (error) {
+            console.error("Error fetching history:", error);
+            setHistoryError(error.message);
+            setFileHistory([]);
+          } finally {
+            setIsHistoryLoading(false);
+          }
+        })()
+      ]);
     };
 
     fetchInitialData();
@@ -173,7 +193,7 @@ function FeatureManagement() {
     const file = event.target.files[0];
     if (file && file.type === 'application/pdf') {
       setPdfToUpload(file);
-      setUploadError(null); // Reset error on new file selection
+      setUploadError(null);
     } else if (file) {
       setPdfToUpload(null);
       alert('Please select a file in PDF format.');
@@ -187,7 +207,6 @@ function FeatureManagement() {
     setUploadError(null);
 
     try {
-      // 1. Get Signed URL from our backend
       const signedUrlRes = await fetch('http://localhost:3001/generate-upload-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -200,7 +219,6 @@ function FeatureManagement() {
       if (!signedUrlRes.ok) throw new Error('Could not get an upload URL.');
       const { signedUrl, gcsPath } = await signedUrlRes.json();
 
-      // 2. Upload file to GCS with progress tracking
       await new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open('PUT', signedUrl, true);
@@ -216,7 +234,6 @@ function FeatureManagement() {
         xhr.send(pdfToUpload);
       });
 
-      // 3. Save file metadata to our database via our backend
       const saveMetaRes = await fetch('http://localhost:3001/feature-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -225,8 +242,9 @@ function FeatureManagement() {
       if (!saveMetaRes.ok) throw new Error('Could not save file metadata.');
       const { newFile } = await saveMetaRes.json();
       
-      // 4. Update UI
       setCurrentPdf(newFile);
+      // Оновлюємо історію, додаючи новий файл на початок
+      setFileHistory(prev => [{ ...newFile, visits: 0, avg_completion_percentage: 0 }, ...prev]);
       setPdfToUpload(null);
 
     } catch (error) {
@@ -319,10 +337,8 @@ function FeatureManagement() {
             </div>
         )}
 
-        {/* Hidden File Input */}
         <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileChange} accept="application/pdf" />
 
-        {/* Upload Confirmation UI */}
         {pdfToUpload && (
             <div className="mt-4 p-4 border-t border-slate-200 dark:border-slate-700">
                 <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-2">New file ready for upload:</h3>
@@ -345,7 +361,57 @@ function FeatureManagement() {
         )}
       </FormSection>
 
-      {/* Password Change Section (no changes here) */}
+      {/* БЛОК СТАТИСТИКИ ТА ІСТОРІЇ */}
+      <FormSection title="Analytics & History">
+        {isHistoryLoading ? (
+          <div className="text-center p-8 text-slate-500">
+            <Loader2 className="animate-spin inline-block mr-2" /> Loading file history...
+          </div>
+        ) : historyError ? (
+          <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-md">
+            <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+            <span>Could not load history: {historyError}</span>
+          </div>
+        ) : fileHistory.length === 0 ? (
+          <div className="text-center p-8 text-slate-500">
+            <p>No files have been uploaded yet.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {fileHistory.map((file) => (
+              <div key={file.id} className="p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <FileText className="w-6 h-6 text-red-500 flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="font-semibold text-slate-800 dark:text-slate-100 truncate" title={file.title}>
+                        {file.title}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Uploaded on: {new Date(file.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 sm:gap-6 text-sm w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center gap-2" title="Total visits">
+                      <Eye size={16} className="text-slate-400" />
+                      <span className="font-bold text-slate-700 dark:text-slate-200">{file.visits}</span>
+                    </div>
+                    <div className="flex items-center gap-2" title="Average Completion Percentage">
+                      <CheckSquare size={16} className="text-slate-400" />
+                      <span className="font-bold text-slate-700 dark:text-slate-200">
+                        {file.avg_completion_percentage.toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </FormSection>
+
+      {/* Password Change Section */}
       <FormSection title="Security Settings">
         <FormField label="Current Password">
           <div className="relative">
