@@ -1135,6 +1135,54 @@ app.post('/feature-pdf', async (req, res) => {
 });
 
 
+// Перевірити пароль (ОНОВЛЕНО)
+app.post('/feature-pdf-password/verify', async (req, res) => {
+  const { password } = req.body;
+
+  if (!password) {
+    return res.status(400).json({ success: false, error: 'Password is required.' });
+  }
+
+  try {
+    const { data: correctPasswordRecord, error } = await supabase
+      .from('feature_pdf_password')
+      .select('value, created_at') // ✨ ЗМІНА: тепер запитуємо і created_at
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+      
+    if (error && error.code !== 'PGRST116') throw error;
+
+    if (correctPasswordRecord && correctPasswordRecord.value === password) {
+      // ✨ ЗМІНА: Повертаємо версію (created_at) разом з успішною відповіддю
+      return res.status(200).json({ success: true, version: correctPasswordRecord.created_at });
+    } else {
+      return res.status(401).json({ success: false, error: 'Invalid password.' });
+    }
+  } catch (error) {
+    console.error('Error verifying PDF password:', error);
+    res.status(500).json({ success: false, error: 'An internal error occurred.' });
+  }
+});
+
+
+app.get('/feature-pdf-password/version', async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('feature_pdf_password')
+      .select('created_at')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+
+    res.status(200).json({ version: data ? data.created_at : null });
+  } catch (error) {
+    console.error('Error fetching password version:', error);
+    res.status(500).json({ error: 'Failed to fetch password version.' });
+  }
+});
 
 // 5. Запускаємо сервер
 const HOST = '0.0.0.0'; // ✨ ЗМІНА: Додано хост для доступу з мережі

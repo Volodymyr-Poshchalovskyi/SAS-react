@@ -144,8 +144,8 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex justify-center bg-gray-100 font-sans p-14 mt-28">
-      <div className="w-full max-w-xl text-center">
+    <div className="min-h-screen flex justify-center bg-gray-100 font-sans p-14 mt-24">
+      <div className="w-full max-w-xl text-center mt-16">
         <h1 className="text-4xl font-semibold text-black mb-8 tracking-wider">
           ACCOUNT
         </h1>
