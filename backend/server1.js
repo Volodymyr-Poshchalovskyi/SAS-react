@@ -8,7 +8,7 @@ require('dotenv').config(); // Завантажуємо змінні з .env
 // 2. Налаштування
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME;
 const KEY_BASE64 = process.env.GCS_SERVICE_ACCOUNT_KEY_BASE64;
-const TARGET_FOLDER = 'front-end/06-AI | POST PRODUCTION/'; // Папка, яку скануємо
+const TARGET_FOLDER = 'front-end/02-Photographers/04-Janelle Shirtcliff/'; // Папка, яку скануємо
 const OUTPUT_FILE = 'gcs_file_list.json'; // Назва файлу з результатом
 
 // 3. Перевірка наявності змінних
