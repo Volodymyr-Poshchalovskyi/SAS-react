@@ -20,7 +20,6 @@ const placeholderGalleryPhotos = Array.from({ length: 8 }, (_, i) => ({
 }));
 
 export const photographersData = [
-  // --- Lorenzo Agius (з реальними фото і текстами) ---
   {
     id: 1,
     name: 'Lorenzo Agius',
@@ -28,41 +27,42 @@ export const photographersData = [
     category: 'Editorial, Youth Campaigns',
     coverImage: `${CDN_BASE_URL}/front-end/02-Photographers/01-Lorenzo%20Agius/00-Main%20Image-i.php-66.jpeg`,
     profilePhotoSrc: 'front-end/artists/photographers/1-Lorenzo%20Agius.png',
-    // ✅ ЗМІНА: біографія оновлена з секції "Intro / Hero Section"
     bio: `British-born, Maltese in spirit — Lorenzo Agius is a portrait photographer whose images have become part of our visual landscape.
 With a fine art foundation and cinematic eye, Agius treats photography not as mere documentation but as a conversation: between subject and lens, between light and feeling. His portraits are grounded in sincerity, trust, and precision — allowing moments of humour, vulnerability, and quiet power to surface.
 Whether capturing celebrities amid grandeur or stillness, Agius avoids spectacle in favor of resonance. His work invites us beyond fame toward something timeless and human.
 From his breakthrough portraits on Trainspotting to iconic covers like Liam Gallagher & Patsy Kensit for Vanity Fair, Agius’s imagery has shaped cultural memory. Across decades he has collaborated with leading editorial and commercial clients worldwide, crafting images that linger in both memory and gallery halls.`,
-    // ✅ ЗМІНА: заголовок і текст оновлені з секції "Bottom Bio Section"
     section1_title: 'About Lorenzo',
     section1_text: `Lorenzo Agius (b. 1962) is a British-born photographer of Maltese heritage whose career spans film, fashion, editorial, and portraiture. Drawing from his fine art and art-history education, Agius brings a refined yet intuitive sensibility to every image. His early acclaim came from his distinctive Trainspotting portraits, and soon after he captured the spirit of Cool Britannia with Liam Gallagher & Patsy Kensit for Vanity Fair. Over the years, he has photographed the world’s most luminous figures — always with the ambition to reveal their humanity rather than their celebrity.
 Agius’s work is held in prominent collections, and his exhibitions have spanned London, Moscow, Paris, Abu Dhabi, and Malta. Trusted by top film, fashion, and editorial clients, he continues to evolve his practice — and is currently at work on his first retrospective monograph.`,
-    // ✅ ЗМІНА: заголовок і текст оновлені з секції "Exhibitions & Clients Section"
     section2_title: 'Exhibitions & Clients',
-    section2_text: `Exhibitions & Collections
-- 2009: Solo, Getty Gallery, London
-- 2009: Exhibition, Alon Zakaim Gallery, London
-- 2009: Commissioned by BMW for “Art Car” project, Russia
-- 2010: Solo, Red October Art Gallery / BMW, Moscow
-- 2010: Open-air exhibitions, Stoleshnikov Lane, Moscow
-- 2010: Exhibition (with British Fashion Council), Natural History Museum, London
-- 2010: Images displayed across Cannes for 63rd Festival
-- 2011: Solo, Palais Chaumet Museum, Paris (for “Les César”)
-- 2012: Solo, Alon Zakaim Gallery, London
-- 2017: Solo, Xposure Festival, Sharjah (opened by Sultan Bin Muhammad Al-Qasimi)
-- 2025: Retrospective, Spazju Kreattiv Gallery, Malta
-- 2025: Retrospective, Abu Dhabi
-- 2026: Retrospective, London Corinthia
-
-Institutional Collections & Recognition
-- Six images in the permanent collection, National Portrait Gallery, London
-- Works held in the Victoria & Albert Museum (UK)
-- Works in Malta’s MUZA National Gallery & Spazju Kreattiv Archive
-- Canon Ambassador since 2008
-
-Clients & Editorial Collaborations
-Warner Bros · Netflix · Disney · 20th Century Fox · HBO · Lionsgate · Sony Pictures · Universal · CW · Starz · CBS · Paramount
-Vogue · Elle · Harper’s Bazaar · GQ · Esquire · Town & Country · The Face · ID`,
+    section2_text: {
+      exhibitions: [
+        { year: 2009, description: 'Solo, Getty Gallery, London' },
+        { year: 2009, description: 'Exhibition, Alon Zakaim Gallery, London' },
+        { year: 2009, description: 'Commissioned by BMW for “Art Car” project, Russia' },
+        { year: 2010, description: 'Solo, Red October Art Gallery / BMW, Moscow' },
+        { year: 2010, description: 'Open-air exhibitions, Stoleshnikov Lane, Moscow' },
+        { year: 2010, description: 'Exhibition (with British Fashion Council), Natural History Museum, London' },
+        { year: 2010, description: 'Images displayed across Cannes for 63rd Festival' },
+        { year: 2011, description: 'Solo, Palais Chaumet Museum, Paris (for “Les César”)' },
+        { year: 2012, description: 'Solo, Alon Zakaim Gallery, London' },
+        { year: 2017, description: 'Solo, Xposure Festival, Sharjah (opened by Sultan Bin Muhammad Al-Qasimi)' },
+        { year: 2025, description: 'Retrospective, Spazju Kreattiv Gallery, Malta' },
+        { year: 2025, description: 'Retrospective, Abu Dhabi' },
+        { year: 2026, description: 'Retrospective, London Corinthia' },
+      ],
+      institutional: [
+        'Six images in the permanent collection, National Portrait Gallery, London',
+        'Works held in the Victoria & Albert Museum (UK)',
+        'Works in Malta’s MUZA National Gallery & Spazju Kreattiv Archive',
+        'Canon Ambassador since 2008',
+      ],
+      clients: [
+        'Warner Bros', 'Netflix', 'Disney', '20th Century Fox', 'HBO', 'Lionsgate', 'Sony Pictures',
+        'Universal', 'CW', 'Starz', 'CBS', 'Paramount', 'Vogue', 'Elle', 'Harper’s Bazaar', 'GQ',
+        'Esquire', 'Town & Country', 'The Face', 'ID',
+      ],
+    },
     collagePhotos: [
       `${CDN_BASE_URL}/front-end/02-Photographers/01-Lorenzo%20Agius/01-.php-3.jpeg`,
       `${CDN_BASE_URL}/front-end/02-Photographers/01-Lorenzo%20Agius/02.php-32.jpeg`,
@@ -157,7 +157,7 @@ Vogue · Elle · Harper’s Bazaar · GQ · Esquire · Town & Country · The Fac
       },
     ],
   },
-  // --- Інші фотографи (без змін) ---
+
   {
     id: 2,
     name: 'Bud Force',
@@ -180,7 +180,7 @@ Vogue · Elle · Harper’s Bazaar · GQ · Esquire · Town & Country · The Fac
     name: 'Janelle Shirtcliff',
     slug: 'janelle-shirtcliff',
     category: 'Editorial, Youth Campaigns',
-    // Cover should be the specified 00-main Image .jpg.webp
+
     coverImage: `${CDN_BASE_URL}/front-end/02-Photographers/04-Janelle%20Shirtcliff/00-main%20Image%20.jpg.webp`,
     profilePhotoSrc: 'front-end/artists/photographers/3-JANELLE SHIRTCLIFF.png',
     bio: 'Is a Dominican-American director, producer, and founder of the production company Cinema Giants...lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
@@ -190,7 +190,6 @@ Vogue · Elle · Harper’s Bazaar · GQ · Esquire · Town & Country · The Fac
     section2_title: 'Vestibulum Ante',
     section2_text:
       'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit asnatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit.',
-    // Collage should be the first 9 images starting with 01..09
     collagePhotos: [
       `${CDN_BASE_URL}/front-end/02-Photographers/04-Janelle%20Shirtcliff/01-Collective%2BProduct_011719-844-Edit.jpg`,
       `${CDN_BASE_URL}/front-end/02-Photographers/04-Janelle%20Shirtcliff/02-DSC_7052.jpg`,
@@ -202,7 +201,6 @@ Vogue · Elle · Harper’s Bazaar · GQ · Esquire · Town & Country · The Fac
       `${CDN_BASE_URL}/front-end/02-Photographers/04-Janelle%20Shirtcliff/08-ioanna-gika-janell-shirtcliff-web.jpg`,
       `${CDN_BASE_URL}/front-end/02-Photographers/04-Janelle%20Shirtcliff/09-js-entertainment-right-07.jpg`,
     ],
-    // Remaining images (excluding coverImage and collage) go to the carousel/gallery slider
     photos: [
       {
         id: 'js-1',

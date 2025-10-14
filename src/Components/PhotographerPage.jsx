@@ -32,7 +32,6 @@ export default function PhotographerPage() {
     window.scrollTo(0, 0);
   }, []);
 
-  // ✅ ЗМІНА: Оновлені розміри та позиція для 7-го фото (index: 6)
   const collageImagesData = [
     { width: 411, height: 732, left: 120, top: 2256 },
     { width: 363, height: 510, left: 710, top: 2271 },
@@ -40,7 +39,6 @@ export default function PhotographerPage() {
     { width: 661, height: 439, left: -55, top: 3240 },
     { width: 585, height: 732, left: 740, top: 3132 },
     { width: 446, height: 448, left: 523, top: 3921 },
-    // Нові горизонтальні розміри (пропорція ~4:3) та позиція
     { width: 620, height: 400, left: 10, top: 4400 },
     { width: 343, height: 596, left: 551, top: 4570 },
     { width: 462, height: 580, left: 1080, top: 4484 },
@@ -78,7 +76,7 @@ export default function PhotographerPage() {
 
   return (
     <div className="bg-white">
-      {/* ... (Секції заголовка, великого фото, опису та слайдера залишаються без змін) ... */}
+      {/* ... (Секції заголовка, великого фото, опису та слайдера) ... */}
       <section className="bg-white text-black flex items-center justify-center relative h-[100px] mt-[90px] md:mt-[117px]">
         <Link
           to="/photographers"
@@ -129,82 +127,67 @@ export default function PhotographerPage() {
         <div className="relative" style={{ width: '1440px', height: `${containerHeight}px` }}>
           {collageImagesData.map((img, index) => {
             const collageImageSrc = photographer.collagePhotos?.[index] || photographer.coverImage;
-
-            // Логіка для паралакс-зображень
             if (index === 2 || index === 6) {
-              // ✅ ЗМІНА: Зменшено силу ефекту для плавності
               const parallaxStrength = 0.15;
               let parallaxY = 0;
-
               if (collageSectionRef.current) {
                 const elementTop = collageSectionRef.current.offsetTop + (img.top - topOffset);
                 const scrollRelativeToElement = scrollY - elementTop;
                 parallaxY = scrollRelativeToElement * parallaxStrength;
               }
               return (
-                <div
-                  key={index}
-                  style={{
-                    position: 'absolute',
-                    width: `${img.width}px`,
-                    height: `${img.height}px`,
-                    left: `${img.left}px`,
-                    top: `${img.top - topOffset}px`,
-                    zIndex: index === 6 ? 2 : 0,
-                    overflow: 'hidden',
-                  }}
-                >
-                  <img
-                    src={collageImageSrc}
-                    alt={`Collage parallax view ${index + 1}`}
-                    style={{
-                      position: 'absolute',
-                      width: '100%',
-                      // ✅ ЗМІНА: Збільшуємо висоту, щоб було куди рухатись по вертикалі
-                      height: '150%',
-                      objectFit: 'cover',
-                      // ✅ ЗМІНА: Ключова частина! Починаємо з самого верху зображення
-                      top: '0',
-                      transform: `translateY(${parallaxY}px)`,
-                    }}
-                  />
-                  <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white text-5xl font-bold bg-black bg-opacity-50 p-4 rounded-full z-10">
-                    {index + 1}
-                  </span>
+                <div key={index} style={{ position: 'absolute', width: `${img.width}px`, height: `${img.height}px`, left: `${img.left}px`, top: `${img.top - topOffset}px`, zIndex: index === 6 ? 2 : 0, overflow: 'hidden' }}>
+                  <img src={collageImageSrc} alt={`Collage parallax view ${index + 1}`} style={{ position: 'absolute', width: '100%', height: '150%', objectFit: 'cover', top: '0', transform: `translateY(${parallaxY}px)` }} />
+                  <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white text-5xl font-bold bg-black bg-opacity-50 p-4 rounded-full z-10">{index + 1}</span>
                 </div>
               );
             }
-
-            // Стара логіка для звичайних зображень
             return (
-              <div
-                key={index}
-                style={{
-                  position: 'absolute',
-                  width: `${img.width}px`,
-                  height: `${img.height}px`,
-                  left: `${img.left}px`,
-                  top: `${img.top - topOffset}px`,
-                  zIndex: index === 7 ? 1 : 0,
-                }}
-              >
+              <div key={index} style={{ position: 'absolute', width: `${img.width}px`, height: `${img.height}px`, left: `${img.left}px`, top: `${img.top - topOffset}px`, zIndex: index === 7 ? 1 : 0 }}>
                 <img src={collageImageSrc} alt={`Collage view ${index + 1}`} className="w-full h-full object-cover"/>
-                <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white text-5xl font-bold bg-black bg-opacity-50 p-4 rounded-full">
-                  {index + 1}
-                </span>
+                <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white text-5xl font-bold bg-black bg-opacity-50 p-4 rounded-full">{index + 1}</span>
               </div>
             );
           })}
         </div>
       </section>
 
-      {/* ... (Секції опису 2 та біографії залишаються без змін) ... */}
       <section className="bg-white py-20">
-        <div className="max-w-2xl mx-auto text-center px-4">
-          <h2 className="text-[20px] font-semibold uppercase mb-4">{photographer.section2_title}</h2>
-          <p className="text-[12px] leading-relaxed text-gray-700 text-justify">{photographer.section2_text}</p>
+        <div className="max-w-2xl mx-auto px-4">
+          <h2 className="text-[20px] font-semibold uppercase mb-6 text-center">{photographer.section2_title}</h2>
+          {typeof photographer.section2_text === 'object' ? (
+            <div className="text-[12px] leading-relaxed text-gray-700 text-left space-y-6">
+              <div>
+                <h3 className="font-semibold uppercase text-black mb-2 tracking-wider">Exhibitions & Collections</h3>
+                <ul className="space-y-1">
+                  {photographer.section2_text.exhibitions.map((item, index) => (
+                    <li key={index} className="flex">
+                      <span className="w-12 font-semibold">{item.year}</span>
+                      <span>{item.description}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h3 className="font-semibold uppercase text-black mb-2 tracking-wider">Institutional Collections & Recognition</h3>
+                <ul className="list-disc list-inside space-y-1">
+                  {photographer.section2_text.institutional.map((item, index) => (
+                    <li key={index}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h3 className="font-semibold uppercase text-black mb-2 tracking-wider">Clients & Editorial Collaborations</h3>
+                <p className="leading-relaxed">{photographer.section2_text.clients.join(' · ')}</p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-[12px] leading-relaxed text-gray-700 text-justify">{photographer.section2_text}</p>
+          )}
         </div>
       </section>
+
+      {/* ... (Секція біографії) ... */}
       <section className="relative w-full bg-black text-white pt-16">
         <div className="absolute top-0 inset-x-0 h-48 bg-gradient-to-b from-black to-transparent z-10 pointer-events-none" />
           {publicPhotoUrl && (
