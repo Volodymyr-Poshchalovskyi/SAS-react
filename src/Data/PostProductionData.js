@@ -14,7 +14,8 @@ export const postProductionData = [
         src: 'front-end/06-AI | POST PRODUCTION/TRANSCODED/1-EYEMIX/1 - Dior - The Ascendance (2024) Davinci Production/master.m3u8',
         preview_src:
           'front-end/06-AI | POST PRODUCTION/VIDEO_PREVIEW/1-EYEMIX/1 - Dior - The Ascendance (2024) Davinci Production.jpg',
-      },
+      startTime: 2,
+        },
       {
         client: 'COCA-COLA',
         title: 'Time Capsule',
@@ -51,6 +52,7 @@ export const postProductionData = [
         src: 'front-end/06-AI | POST PRODUCTION/TRANSCODED/2-Johannes Vorillon/1/master.m3u8',
         preview_src:
           'front-end/06-AI | POST PRODUCTION/VIDEO_PREVIEW/2-Johannes Vorillon/1.jpg',
+          startTime: 2,
       },
       {
         client: 'ASTON MARTIN',
@@ -81,6 +83,7 @@ export const postProductionData = [
         src: 'front-end/06-AI | POST PRODUCTION/TRANSCODED/3-Jeremy Gross/1-AI SHOWREEL/master.m3u8',
         preview_src:
           'front-end/06-AI | POST PRODUCTION/VIDEO_PREVIEW/3-Jeremy Gross/1-AI SHOWREEL.jpg',
+          startTime: 3,
       },
     ],
   },

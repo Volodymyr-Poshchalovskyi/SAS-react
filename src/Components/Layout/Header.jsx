@@ -49,7 +49,6 @@ const Header = forwardRef(function Header(props, ref) {
     location.pathname === '/login' ||
     location.pathname === '/studio' ||
     location.pathname === '/table-top-studio' ||
-    location.pathname === '/post-production' ||
     location.pathname === '/privacy-policy' ||
     location.pathname === '/feature' ||
     location.pathname === '/about';
