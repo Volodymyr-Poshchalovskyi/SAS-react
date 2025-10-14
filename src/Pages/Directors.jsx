@@ -46,6 +46,7 @@ const DirectorSlide = ({ director, isActive, shouldPreload, isPreloaderActive })
           src={videoSrc}
           previewSrc={previewSrc}
           shouldPlay={isActive && !isPreloaderActive}
+          startTime={firstVideo.startTime}
         />
       )}
       <div className="absolute top-[80%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full text-center">

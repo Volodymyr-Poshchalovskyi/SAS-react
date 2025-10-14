@@ -1,16 +1,12 @@
-// src/pages/Production.jsx
-
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import PreloaderBanner from '../Components/PreloaderBanner';
 import { useAnimation } from '../context/AnimationContext';
-// ✨ Зміни тут: імпортуємо HlsVideoPlayer замість VideoContainer
 import HlsVideoPlayer from '../Components/HlsVideoPlayer';
 import ScrollProgressBar from '../Components/ScrollProgressBar';
 import { productionData } from '../Data/ProductionData';
 
-// ✨ Зміни тут: додаємо константу для CDN
 const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
 
 const nameAnimation = {
@@ -47,22 +43,29 @@ const VideoTitleOverlay = ({
 };
 
 export default function Production() {
-  const { isPreloaderActive, setIsPreloaderActive, onPreloaderPage } =
-    useAnimation();
+  // ✅ ЗМІНА: Тепер ми не використовуємо `onPreloaderPage` тут.
+  // Контекст сам керує початковим станом isPreloaderActive.
+  const { isPreloaderActive, setIsPreloaderActive } = useAnimation();
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
+  // ✅ ВИДАЛЕНО: Цей useEffect більше не потрібен.
+  // AnimationContext тепер автоматично встановлює isPreloaderActive = true
+  // при першому завантаженні відповідної сторінки.
+  /*
   useEffect(() => {
     if (onPreloaderPage) setIsPreloaderActive(true);
     return () => {
       setIsPreloaderActive(false);
     };
   }, [onPreloaderPage, setIsPreloaderActive]);
+  */
 
   useEffect(() => {
+    // Ця логіка залишається, вона блокує скрол, поки банер активний.
     document.body.style.overflow = isPreloaderActive ? 'hidden' : '';
     return () => {
       document.body.style.overflow = '';
@@ -93,6 +96,9 @@ export default function Production() {
       <AnimatePresence>
         {isPreloaderActive && (
           <PreloaderBanner
+            // ✅ ВАЖЛИВО: Цей пропс залишається. Коли банер завершить свою анімацію зникнення,
+            // він викличе цю функцію, яка встановить isPreloaderActive в false.
+            // Це, у свою чергу, розблокує скрол та запустить анімації на самій сторінці.
             onAnimationComplete={() => setIsPreloaderActive(false)}
             title={bannerTitle}
             description={bannerDescription}
@@ -108,7 +114,6 @@ export default function Production() {
       )}
 
       {productionData.map((video, index) => {
-        // ✨ Зміни тут: формуємо посилання для відео та прев'ю
         const publicVideoUrl = `${CDN_BASE_URL}/${video.src}`;
         const publicPreviewUrl = video.preview_src
           ? `${CDN_BASE_URL}/${video.preview_src}`
@@ -117,7 +122,6 @@ export default function Production() {
         return (
           <div key={video.id} className="relative w-full h-screen snap-start">
             {publicVideoUrl && (
-              // ✨ Зміни тут: використовуємо HlsVideoPlayer
               <HlsVideoPlayer
                 src={publicVideoUrl}
                 previewSrc={publicPreviewUrl}

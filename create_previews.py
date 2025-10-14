@@ -2,14 +2,15 @@ import os
 import tempfile
 import cv2  # OpenCV для обробки відео
 from google.cloud import storage
+from collections import defaultdict
 
 # --- НАЛАШТУВАННЯ: Вкажіть ваші дані ---
 PROJECT_ID = "new-sas-472103"
 BUCKET_NAME = "new-sas-media-storage"
-# Папка, з якої беремо відео
-SOURCE_DIRECTORY = "front-end/04-Service/"
+# Базова папка, де знаходяться папки ВСІХ режисерів
+BASE_TRANSCODED_DIRECTORY = "front-end/01-Directors/TRANSCODED/15-TYD/"
 # Базова папка, куди будемо складати всі прев'ю
-DESTINATION_BASE_DIRECTORY = "front-end/04-Service/VIDEO_PREVIEW/"
+DESTINATION_BASE_DIRECTORY = "front-end/01-Directors/VIDEO_PREVIEW/15-BYD/"
 # ----------------------------------------------------
 
 # Ініціалізація клієнтів
@@ -29,96 +30,126 @@ def generate_preview_from_video(video_blob, temp_dir_path):
     local_video_path = os.path.join(temp_dir_path, base_filename)
     
     try:
-        # 1. Завантажуємо відеофайл у тимчасову директорію
         print(f"  -> Завантаження '{base_filename}' для обробки...")
         video_blob.download_to_filename(local_video_path)
 
-        # 2. Відкриваємо відео за допомогою OpenCV
         vidcap = cv2.VideoCapture(local_video_path)
-        
-        # Встановлюємо позицію на 1000 мілісекунду (1 секунда)
         vidcap.set(cv2.CAP_PROP_POS_MSEC, 1000)
         success, image = vidcap.read()
 
-        # Якщо на 1 секунді кадру немає (напр. відео коротше), беремо найперший кадр
         if not success:
             print("  -> Не вдалося взяти кадр на 1-й секунді, пробую перший кадр...")
             vidcap.set(cv2.CAP_PROP_POS_FRAMES, 0)
             success, image = vidcap.read()
 
         if success:
-            # 3. Зберігаємо кадр як JPG файл
             video_filename_without_ext = os.path.splitext(base_filename)[0]
-            local_preview_path = os.path.join(temp_dir_path, f"{video_filename_without_ext}.jpg")
-            
+            local_preview_path = os.path.join(temp_dir_path, f"{video_filename_without_ext}_{os.urandom(4).hex()}.jpg")
             cv2.imwrite(local_preview_path, image)
-            print(f"  -> Прев'ю успішно створено: '{os.path.basename(local_preview_path)}'")
-            
-            vidcap.release() # Звільняємо ресурс
+            print(f"  -> Прев'ю успішно створено локально.")
+            vidcap.release()
             return local_preview_path
         else:
             print(f"  -> ПОМИЛКА: Не вдалося зчитати кадри з відео '{base_filename}'.")
             vidcap.release()
             return None
-
     except Exception as e:
         print(f"  -> КРИТИЧНА ПОМИЛКА під час обробки '{base_filename}': {e}")
         return None
     finally:
-        # Видаляємо тимчасовий відеофайл, щоб не займати місце
         if os.path.exists(local_video_path):
             os.remove(local_video_path)
 
-
-def main():
+def process_director_folder(source_directory):
     """
-    Головна функція для сканування, створення та завантаження прев'ю.
+    Обробляє одну папку режисера: знаходить усі відео, групує їх,
+    створює та завантажує прев'ю.
     """
-    # Визначаємо назву підпапки з вихідного шляху (напр. '01-SUPERNOVA')
-    source_subfolder_name = SOURCE_DIRECTORY.strip('/').split('/')[-1]
-    
-    # Формуємо повний шлях до папки призначення для прев'ю
+    source_subfolder_name = source_directory.strip('/').split('/')[-1]
     destination_preview_folder = f"{DESTINATION_BASE_DIRECTORY.strip('/')}/{source_subfolder_name}/"
     
-    print(f"🔍 Сканування папки: gs://{BUCKET_NAME}/{SOURCE_DIRECTORY}")
-    print(f"🖼️  Папка для прев'ю: gs://{BUCKET_NAME}/{destination_preview_folder}\n")
+    print(f"🎬 Обробка папки режисера: {source_subfolder_name}")
+    print(f"   -> Джерело: gs://{BUCKET_NAME}/{source_directory}")
+    print(f"   -> Призначення: gs://{BUCKET_NAME}/{destination_preview_folder}\n")
 
-    blobs = bucket.list_blobs(prefix=SOURCE_DIRECTORY)
-    video_extensions = ['.mp4', '.mov', '.mkv', '.avi', '.webm']
+    blobs = bucket.list_blobs(prefix=source_directory)
+    video_extensions = ['.mp4', '.mov', '.mkv', '.avi', '.webm', '.ts']
     
-    # Використовуємо тимчасову директорію, яка автоматично очиститься після завершення
+    video_groups = defaultdict(list)
+    for blob in blobs:
+        if blob.name.endswith('/') or not any(blob.name.lower().endswith(ext) for ext in video_extensions):
+            continue
+        parent_dir_path = os.path.dirname(blob.name)
+        video_groups[parent_dir_path].append(blob)
+
+    if not video_groups:
+        print("   -> Відео для обробки в цій папці не знайдено.\n")
+        return
+
     with tempfile.TemporaryDirectory() as temp_dir:
-        for blob in blobs:
-            # Пропускаємо об'єкти, що є папками, та файли, що не є відео
-            if blob.name.endswith('/') or not any(blob.name.lower().endswith(ext) for ext in video_extensions):
-                continue
+        for parent_dir, blob_list in video_groups.items():
+            video_base_name = os.path.basename(parent_dir)
+            print(f"Знайдено групу відео: '{video_base_name}'")
 
-            print(f"Знайдено відео: {blob.name}")
-
-            # Формуємо ім'я для файлу прев'ю
-            video_filename_without_ext = os.path.splitext(os.path.basename(blob.name))[0]
-            preview_blob_name = f"{destination_preview_folder}{video_filename_without_ext}.jpg"
-            
-            # Перевіряємо, чи прев'ю вже існує в бакеті
+            preview_blob_name = f"{destination_preview_folder}{video_base_name}.jpg"
             preview_blob = bucket.blob(preview_blob_name)
+
             if preview_blob.exists():
-                print("  -> Прев'ю вже існує. Пропускаємо.\n")
+                print("  -> Прев'ю для цієї групи вже існує. Пропускаємо.\n")
                 continue
 
-            # Генеруємо прев'ю
-            local_preview_path = generate_preview_from_video(blob, temp_dir)
+            target_blob = None
+            for blob in blob_list:
+                if '720p' in blob.name.lower():
+                    target_blob = blob
+                    break
+            
+            if not target_blob:
+                target_blob = blob_list[0]
 
-            # Якщо прев'ю було успішно створено, завантажуємо його
+            print(f"  -> Обрано файл для генерації: '{os.path.basename(target_blob.name)}'")
+            local_preview_path = generate_preview_from_video(target_blob, temp_dir)
+
             if local_preview_path:
                 print(f"  -> Завантаження прев'ю в gs://{BUCKET_NAME}/{preview_blob_name}...")
                 preview_blob.upload_from_filename(local_preview_path)
                 print("  -> ✅ Успішно завантажено!\n")
-                # Видаляємо локальний файл прев'ю
                 os.remove(local_preview_path)
             else:
                  print("  -> ❌ Не вдалося створити прев'ю для цього файлу.\n")
 
-    print("🏁 Роботу завершено.")
+def main():
+    """
+    Головна функція: знаходить усі папки режисерів і запускає обробку для кожної.
+    """
+    print(f"🚀 Починаю сканування всіх режисерів у: gs://{BUCKET_NAME}/{BASE_TRANSCODED_DIRECTORY}")
+    
+    all_blobs = bucket.list_blobs(prefix=BASE_TRANSCODED_DIRECTORY)
+    director_folders = set() 
+
+    for blob in all_blobs:
+        if blob.name.endswith('/'):
+            continue
+            
+        relative_path = blob.name[len(BASE_TRANSCODED_DIRECTORY):]
+        director_name = relative_path.split('/')[0]
+        
+        if director_name:
+            full_director_path = f"{BASE_TRANSCODED_DIRECTORY}{director_name}/"
+            director_folders.add(full_director_path)
+
+    if not director_folders:
+        print("❌ Не знайдено жодної папки режисерів для обробки.")
+        return
+
+    print(f"Знайдено {len(director_folders)} папок режисерів. Починаю обробку...")
+    print("-" * 60)
+
+    for director_path in sorted(list(director_folders)):
+        process_director_folder(director_path)
+        print("-" * 60)
+
+    print("🏁 Роботу по всім режисерам завершено.")
 
 if __name__ == "__main__":
     main()

@@ -10,9 +10,9 @@ PROJECT_ID = "new-sas-472103"
 LOCATION = "us-central1"
 BUCKET_NAME = "new-sas-media-storage"
 # <--- ЗМІНА 1: Нова папка з вихідними відео ---
-SOURCE_DIRECTORY = "front-end/04-Service/"
+SOURCE_DIRECTORY = "front-end/01-Directors/15-TYD"
 # <--- ЗМІНА 2: Нова папка для результатів ---
-DESTINATION_DIRECTORY = "front-end/04-Service/TRANSCODED/"
+DESTINATION_DIRECTORY = "front-end/01-Directors/TRANSCODED/15-TYD"
 # ----------------------------------------------------
 
 storage_client = storage.Client()
@@ -20,20 +20,57 @@ transcoder_client = TranscoderServiceClient()
 
 def create_adaptive_bitrate_job(input_uri, output_uri):
     """
-    Створює завдання на транскодування з трьома потоками: 720p, 1080p та 1440p (2K).
-    (Ця функція залишається без змін)
+    Створює завдання на транскодування з трьома потоками: 720p, 1080p та 1440p (2K),
+    ЗБЕРІГАЮЧИ вихідне співвідношення сторін.
     """
     parent = f"projects/{PROJECT_ID}/locations/{LOCATION}"
     job = transcoder_v1.types.Job()
     job.input_uri = input_uri
     job.output_uri = output_uri
 
+    # --- ОНОВЛЕНА КОНФІГУРАЦІЯ ---
     config = transcoder_v1.types.JobConfig(
         elementary_streams=[
-            {"key": "video-stream-720p", "video_stream": {"h264": {"height_pixels": 720, "width_pixels": 1280, "bitrate_bps": 2500000, "frame_rate": 30}}},
-            {"key": "video-stream-1080p", "video_stream": {"h264": {"height_pixels": 1080, "width_pixels": 1920, "bitrate_bps": 5000000, "frame_rate": 30}}},
-            {"key": "video-stream-1440p", "video_stream": {"h264": {"height_pixels": 1440, "width_pixels": 2560, "bitrate_bps": 10000000, "frame_rate": 30}}},
-            {"key": "audio-stream-stereo", "audio_stream": {"codec": "aac", "bitrate_bps": 128000}},
+            {
+                "key": "video-stream-720p",
+                "video_stream": {
+                    "h264": {
+                        "height_pixels": 720,
+                        "width_pixels": 0,  
+                        "bitrate_bps": 2500000,
+                        "frame_rate": 30
+                    }
+                }
+            },
+            {
+                "key": "video-stream-1080p",
+                "video_stream": {
+                    "h264": {
+                        "height_pixels": 1080,
+                        "width_pixels": 0,  # <--- ЗМІНА: Встановлено 0 для збереження пропорцій
+                        "bitrate_bps": 5000000,
+                        "frame_rate": 30
+                    }
+                }
+            },
+            {
+                "key": "video-stream-1440p",
+                "video_stream": {
+                    "h264": {
+                        "height_pixels": 1440,
+                        "width_pixels": 0,  # <--- ЗМІНА: Встановлено 0 для збереження пропорцій
+                        "bitrate_bps": 10000000,
+                        "frame_rate": 30
+                    }
+                }
+            },
+            {
+                "key": "audio-stream-stereo",
+                "audio_stream": {
+                    "codec": "aac",
+                    "bitrate_bps": 128000
+                }
+            },
         ],
         mux_streams=[
             {"key": "hls-720p", "container": "ts", "elementary_streams": ["video-stream-720p", "audio-stream-stereo"], "segment_settings": {"segment_duration": "6s"}},
@@ -42,6 +79,8 @@ def create_adaptive_bitrate_job(input_uri, output_uri):
         ],
         manifests=[{"file_name": "master.m3u8", "type_": "HLS", "mux_streams": ["hls-720p", "hls-1080p", "hls-1440p"]}]
     )
+    # ------------------------------------
+
     job.config = config
 
     while True:

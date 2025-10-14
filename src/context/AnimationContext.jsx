@@ -11,6 +11,7 @@ const preloaderPages = [
   '/table-top-studio',
   '/post-production',
   '/photographers',
+  '/service',
 ];
 
 const AnimationContext = createContext(null);

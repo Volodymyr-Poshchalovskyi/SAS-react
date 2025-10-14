@@ -1,3 +1,5 @@
+// src/Components/HlsVideoPlayer.jsx
+
 import React, { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 
@@ -6,6 +8,7 @@ const HlsVideoPlayer = ({
   shouldPlay,
   isMuted = true,
   previewSrc,
+  startTime = 0, // Пропс залишається
   ...props
 }) => {
   const videoRef = useRef(null);
@@ -27,16 +30,24 @@ const HlsVideoPlayer = ({
     };
 
     if (Hls.isSupported()) {
-      hls = new Hls();
+      // ✨ ЗМІНА 1: Створюємо конфігурацію для HLS
+      // Якщо startTime > 0, ми передаємо його в конфігурацію як startPosition.
+      const hlsConfig = startTime > 0 ? { startPosition: startTime } : {};
+
+      // ✨ ЗМІНА 2: Ініціалізуємо Hls з нашою конфігурацією
+      hls = new Hls(hlsConfig);
       hlsRef.current = hls;
 
       hls.on(Hls.Events.MANIFEST_PARSED, onManifestParsed);
       hls.loadSource(src);
       hls.attachMedia(video);
 
+      // ✨ ЗМІНА 3: Тепер нам не потрібно вручну змінювати currentTime.
+      // Плеєр сам почне з потрібного місця.
       video.addEventListener('canplay', showVideo);
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = src;
+      // Для нативних плеєрів (Safari) додаємо таймкод прямо до URL
+      video.src = startTime > 0 ? `${src}#t=${startTime}` : src;
       video.addEventListener('canplay', showVideo);
     }
 
@@ -47,7 +58,7 @@ const HlsVideoPlayer = ({
         hls.destroy();
       }
     };
-  }, [src]);
+  }, [src, startTime]); // Залежність від startTime важлива
 
   useEffect(() => {
     if (!videoRef.current) return;

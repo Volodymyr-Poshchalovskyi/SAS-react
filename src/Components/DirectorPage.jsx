@@ -11,14 +11,25 @@ import { useInView } from 'react-intersection-observer';
 const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
 
 // ✨ ЗМІНА 1: Передаємо `index` в onExpand, щоб знати, який елемент натиснуто
-const DirectorVideoBlock = ({ video, videoSrc, previewSrc, onExpand, index }) => {
+const DirectorVideoBlock = ({
+  video,
+  videoSrc,
+  previewSrc,
+  onExpand,
+  index,
+}) => {
   const { ref, inView } = useInView({
     threshold: 0.5,
   });
 
   return (
     <section ref={ref} className="relative w-full h-[75vh] bg-black">
-      <HlsVideoPlayer src={videoSrc} previewSrc={previewSrc} shouldPlay={inView} />
+      <HlsVideoPlayer
+        src={videoSrc}
+        previewSrc={previewSrc}
+        shouldPlay={inView}
+        startTime={video.startTime}
+      />
       <div className="absolute inset-0 z-10 flex items-end justify-center">
         <div className="flex flex-col items-center text-white pb-24 px-4">
           <div className="mb-6 text-shadow text-center">
@@ -117,22 +128,35 @@ export default function DirectorPage() {
         })}
       </div>
 
-      <section className="relative w-full min-h-screen bg-black flex flex-col justify-end">
+      <section className="relative w-full bg-black text-white pt-16">
+        {/* Градієнт 1: плавний перехід від відео зверху */}
+        <div className="absolute top-0 inset-x-0 h-48 bg-gradient-to-b from-black to-transparent z-10 pointer-events-none" />
+
+        {/* Контейнер для центрування фотографії */}
         {publicPhotoUrl && (
-          <img
-            src={publicPhotoUrl}
-            alt={director.name}
-            className="absolute inset-0 w-full h-full object-cover z-0"
-          />
+          <div className="flex justify-center px-4">
+            {/* ✨ ЗМІНА 1: Додаємо `relative`, щоб позиціонувати градієнт всередині */}
+            <div className="relative w-full md:w-1/2 lg:w-5/12">
+              <img
+                src={publicPhotoUrl}
+                alt={director.name}
+                className="w-full h-auto object-cover"
+              />
+              {/* ✨ ЗМІНА 2: Новий градієнт знизу фото */}
+              <div className="absolute bottom-0 inset-x-0 h-48 bg-gradient-to-t from-black to-transparent pointer-events-none" />
+            </div>
+          </div>
         )}
-        <div className="relative z-10 w-full bg-gradient-to-t from-black via-black/90 to-transparent pt-24 pb-20 md:pb-32">
-          <div className="container mx-auto px-4 flex flex-col items-center text-center text-white">
+
+        {/* Блок з іменем та біографією */}
+        <div className="w-full bg-black">
+          <div className="container mx-auto px-4 py-20 md:py-32 flex flex-col items-center text-center">
             <h2 className="font-normal text-[80px] leading-none tracking-[-0.15em] mb-8">
               {director.name}
             </h2>
             <p
               className="w-full max-w-3xl font-semibold text-justify text-xs leading-[36px] tracking-[-0.09em]"
-              style={{ wordSpacing: '0.25em' }}
+              style={{ wordSpacing: '0.1em' }}
             >
               {director.bio}
             </p>
