@@ -2,15 +2,16 @@
 
 import React, { useState, useLayoutEffect } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
+// ✅ 1. Import new data source
 import { directorsData } from '../Data/DirectorsData';
 import { assignmentData } from '../Data/AssignmentData';
+import { postProductionData } from '../Data/PostProductionData';
 import HlsVideoPlayer from '../Components/HlsVideoPlayer';
 import VideoModal from '../Components/VideoModal';
 import { useInView } from 'react-intersection-observer';
 
 const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
 
-// ✨ ЗМІНА 1: Передаємо `index` в onExpand, щоб знати, який елемент натиснуто
 const DirectorVideoBlock = ({
   video,
   videoSrc,
@@ -38,7 +39,6 @@ const DirectorVideoBlock = ({
               <p className="text-xl font-light mt-1">{video.client}</p>
             )}
           </div>
-          {/* ✨ ЗМІНА 2: Викликаємо onExpand з індексом відео */}
           <button
             onClick={() => onExpand(index)}
             className="bg-white text-black py-4 px-6 text-xs font-semibold uppercase tracking-wider flex items-center gap-2 transition-transform hover:scale-105"
@@ -58,13 +58,25 @@ export default function DirectorPage() {
   const { directorSlug } = useParams();
   const location = useLocation();
 
+  // ✅ 2. Update logic to handle the '/production' route
   const isAssignmentPage = location.pathname.startsWith('/assignment');
-  const dataSource = isAssignmentPage ? assignmentData : directorsData;
-  const backLink = isAssignmentPage ? '/assignment' : '/directors';
+  const isProductionPage = location.pathname.startsWith('/production');
+
+  let dataSource;
+  let backLink;
+
+  if (isAssignmentPage) {
+    dataSource = assignmentData;
+    backLink = '/assignment';
+  } else if (isProductionPage) {
+    dataSource = postProductionData;
+    backLink = '/production';
+  } else {
+    dataSource = directorsData;
+    backLink = '/directors';
+  }
 
   const director = dataSource.find((d) => d.slug === directorSlug);
-
-  // ✨ ЗМІНА 3: Стейт тепер зберігає індекс активного відео, а не об'єкт. null - модалка закрита
   const [activeVideoIndex, setActiveVideoIndex] = useState(null);
 
   useLayoutEffect(() => {
@@ -118,37 +130,32 @@ export default function DirectorPage() {
           return (
             <DirectorVideoBlock
               key={index}
-              index={index} // ✨ ЗМІНА 4: Передаємо індекс в компонент
+              index={index}
               video={video}
               videoSrc={publicVideoUrl}
               previewSrc={publicPreviewUrl}
-              onExpand={setActiveVideoIndex} // ✨ ЗМІНА 5: Передаємо функцію для встановлення індексу
+              onExpand={setActiveVideoIndex}
             />
           );
         })}
       </div>
 
       <section className="relative w-full bg-black text-white pt-16">
-        {/* Градієнт 1: плавний перехід від відео зверху */}
         <div className="absolute top-0 inset-x-0 h-48 bg-gradient-to-b from-black to-transparent z-10 pointer-events-none" />
 
-        {/* Контейнер для центрування фотографії */}
         {publicPhotoUrl && (
           <div className="flex justify-center px-4">
-            {/* ✨ ЗМІНА 1: Додаємо `relative`, щоб позиціонувати градієнт всередині */}
             <div className="relative w-full md:w-1/2 lg:w-5/12">
               <img
                 src={publicPhotoUrl}
                 alt={director.name}
                 className="w-full h-auto object-cover"
               />
-              {/* ✨ ЗМІНА 2: Новий градієнт знизу фото */}
               <div className="absolute bottom-0 inset-x-0 h-48 bg-gradient-to-t from-black to-transparent pointer-events-none" />
             </div>
           </div>
         )}
 
-        {/* Блок з іменем та біографією */}
         <div className="w-full bg-black">
           <div className="container mx-auto px-4 py-20 md:py-32 flex flex-col items-center text-center">
             <h2 className="font-normal text-[80px] leading-none tracking-[-0.15em] mb-8">
@@ -164,7 +171,6 @@ export default function DirectorPage() {
         </div>
       </section>
 
-      {/* ✨ ЗМІНА 6: Передаємо в модалку весь список відео, поточний індекс і функції для навігації */}
       {activeVideoIndex !== null && (
         <VideoModal
           videos={director.videos}

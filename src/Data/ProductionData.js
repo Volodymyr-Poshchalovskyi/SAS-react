@@ -12,6 +12,7 @@ export const productionData = [
     executiveProducers: 'Placeholder Producer',
     description:
       'This is a placeholder description for the project. Detailed information will be available soon.',
+      startTime:3,
   },
   {
     id: 2,
@@ -24,6 +25,7 @@ export const productionData = [
     executiveProducers: 'Placeholder Producer',
     description:
       'This is a placeholder description for the project. Detailed information will be available soon.',
+      startTime:2,
   },
   {
     id: 3,
@@ -36,6 +38,7 @@ export const productionData = [
     executiveProducers: 'Placeholder Producer',
     description:
       'This is a placeholder description for the project. Detailed information will be available soon.',
+      
   },
   {
     id: 4,
@@ -53,13 +56,14 @@ export const productionData = [
     id: 6,
     title: 'YSL | Wanted For Glow',
     projectSlug: 'ysl-wanted-for-glow',
-    src: 'front-end/04-Service/TRANSCODED/06-YSLWanted%20For%20Glow/master.m3u8',
-    preview_src: 'front-end/04-Service/VIDEO_PREVIEW/04-Service/06-YSLWanted%20For%20Glow.jpg',
+    src: 'front-end/04-Service/TRANSCODED/06/master.m3u8',
+    preview_src: 'front-end/04-Service/VIDEO_PREVIEW/04-Service/06.jpg',
     featuring: 'Placeholder Artist',
     director: 'Placeholder Director',
     executiveProducers: 'Placeholder Producer',
     description:
       'This is a placeholder description for the project. Detailed information will be available soon.',
+      startTime:2,
   },
   {
     id: 7,
@@ -72,6 +76,7 @@ export const productionData = [
     executiveProducers: 'Placeholder Producer',
     description:
       'This is a placeholder description for the project. Detailed information will be available soon.',
+      startTime:6,
   },
   {
     id: 8,
@@ -84,6 +89,7 @@ export const productionData = [
     executiveProducers: 'Placeholder Producer',
     description:
       'This is a placeholder description for the project. Detailed information will be available soon.',
+      startTime:3,
   },
   {
     id: 9,
@@ -96,6 +102,7 @@ export const productionData = [
     executiveProducers: 'Placeholder Producer',
     description:
       'This is a placeholder description for the project. Detailed information will be available soon.',
+      startTime:2,
   },
   {
     id: 10,

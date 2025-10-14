@@ -10,9 +10,9 @@ PROJECT_ID = "new-sas-472103"
 LOCATION = "us-central1"
 BUCKET_NAME = "new-sas-media-storage"
 # <--- ЗМІНА 1: Нова папка з вихідними відео ---
-SOURCE_DIRECTORY = "front-end/01-Directors/15-TYD"
+SOURCE_DIRECTORY = "front-end/06-AI | POST PRODUCTION"
 # <--- ЗМІНА 2: Нова папка для результатів ---
-DESTINATION_DIRECTORY = "front-end/01-Directors/TRANSCODED/15-TYD"
+DESTINATION_DIRECTORY = "front-end/06-AI | POST PRODUCTION/TRANSCODED"
 # ----------------------------------------------------
 
 storage_client = storage.Client()

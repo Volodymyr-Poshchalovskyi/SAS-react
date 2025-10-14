@@ -126,6 +126,7 @@ export default function Production() {
                 src={publicVideoUrl}
                 previewSrc={publicPreviewUrl}
                 shouldPlay={!isPreloaderActive && currentIndex === index}
+                startTime={video.startTime}
               />
             )}
             <VideoTitleOverlay

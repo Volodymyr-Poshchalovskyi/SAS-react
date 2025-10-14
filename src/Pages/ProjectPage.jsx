@@ -1,6 +1,5 @@
 // src/Pages/ProjectPage.jsx
 
-// ✨ Зміни тут: імпортуємо useState
 import React, { useLayoutEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { productionData } from '../Data/ProductionData';
@@ -20,7 +19,6 @@ const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
 
 export default function ProjectPage() {
   const { projectSlug } = useParams();
-  // ✨ Зміни тут: додаємо стан для відстеження наведення
   const [hoveredIndex, setHoveredIndex] = useState(null);
 
   const projectData = useMemo(() => {
@@ -36,13 +34,13 @@ export default function ProjectPage() {
           productionData.filter((p) => p.projectSlug !== projectSlug)
         )
           .slice(0, 4)
-          // ✨ Зміни тут: передаємо і відео, і прев'ю
           .map((p) => ({
             slug: p.projectSlug,
             title: p.title,
             subtitle: 'Service',
             videoSrc: p.src,
             previewSrc: p.preview_src,
+            startTime: p.startTime, // ✨ ЗМІНА 1: Додаємо startTime для пов'язаних проектів
           })),
         type: 'production',
       };
@@ -66,6 +64,7 @@ export default function ProjectPage() {
             subtitle: 'Table Top',
             videoSrc: p.src,
             previewSrc: p.preview_src,
+            startTime: p.startTime, // ✨ ЗМІНА 1 (повторно): І для Table Top проектів
           })),
         type: 'table-top',
       };
@@ -99,6 +98,7 @@ export default function ProjectPage() {
                 : ''
             }
             shouldPlay={true}
+            startTime={projectData.startTime} // ✨ ЗМІНА 2: Передаємо startTime для головного відео
           />
         )}
       </section>
@@ -133,7 +133,6 @@ export default function ProjectPage() {
                   Related Projects
                 </h2>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-                  {/* ✨ Зміни тут: оновлюємо всю секцію Related Projects */}
                   {projectData.relatedProjects.map((related, index) => (
                     <Link
                       key={index}
@@ -154,6 +153,7 @@ export default function ProjectPage() {
                             shouldPlay={hoveredIndex === index}
                             isMuted={true}
                             isLooped={true}
+                            startTime={related.startTime} // ✨ ЗМІНА 3: Передаємо startTime для пов'язаних відео
                             className="w-full h-full object-cover transition-transform duration-500 ease-in-out group-hover:scale-110"
                           />
                         ) : (
