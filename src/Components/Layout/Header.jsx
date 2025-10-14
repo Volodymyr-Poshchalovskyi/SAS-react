@@ -121,7 +121,6 @@ const Header = forwardRef(function Header(props, ref) {
           backgroundColor: shouldHaveBackground
             ? 'rgba(255, 255, 255, 1)'
             : 'rgba(255, 255, 255, 0)',
-          // ✅ ЗМІНЕНО: Тривалість анімації фону тепер 0.4s, як і в меню.
           transition: 'background-color 0.4s ease-in-out',
         }}
       >
@@ -139,7 +138,6 @@ const Header = forwardRef(function Header(props, ref) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              // ✅ ДОДАНО: Явно вказана тривалість для синхронізації з іншими елементами.
               transition={fadeAnimation}
             >
               <Link
@@ -166,13 +164,15 @@ const Header = forwardRef(function Header(props, ref) {
       </div>
       <motion.nav
         className="w-full flex justify-center relative z-10 bg-white"
-        initial={{ y: 0, height: 0 }}
+        // ✅ КРОК 1: Додаємо opacity до початкового стану
+        initial={{ y: 0, height: 0, opacity: 0 }}
+        // ✅ КРОК 2: Додаємо opacity до стану анімації
         animate={
           shouldUseSmartHeader
-            ? { height: 'auto', y: isNavVisible ? 0 : '-100%' }
+            ? { height: 'auto', y: isNavVisible ? 0 : '-100%', opacity: 1 }
             : isNavExpanded
-              ? { height: 'auto', y: 0 }
-              : { height: 0, y: 0 }
+              ? { height: 'auto', y: 0, opacity: 1 }
+              : { height: 0, y: 0, opacity: 0 }
         }
         transition={{
           duration: shouldUseInstantNav ? 0.4 : 0.4,
@@ -180,6 +180,7 @@ const Header = forwardRef(function Header(props, ref) {
         }}
         onMouseLeave={handleNavMouseLeave}
       >
+        {/* ✅ КРОК 3: Повертаємо звичайний div, оскільки анімацією керує батьківський motion.nav */}
         <div className="flex items-center gap-8 pb-1 pt-2 relative">
           {navLinks.map((link) => (
             <Link
