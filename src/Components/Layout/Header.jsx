@@ -19,7 +19,7 @@ const navLinks = [
 ];
 
 const fadeAnimation = {
-  duration: 0.8,
+  duration: 0.4,
   ease: 'easeInOut',
 };
 
@@ -35,18 +35,15 @@ const Header = forwardRef(function Header(props, ref) {
   const location = useLocation();
   const lastScrollY = useRef(0);
 
-  // ✅ КРОК 1: Створюємо нову змінну, яка перевіряє всі потрібні сторінки
   const shouldUseSmartHeader =
     location.pathname.startsWith('/photographers/') ||
     location.pathname.startsWith('/directors/') ||
     location.pathname.startsWith('/assignment/') ||
     location.pathname.startsWith('/post-production/');
 
-  // ✅ КРОК 2: Використовуємо нову змінну в useEffect
   useEffect(() => {
-    // Вмикаємо логіку скролу, тільки якщо ми на одній з потрібних сторінок
     if (!shouldUseSmartHeader) {
-      setIsNavVisible(true); // Завжди показуємо на інших сторінках
+      setIsNavVisible(true);
       return;
     }
 
@@ -69,7 +66,7 @@ const Header = forwardRef(function Header(props, ref) {
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
-  }, [shouldUseSmartHeader]); // Залежність тепер від нової змінної
+  }, [shouldUseSmartHeader]);
 
   const isSpecialPage =
     location.pathname === '/' ||
@@ -86,6 +83,8 @@ const Header = forwardRef(function Header(props, ref) {
 
   const shouldHaveBackground = isHovered || isSpecialPage || isPreloaderActive;
   const isNavExpanded = isHovered || isSpecialPage || isPreloaderActive;
+
+  const shouldUseInstantNav = isHovered && !isSpecialPage;
 
   const [indicatorStyle, setIndicatorStyle] = useState({
     opacity: 0,
@@ -122,7 +121,8 @@ const Header = forwardRef(function Header(props, ref) {
           backgroundColor: shouldHaveBackground
             ? 'rgba(255, 255, 255, 1)'
             : 'rgba(255, 255, 255, 0)',
-          transition: 'background-color 0.8s ease-in-out',
+          // ✅ ЗМІНЕНО: Тривалість анімації фону тепер 0.4s, як і в меню.
+          transition: 'background-color 0.4s ease-in-out',
         }}
       >
         <Link to="/" className="flex items-center h-full">
@@ -139,6 +139,8 @@ const Header = forwardRef(function Header(props, ref) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              // ✅ ДОДАНО: Явно вказана тривалість для синхронізації з іншими елементами.
+              transition={fadeAnimation}
             >
               <Link
                 to="/login"
@@ -165,15 +167,17 @@ const Header = forwardRef(function Header(props, ref) {
       <motion.nav
         className="w-full flex justify-center relative z-10 bg-white"
         initial={{ y: 0, height: 0 }}
-        // ✅ КРОК 3: І тут також використовуємо нову змінну
         animate={
           shouldUseSmartHeader
             ? { height: 'auto', y: isNavVisible ? 0 : '-100%' }
             : isNavExpanded
-            ? { height: 'auto', y: 0 }
-            : { height: 0, y: 0 }
+              ? { height: 'auto', y: 0 }
+              : { height: 0, y: 0 }
         }
-        transition={{ duration: 0.4, ease: 'easeInOut' }}
+        transition={{
+          duration: shouldUseInstantNav ? 0.4 : 0.4,
+          ease: 'easeInOut',
+        }}
         onMouseLeave={handleNavMouseLeave}
       >
         <div className="flex items-center gap-8 pb-1 pt-2 relative">
