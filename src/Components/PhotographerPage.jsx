@@ -32,16 +32,18 @@ export default function PhotographerPage() {
     window.scrollTo(0, 0);
   }, []);
 
+  // ✅ ЗМІНА: Оновлені розміри та позиція для 7-го фото (index: 6)
   const collageImagesData = [
     { width: 411, height: 732, left: 120, top: 2256 },
     { width: 363, height: 510, left: 710, top: 2271 },
     { width: 363, height: 491, left: 935, top: 2494 },
-    { width: 461, height: 579, left: -55, top: 3240 },
+    { width: 661, height: 439, left: -55, top: 3240 },
     { width: 585, height: 732, left: 740, top: 3132 },
     { width: 446, height: 448, left: 523, top: 3921 },
-    { width: 385, height: 441, left: 15, top: 4446 },
-    { width: 343, height: 596, left: 301, top: 4510 },
-    { width: 462, height: 580, left: 930, top: 4484 },
+    // Нові горизонтальні розміри (пропорція ~4:3) та позиція
+    { width: 620, height: 400, left: 10, top: 4400 },
+    { width: 343, height: 596, left: 551, top: 4570 },
+    { width: 462, height: 580, left: 1080, top: 4484 },
   ];
 
   const topOffset = 2150;
@@ -113,9 +115,9 @@ export default function PhotographerPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </button>
-        <div ref={sliderRef} className="flex flex-row gap-24 h-[100vh] overflow-x-auto scrollbar-hide">
+        <div ref={sliderRef} className="flex flex-row gap-24 h-[70vh] overflow-x-auto scrollbar-hide">
           {photographer.photos.map((photo, index) => (
-            <div key={photo.id} className={`flex-shrink-0 ${index % 3 === 0 ? 'md:w-[39.5%]' : 'md:w-[35%]'}`}>
+            <div key={photo.id} className={`flex-shrink-0 ${index % 3 === 0 ? 'md:w-[30%]' : 'md:w-[25%]'}`}>
               <img src={photo.src} alt={`Gallery view ${index + 1}`} className="w-full h-full object-cover" />
             </div>
           ))}
@@ -128,9 +130,10 @@ export default function PhotographerPage() {
           {collageImagesData.map((img, index) => {
             const collageImageSrc = photographer.collagePhotos?.[index] || photographer.coverImage;
 
-            // ✅ ЗМІНА: Логіка для паралакс-зображень
+            // Логіка для паралакс-зображень
             if (index === 2 || index === 6) {
-              const parallaxStrength = 0.4; // Збільшимо силу ефекту, щоб він був помітнішим
+              // ✅ ЗМІНА: Зменшено силу ефекту для плавності
+              const parallaxStrength = 0.15;
               let parallaxY = 0;
 
               if (collageSectionRef.current) {
@@ -155,12 +158,13 @@ export default function PhotographerPage() {
                     src={collageImageSrc}
                     alt={`Collage parallax view ${index + 1}`}
                     style={{
-                      // ✅ ЗМІНА: Ключова частина
                       position: 'absolute',
                       width: '100%',
-                      height: '140%', // Робимо зображення на 40% вищим за контейнер
-                      objectFit: 'cover', // Застосовуємо cover до цієї збільшеної області
-                      top: '-20%', // Зміщуємо зображення вгору, щоб воно було по центру
+                      // ✅ ЗМІНА: Збільшуємо висоту, щоб було куди рухатись по вертикалі
+                      height: '150%',
+                      objectFit: 'cover',
+                      // ✅ ЗМІНА: Ключова частина! Починаємо з самого верху зображення
+                      top: '0',
                       transform: `translateY(${parallaxY}px)`,
                     }}
                   />
