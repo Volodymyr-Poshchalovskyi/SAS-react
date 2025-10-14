@@ -45,6 +45,7 @@ const Header = forwardRef(function Header(props, ref) {
     location.pathname.startsWith('/directors/') ||
     location.pathname.startsWith('/assignment/') ||
     location.pathname.startsWith('/photographers/') ||
+    location.pathname.startsWith('/post-production/') ||
     location.pathname === '/login' ||
     location.pathname === '/studio' ||
     location.pathname === '/table-top-studio' ||

@@ -76,6 +76,7 @@ export default function AppRouter() {
         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
         <Route path="/table-top-studio" element={<TableTopStudio />} />
         <Route path="/post-production" element={<PostProduction />} />
+        <Route path="/post-production/:directorSlug" element={<DirectorPage />} />
       </Route>
 
       {/* Protected Routes (require authentication) */}

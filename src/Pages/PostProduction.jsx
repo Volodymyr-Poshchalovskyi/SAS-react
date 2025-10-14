@@ -1,4 +1,4 @@
-// src/Pages/Production.jsx
+// src/Pages/PostProduction.jsx
 
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -48,7 +48,7 @@ const ProductionBlock = ({ director, isPreloaderActive }) => {
           animate={inView && !isPreloaderActive ? 'visible' : 'hidden'}
         >
           <Link
-            to={`/production/${director.slug}`}
+            to={`/post-production/${director.slug}`}
             className="text-white font-chanel font-normal uppercase text-4xl sm:text-6xl md:text-[5rem] tracking-[-0.3rem] md:tracking-[-0.6rem] transition-opacity duration-500 hover:opacity-50"
           >
             {director.name}

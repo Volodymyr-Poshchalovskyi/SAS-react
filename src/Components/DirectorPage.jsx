@@ -60,7 +60,7 @@ export default function DirectorPage() {
 
   // ✅ 2. Update logic to handle the '/production' route
   const isAssignmentPage = location.pathname.startsWith('/assignment');
-  const isProductionPage = location.pathname.startsWith('/production');
+  const isProductionPage = location.pathname.startsWith('/post-production');
 
   let dataSource;
   let backLink;
@@ -70,7 +70,7 @@ export default function DirectorPage() {
     backLink = '/assignment';
   } else if (isProductionPage) {
     dataSource = postProductionData;
-    backLink = '/production';
+    backLink = '/post-production';
   } else {
     dataSource = directorsData;
     backLink = '/directors';
