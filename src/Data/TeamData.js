@@ -1,10 +1,6 @@
 // src/Data/TeamData.js
 
-/**
- * Data for team members.
- * Note: photoSrc should be the path to the image file within your GCS bucket.
- * The front-end will request a signed URL for this path from the server.
- */
+
 import heatherPhoto from '../assets/Photos/Heather.jpg';
 import tommyPhoto from '../assets/Photos/Tommy.jpg';
 import candicePhoto from '../assets/Photos/Candice.png';
@@ -57,4 +53,25 @@ export const teamData = [
     photoSrc: rostPhoto,
     bio: 'Head of Production at Sinners and Saints. Born in Samara, Russia, forged in Los Angeles — Rost runs the show with a rare blend of precision, style, and international swagger. Fluent in Russian and fluent in getting sh*t done, he leads with vision and grit. Rost is the go-to for making the impossible happen — merging sharp creative instincts with airtight production and a cross-continental hustle that keeps S&S plugged in from LA to Eastern Europe.',
   },
+];
+
+export const contactDetails = [
+  { label: 'PHONE', value: '+1 (000) 123-4567' },
+  {
+    label: 'ADDRESS',
+    value: ['7080 Hollywood Boulevard, LOS ANGELES,', 'CA 90028'],
+  },
+  { label: 'EMAIL', value: 'ROST@SINNERSANDSAINTS.LA' },
+  {
+    label: 'FACILITIES / OFFICES',
+    value: [
+      'MAIN CAMPUS – LUX ANGELES STUDIOS',
+      'TUNNEL POST ANNEX – SANTA MONICA',
+    ],
+  },
+];
+
+export const salesContacts = [
+  { name: 'ANN MCCALLIGAT', role: 'EAST COAST SALES' },
+  { name: 'ESTELLE LEEDS', role: 'DIRECTOR MANAGEMENT' },
 ];

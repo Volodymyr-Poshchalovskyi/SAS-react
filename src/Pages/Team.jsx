@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import PreloaderBanner from '../Components/PreloaderBanner';
 import { useAnimation } from '../context/AnimationContext';
 import { X } from 'lucide-react';
-import { teamData } from '../Data/TeamData';
+import { teamData, contactDetails, salesContacts } from '../Data/TeamData';
 import sinnersLogoBlack from '../assets/Logo/Sinners logo black.png';
 
 // --- Анімації (без змін) ---
@@ -160,11 +160,9 @@ const TeamMemberModal = ({ member, onClose }) => {
             </div>
             <div className="w-full md:w-3/5 flex flex-col justify-center">
               <div>
-                {/* --- ЗМІНА 1: Посада --- */}
                 <h2 className="text-2xl font-bold uppercase  mb-4 whitespace-nowrap">
                   {member.role}
                 </h2>
-                {/* --- ЗМІНА 2: Біографія --- */}
                 <p
                   ref={bioRef}
                   className="text-sm leading-relaxed whitespace-pre-line max-h-[40vh] md:max-h-full text-justify"
@@ -237,27 +235,6 @@ const TeamGrid = ({ teamMembers, onSelectMember }) => {
 // Компонент секції контактів
 // ===================================
 const ContactInfoSection = () => {
-  const contactDetails = [
-    { label: 'PHONE', value: '+1 (000) 123-4567' },
-    {
-      label: 'ADDRESS',
-      value: ['7080 Hollywood Boulevard, LOS ANGELES,', 'CA 90028'],
-    },
-    { label: 'EMAIL', value: 'ROST@SINNERSANDSAINTS.LA' },
-    {
-      label: 'FACILITIES / OFFICES',
-      value: [
-        'MAIN CAMPUS – LUX ANGELES STUDIOS',
-        'TUNNEL POST ANNEX – SANTA MONICA',
-      ],
-    },
-  ];
-
-  const salesContacts = [
-    { name: 'ANN MCCALLIGAT', role: 'EAST COAST SALES' },
-    { name: 'ESTELLE LEEDS', role: 'DIRECTOR MANAGEMENT' },
-  ];
-
   return (
     <motion.div
       variants={contentAnimation}
