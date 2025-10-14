@@ -1,6 +1,6 @@
 // src/components/Header.js
 
-import { useState, forwardRef } from 'react'; // ✨ Імпортуємо forwardRef
+import { useState, useEffect, useRef, forwardRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAnimation } from '../../context/AnimationContext';
@@ -8,7 +8,6 @@ import sinnersLogoBlack from '../../assets/Logo/Sinners logo black.png';
 import sinnersLogoWhite from '../../assets/Logo/Sinners logo white.png';
 
 const navLinks = [
-  /* ... ваш масив посилань ... */
   { path: '/directors', label: 'Directors' },
   { path: '/photographers', label: 'Photographers' },
   { path: '/assignment', label: 'On Assignment' },
@@ -29,16 +28,48 @@ const headerVariants = {
   visible: { opacity: 1, transition: fadeAnimation },
 };
 
-const navVariants = {
-  hidden: { height: 0, transition: { duration: 0.3, ease: 'easeInOut' } },
-  visible: { height: 'auto', transition: { duration: 0.3, ease: 'easeInOut' } },
-};
-
-// ✨ КРОК 5: Огортаємо компонент в forwardRef
 const Header = forwardRef(function Header(props, ref) {
   const [isHovered, setIsHovered] = useState(false);
+  const [isNavVisible, setIsNavVisible] = useState(true);
   const { isPreloaderActive } = useAnimation();
   const location = useLocation();
+  const lastScrollY = useRef(0);
+
+  // ✅ КРОК 1: Створюємо нову змінну, яка перевіряє всі потрібні сторінки
+  const shouldUseSmartHeader =
+    location.pathname.startsWith('/photographers/') ||
+    location.pathname.startsWith('/directors/') ||
+    location.pathname.startsWith('/assignment/') ||
+    location.pathname.startsWith('/post-production/');
+
+  // ✅ КРОК 2: Використовуємо нову змінну в useEffect
+  useEffect(() => {
+    // Вмикаємо логіку скролу, тільки якщо ми на одній з потрібних сторінок
+    if (!shouldUseSmartHeader) {
+      setIsNavVisible(true); // Завжди показуємо на інших сторінках
+      return;
+    }
+
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      const scrollDirection = currentScrollY - lastScrollY.current;
+
+      if (currentScrollY < 10) {
+        setIsNavVisible(true);
+      } else if (scrollDirection > 5) {
+        setIsNavVisible(false);
+      } else if (scrollDirection < -5) {
+        setIsNavVisible(true);
+      }
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [shouldUseSmartHeader]); // Залежність тепер від нової змінної
 
   const isSpecialPage =
     location.pathname === '/' ||
@@ -76,29 +107,29 @@ const Header = forwardRef(function Header(props, ref) {
   };
 
   return (
-    // ✨ КРОК 6: Прив'язуємо отриманий ref до головного елемента
     <motion.header
       ref={ref}
-      className="fixed top-0 left-0 w-full z-[1000]"
-      style={{
-        backgroundColor: shouldHaveBackground
-          ? 'rgba(255, 255, 255, 1)'
-          : 'rgba(255, 255, 255, 0)',
-        transition: 'background-color 0.8s ease-in-out',
-      }}
+      className="fixed top-0 left-0 w-full z-[1000] overflow-hidden"
       onHoverStart={() => setIsHovered(true)}
       onHoverEnd={() => setIsHovered(false)}
       variants={headerVariants}
       initial="hidden"
       animate="visible"
     >
-      {/* ... решта вашого JSX без змін ... */}
-      <div className="w-full relative px-8 flex justify-center items-center h-16">
+      <div
+        className="w-full relative px-8 flex justify-center items-center h-16 z-20"
+        style={{
+          backgroundColor: shouldHaveBackground
+            ? 'rgba(255, 255, 255, 1)'
+            : 'rgba(255, 255, 255, 0)',
+          transition: 'background-color 0.8s ease-in-out',
+        }}
+      >
         <Link to="/" className="flex items-center h-full">
           <img
             src={shouldHaveBackground ? sinnersLogoBlack : sinnersLogoWhite}
             alt="Sinners Logo"
-            className="w-32 h-auto "
+            className="w-32 h-auto"
           />
         </Link>
         <AnimatePresence>
@@ -131,12 +162,18 @@ const Header = forwardRef(function Header(props, ref) {
           )}
         </AnimatePresence>
       </div>
-      <div className="absolute left-0 right-0 top-16 h-12" />
       <motion.nav
-        className="w-full flex justify-center overflow-hidden"
-        variants={navVariants}
-        initial="hidden"
-        animate={isNavExpanded ? 'visible' : 'hidden'}
+        className="w-full flex justify-center relative z-10 bg-white"
+        initial={{ y: 0, height: 0 }}
+        // ✅ КРОК 3: І тут також використовуємо нову змінну
+        animate={
+          shouldUseSmartHeader
+            ? { height: 'auto', y: isNavVisible ? 0 : '-100%' }
+            : isNavExpanded
+            ? { height: 'auto', y: 0 }
+            : { height: 0, y: 0 }
+        }
+        transition={{ duration: 0.4, ease: 'easeInOut' }}
         onMouseLeave={handleNavMouseLeave}
       >
         <div className="flex items-center gap-8 pb-1 pt-2 relative">
