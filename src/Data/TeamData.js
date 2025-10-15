@@ -40,7 +40,7 @@ export const teamData = [
     firstName: 'candice',
     lastName: 'LAWLER',
     role: 'HEAD OF TALENT & PHOTO MANAGEMENT',
-    category: 'HEAD OF TALENT MANAGEMENT & PHOTO MANAGEMENT',
+    category: 'HEAD OF TALENT & PHOTO MANAGEMENT',
     photoSrc: candicePhoto,
     bio: "Candice is a Los Angeles based creative director who’s career spans 20 years across brand marketing, tech, entertainment and music After graduating from New York’s School Of Visual Arts, Candice spent time both behind the camera working with some of the biggest acts across music as well as leading brand creative for companies such as BET Networks, MTV, and Apple. During her 8 years at Apple she led global teams managing all aspects of video campaigns, photo, and design for Apple Music, APP Store, and TV+. Candice developed and executed the creative marketing for all first and second year platform launch titles for the TV+ team. Candice currently acts as Executive Producer and Creative Director across brand advertising campaigns for clients that include automotive, finance, fashion, pharma, tech, luxury and lifestyle brands. Her vast network and dedication to creative and strategic innovation makes her a trusted creative leader in today's advertising industry.",
   },
@@ -59,9 +59,9 @@ export const contactDetails = [
   { label: 'PHONE', value: '+1 (000) 123-4567' },
   {
     label: 'ADDRESS',
-    value: ['7080 Hollywood Boulevard, LOS ANGELES,', 'CA 90028'],
+    value: ['7080 Hollywood Boulevard, 7th Floor, LOS ANGELES,', 'CA 90028'],
   },
-  { label: 'EMAIL', value: 'ROST@SINNERSANDSAINTS.LA' },
+  { label: 'EMAIL', value: 'hello@SINNERSANDSAINTS.LA' },
   {
     label: 'FACILITIES / OFFICES',
     value: [

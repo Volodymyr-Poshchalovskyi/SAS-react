@@ -20,7 +20,7 @@ export const directorsData = [
         title: 'THE SOUND OF YOUR SOUL',
         src: "front-end/01-Directors/TRANSCODED/01-SUPERNOVA/2. Levi's - The sound of your soul/master.m3u8",
         preview_src:
-          "front-end/01-Directors/VIDEO_PREVIEW/01-SUPERNOVA/2. Levi's - The sound of your soul.jpg",
+          "front-end/01-Directors/VIDEO_PREVIEW/01-SUPERNOVA/2. Levi's - The sound of your soul.jpg", startTime:2
       },
       {
         client: 'COCA-COLA',
@@ -142,10 +142,10 @@ export const directorsData = [
       },
       {
         client: 'ZEGNA',
-        title: 'S/S 2025 FT. MADS MIKKELSEN',
+        title: 'SPRING - SUMMER 2025 FT. MADS MIKKELSEN',
         src: 'front-end/01-Directors/TRANSCODED/04-MATTIA BENETTI/1-zegnaaaaaa/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/04-MATTIA BENETTI/1-zegnaaaaaa.jpg',
+          'front-end/01-Directors/VIDEO_PREVIEW/04-MATTIA BENETTI/1-zegnaaaaaa.jpg', startTime:2
       },
       {
         client: 'URBAN DECAY',
@@ -210,14 +210,14 @@ export const directorsData = [
         title: 'APP GALERY',
         src: 'front-end/01-Directors/TRANSCODED/05-ELI SVERDLOV/3 - Huawei - App Gallery/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/05-ELI SVERDLOV/3 - Huawei - App Gallery.jpg',
+          'front-end/01-Directors/VIDEO_PREVIEW/05-ELI SVERDLOV/3 - Huawei - App Gallery.jpg', startTime:6
       },
       {
         client: 'HUAWEI',
         title: 'P30',
         src: 'front-end/01-Directors/TRANSCODED/05-ELI SVERDLOV/4 - Huawei - P30/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/05-ELI SVERDLOV/4 - Huawei - P30.jpg',
+          'front-end/01-Directors/VIDEO_PREVIEW/05-ELI SVERDLOV/4 - Huawei - P30.jpg', startTime:2
       },
       {
         client: 'MI MAX',
@@ -261,7 +261,7 @@ export const directorsData = [
         title: 'PA’TI FT. MALUMA',
         src: "front-end/01-Directors/TRANSCODED/06-jessy terrero/3 - Jennifer Lopez - Pa' Ti Feat Maluma/master.m3u8",
         preview_src:
-          "front-end/01-Directors/VIDEO_PREVIEW/06-jessy terrero/3 - Jennifer Lopez - Pa' Ti Feat Maluma.jpg",
+          "front-end/01-Directors/VIDEO_PREVIEW/06-jessy terrero/3 - Jennifer Lopez - Pa' Ti Feat Maluma.jpg", startTime:2
       },
       {
         client: 'CADILLAC',
@@ -313,14 +313,14 @@ export const directorsData = [
         title: 'JOY JORNEY',
         src: 'front-end/01-Directors/TRANSCODED/07-VIVIENNE AND TAMAS/03. Darphin - Joy Journey/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/07-VIVIENNE AND TAMAS/03. Darphin - Joy Journey.jpg',
+          'front-end/01-Directors/VIDEO_PREVIEW/07-VIVIENNE AND TAMAS/03. Darphin - Joy Journey.jpg', startTime:1
       },
       {
         client: 'WELLA PROFESSIONALS',
         title: 'ILLUMINA COLOR',
         src: 'front-end/01-Directors/TRANSCODED/07-VIVIENNE AND TAMAS/04. Wella Professionals – Illumina Color/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/07-VIVIENNE AND TAMAS/04. Wella Professionals – Illumina Color.jpg',
+          'front-end/01-Directors/VIDEO_PREVIEW/07-VIVIENNE AND TAMAS/04. Wella Professionals – Illumina Color.jpg', startTime:2
       },
     ],
   },
@@ -340,32 +340,32 @@ export const directorsData = [
       startTime:3,
         },
       {
-        client: 'ZARA KIDS',
-        title: 'STUDIO COLLECTION',
+        client: 'ZARA',
+        title: 'KIDS - STUDIO COLLECTION',
         src: 'front-end/01-Directors/TRANSCODED/08-LORENZO CISI/2 - LORENZO CISI - ZARA KIDS - SS25 Studio Collection/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/08-LORENZO CISI/2 - LORENZO CISI - ZARA KIDS - SS25 Studio Collection.jpg',
+          'front-end/01-Directors/VIDEO_PREVIEW/08-LORENZO CISI/2 - LORENZO CISI - ZARA KIDS - SS25 Studio Collection.jpg', startTime:2
       },
       {
         client: 'GIVENCHY',
         title: 'L’INTERDIT THRILL',
         src: "front-end/01-Directors/TRANSCODED/08-LORENZO CISI/3 - givenchy_-_l'interdit_thrill/master.m3u8",
         preview_src:
-          "front-end/01-Directors/VIDEO_PREVIEW/08-LORENZO CISI/3 - givenchy_-_l'interdit_thrill.jpg",
+          "front-end/01-Directors/VIDEO_PREVIEW/08-LORENZO CISI/3 - givenchy_-_l'interdit_thrill.jpg", startTime:1
       },
       {
-        client: 'ZARA KIDS',
-        title: 'THE ARTISTS',
+        client: 'ZARA',
+        title: 'KIDS - THE ARTISTS',
         src: 'front-end/01-Directors/TRANSCODED/08-LORENZO CISI/4 - LORENZO CISI - Zara Kids - SS24 - The Artists/master.m3u8',
         preview_src:
           'front-end/01-Directors/VIDEO_PREVIEW/08-LORENZO CISI/4 - LORENZO CISI - Zara Kids - SS24 - The Artists.jpg',
       },
       {
-        client: 'YVES SAINTLAURENT',
+        client: 'YVES SAINT LAURENT',
         title: 'BEAUTY CLUB VIDEO BOOTH FT. SINK THE PINK',
         src: 'front-end/01-Directors/TRANSCODED/08-LORENZO CISI/5 - ysl_-_beauty_club_video_booth_feat._sink_the_pink/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/08-LORENZO CISI/5 - ysl_-_beauty_club_video_booth_feat._sink_the_pink.jpg',
+          'front-end/01-Directors/VIDEO_PREVIEW/08-LORENZO CISI/5 - ysl_-_beauty_club_video_booth_feat._sink_the_pink.jpg', startTime:2
       },
     ],
   },
@@ -377,7 +377,7 @@ export const directorsData = [
     bio: "The French-American director, celebrated for his unique blend of comedy and cinematic flair, brings a fresh wave of creativity and humour to The Visionaries' expanding repertoire. Remy Cayuela's journey in the world of visual storytelling began with his critically acclaimed graduation film, The Deafgame, which wowed audiences and critics alike on the festival circuit. His knack for crafting visually stunning and humorous narratives quickly propelled him into the spotlight, leading to collaborations with top-tier musical artists such as Naive New Beaters, Wilkinson, Duke Dumont, Capital Cities, and Jax Jones.   Cayuela's expertise extends beyond music videos to an impressive array of international commercials for household names like BEATS, Heineken, Gillette, McDonald's, Belvita, Renault, Citroën, LU, Philips, Société Générale, EuroMillions, Meetic, Carrefour, Hanes, Nivea Men, Travelzoo, Younited, and Vanarama. Notably, in 2023, he directed a brand film for McDonald's covering nine Middle Eastern countries following the Qatar World Cup. His 2024 slate includes over 15 commercial spots worldwide, solidifying his reputation as a versatile and sought-after director.   Known for his impeccable casting and subtle comedic performances, Cayuela excels in directing a wide range of talent, from seasoned actors and celebrities to amateurs and even animals, especially dogs with whom he claims to communicate fluently! His distinctive visual language and meticulous attention to detail enable him to effortlessly traverse various genres while maintaining a consistent, engaging, and humorous point of view.",
     videos: [
       {
-        client: 'MCDONALDS',
+        client: "MCDONALD'S",
         title: 'RAISE YOUR EYEBROWS',
         src: 'front-end/01-Directors/TRANSCODED/09-REMY CAYUELA/1 - Mcdonalds - Raise Your Eyebrows/master.m3u8',
         preview_src:
@@ -402,7 +402,7 @@ export const directorsData = [
         title: 'VALENTINE’S DAY',
         src: "front-end/01-Directors/TRANSCODED/09-REMY CAYUELA/4 - Match.com - Valentine's Day/master.m3u8",
         preview_src:
-          "front-end/01-Directors/VIDEO_PREVIEW/09-REMY CAYUELA/4 - Match.com - Valentine's Day.jpg",
+          "front-end/01-Directors/VIDEO_PREVIEW/09-REMY CAYUELA/4 - Match.com - Valentine's Day.jpg", startTime:4
       },
       {
         client: 'YOUNITED',
@@ -514,7 +514,7 @@ export const directorsData = [
         src: 'front-end/01-Directors/TRANSCODED/12-JEAN CLAUDE THIBAUT/1 - Kilian - Old Fashioned/master.m3u8',
         preview_src:
           'front-end/01-Directors/VIDEO_PREVIEW/12-JEAN CLAUDE THIBAUT/1 - Kilian - Old Fashioned.jpg',
-      startTime:3,
+      startTime:4,
         },
       {
         client: 'ESTÉE LAUDER',
@@ -539,7 +539,7 @@ export const directorsData = [
       },
       {
         client: 'EMIDIO TUCCI',
-        title: 'EL CORTES INGLES ANDVJON HAMM',
+        title: 'EL CORTES INGLES FT. JON HAMM',
         src: 'front-end/01-Directors/TRANSCODED/12-JEAN CLAUDE THIBAUT/5 - Emidio Tucci - El Cortes Ingles X Jon Hamm/master.m3u8',
         preview_src:
           'front-end/01-Directors/VIDEO_PREVIEW/12-JEAN CLAUDE THIBAUT/5 - Emidio Tucci - El Cortes Ingles X Jon Hamm.jpg',
@@ -573,10 +573,10 @@ export const directorsData = [
         title: 'BRING THE SPRING',
         src: 'front-end/01-Directors/TRANSCODED/13-Magda Wozinska/2-magdalena_wosinska_|_walmart (1080p)/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/13-Magda Wozinska/2-magdalena_wosinska_|_walmart (1080p).jpg',
+          'front-end/01-Directors/VIDEO_PREVIEW/13-Magda Wozinska/2-magdalena_wosinska_|_walmart (1080p).jpg', startTime:2
       },
       {
-        client: 'CAARERRA',
+        client: 'CARERRA',
         title: 'GET READY',
         src: 'front-end/01-Directors/TRANSCODED/13-Magda Wozinska/3-carerra_-_magdalena_wosinska (720p)/master.m3u8',
         preview_src:
@@ -604,14 +604,14 @@ export const directorsData = [
         src: 'front-end/01-Directors/TRANSCODED/14-Directed by Mom/1-hennessy__nature_-_with_alicia_keys_&_lang_lang (1080p)/master.m3u8',
         preview_src:
           'front-end/01-Directors/VIDEO_PREVIEW/14-Directed by Mom/1-hennessy__nature_-_with_alicia_keys_&_lang_lang (1080p).jpg',
-      startTime:3,
+      startTime:4,
         },
       {
         client: 'Aryeè The Gem',
         title: 'FWM FT. DRAM',
         src: 'front-end/01-Directors/TRANSCODED/14-Directed by Mom/aryee-the-gem-fwm-2160p/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/14-Directed by Mom/aryee-the-gem-fwm-2160p.jpg',
+          'front-end/01-Directors/VIDEO_PREVIEW/14-Directed by Mom/aryee-the-gem-fwm-2160p.jpg', startTime:7
       },
     ],
   },
