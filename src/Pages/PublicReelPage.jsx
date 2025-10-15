@@ -7,9 +7,47 @@ import React, {
 } from 'react';
 import { useParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import Hls from 'hls.js';
 import sinnersLogoBlack from '../assets/Logo/Sinners logo black.png';
 
 const CDN_BASE_URL = 'http://34.54.191.201';
+
+// --- Компонент HLS Player (з фолбеком) ---
+// ✨ 1. Оновлюємо плеєр, щоб він підтримував і MP4, і HLS
+const InlineHlsPlayer = React.forwardRef(({ src, ...props }, ref) => {
+  const internalVideoRef = useRef(null);
+  const videoRef = ref || internalVideoRef;
+
+  useEffect(() => {
+    if (!src || !videoRef.current) return;
+
+    const video = videoRef.current;
+    let hls;
+
+    // Перевіряємо, чи це HLS потік
+    if (src.includes('.m3u8')) {
+      if (Hls.isSupported()) {
+        hls = new Hls();
+        hls.loadSource(src);
+        hls.attachMedia(video);
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        // Нативна підтримка в Safari
+        video.src = src;
+      }
+    } else {
+      // Якщо це звичайний файл (MP4, WebM і т.д.), просто встановлюємо src
+      video.src = src;
+    }
+
+    return () => {
+      if (hls) {
+        hls.destroy();
+      }
+    };
+  }, [src, videoRef]);
+
+  return <video ref={videoRef} {...props} />;
+});
 
 // --- Компонент Preloader ---
 const Preloader = () => (
@@ -293,19 +331,42 @@ export default function PublicReelPage() {
 
   const currentMediaItem = data?.mediaItems?.[currentSlide] || null;
 
-  const isVideo = useMemo(() => {
-    if (!currentMediaItem?.videoGcsPath) return false;
-    const path = currentMediaItem.videoGcsPath.toLowerCase();
-    const videoExtensions = ['.mp4', '.mov', '.webm', '.ogg'];
-    return videoExtensions.some((ext) => path.endsWith(ext));
-  }, [currentMediaItem]);
-
   const isAnyMediaDownloadable = useMemo(
     () => data?.mediaItems?.some((item) => item.allow_download),
     [data]
   );
 
   const isReadyToPlay = !loading && !preloading;
+
+  const { isVideo, playbackUrl, imageUrl, previewUrl } = useMemo(() => {
+    if (!currentMediaItem) {
+      return { isVideo: false };
+    }
+
+    const videoPath = currentMediaItem.videoGcsPath;
+    const hlsPath = currentMediaItem.video_hls_path;
+    const isActuallyVideo =
+      videoPath &&
+      ['.mp4', '.mov', '.webm', '.ogg'].some((ext) =>
+        videoPath.toLowerCase().endsWith(ext)
+      );
+
+    if (isActuallyVideo) {
+      return {
+        isVideo: true,
+        playbackUrl: hlsPath
+          ? `${CDN_BASE_URL}/${hlsPath}`
+          : `${CDN_BASE_URL}/${videoPath}`,
+        previewUrl: `${CDN_BASE_URL}/${currentMediaItem.previewGcsPath}`,
+      };
+    }
+
+    return {
+      isVideo: false,
+      imageUrl: `${CDN_BASE_URL}/${videoPath}`,
+      previewUrl: `${CDN_BASE_URL}/${currentMediaItem.previewGcsPath}`,
+    };
+  }, [currentMediaItem]);
 
   const logEvent = useCallback(
     (eventType, mediaItemId = null, duration = null) => {
@@ -490,9 +551,6 @@ export default function PublicReelPage() {
   }
   
   const artistNames = (currentMediaItem?.artists || []).map((a) => a.name).join(', ').toUpperCase();
-
-  const mediaUrl = currentMediaItem ? `${CDN_BASE_URL}/${currentMediaItem.videoGcsPath}` : '';
-  const previewUrl = currentMediaItem ? `${CDN_BASE_URL}/${currentMediaItem.previewGcsPath}` : '';
   const artistPhotoUrl = data?.mediaItems?.[0]?.artists?.[0]?.photoGcsPath ? `${CDN_BASE_URL}/${data.mediaItems[0].artists[0].photoGcsPath}` : '';
 
   return (
@@ -528,19 +586,24 @@ export default function PublicReelPage() {
         <div className="bg-white dark:bg-black text-black dark:text-white">
           <section className="relative w-full h-screen overflow-hidden bg-black">
             <AnimatePresence initial={false}>
+              {/* ✨ 2. Спрощуємо логіку рендеру, використовуючи тільки універсальний плеєр */}
               {isVideo ? (
-                <motion.video
-                  ref={videoRef}
+                <motion.div
                   key={currentSlide}
-                  src={mediaUrl}
-                  muted
-                  playsInline
-                  className="absolute top-0 left-0 w-full h-full object-cover"
+                  className="absolute inset-0"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.5 }}
-                />
+                >
+                  <InlineHlsPlayer
+                    ref={videoRef}
+                    src={playbackUrl}
+                    muted
+                    playsInline
+                    className="w-full h-full object-cover"
+                  />
+                </motion.div>
               ) : isInitialPlay ? (
                 <div key={currentSlide} className="absolute inset-0">
                   <motion.img
@@ -551,7 +614,7 @@ export default function PublicReelPage() {
                     transition={{ duration: 0.7 }}
                   />
                   <motion.img
-                    src={mediaUrl}
+                    src={imageUrl}
                     alt={currentMediaItem.title || 'Reel media'}
                     onLoad={() => {
                       setIsFullImageLoaded(true);
@@ -566,7 +629,7 @@ export default function PublicReelPage() {
               ) : (
                 <motion.img
                   key={currentSlide}
-                  src={mediaUrl}
+                  src={imageUrl}
                   alt={currentMediaItem.title || 'Reel media'}
                   className="absolute inset-0 w-full h-full object-cover"
                   initial={{ opacity: 0 }}
@@ -619,24 +682,15 @@ export default function PublicReelPage() {
             </div>
           </section>
           
-          {/* 👇 ПОЧАТОК ЗМІНЕНОЇ СЕКЦІЇ */}
           {artistPhotoUrl && (
             <section className="pt-10 pb-20 md:pt-16 md:pb-32 px-8 sm:px-12 lg:px-16 bg-white dark:bg-black">
-              {/* Змінено сітку з 2 на 5 колонок для гнучкості */}
               <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-12 md:gap-16 items-start">
-                {/* Блок з фото тепер займає 2 з 5 колонок */}
                 <div className="md:col-span-2">
                   <img src={artistPhotoUrl} alt={data.mediaItems[0].artists[0].name} className="w-full h-auto object-cover" />
                 </div>
-                {/* Блок з текстом тепер займає 3 з 5 колонок, роблячи його ширшим */}
                 <div className="md:col-span-3 flex flex-col">
                   <h2 className="text-3xl md:text-4xl font-bold uppercase mb-6 font-montserrat">{data.mediaItems[0].artists[0].name}</h2>
                   {data.mediaItems[0].artists[0].description && (
-                     // Оновлені класи для тексту біографії
-                     // - text-sm: менший розмір шрифту
-                     // - leading-relaxed: відповідна висота рядка
-                     // - tracking-normal: стандартний міжлітерний інтервал
-                     // - [word-spacing:0.1em]: додано відстань між словами
                     <p className="font-semibold text-sm leading-relaxed tracking-normal [word-spacing:0.1em] text-[#1D1D1D] dark:text-white/90">
                       {data.mediaItems[0].artists[0].description}
                     </p>
@@ -645,7 +699,6 @@ export default function PublicReelPage() {
               </div>
             </section>
           )}
-          {/* 👆 КІНЕЦЬ ЗМІНЕНОЇ СЕКЦІЇ */}
 
         </div>
       )}
