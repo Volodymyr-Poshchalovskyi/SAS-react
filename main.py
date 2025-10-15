@@ -8,9 +8,16 @@ import re
 
 storage_client = storage.Client()
 
+# --- НОВИЙ БЛОК: Ініціалізація клієнта Supabase ---
+# Функція буде шукати ці змінні в налаштуваннях середовища під час деплою
 supabase_url = os.environ.get("SUPABASE_URL")
 supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-supabase: Client = create_client(supabase_url, supabase_key)
+
+# ✨ ВИПРАВЛЕНО: Просто передаємо URL та ключ, без зайвих опцій
+if supabase_url and supabase_key:
+    supabase: Client = create_client(supabase_url, supabase_key)
+else:
+    supabase = None # Встановлюємо None, якщо змінні не знайдені
 
 def generate_video_preview(event, context):
     bucket_name = event['bucket']
