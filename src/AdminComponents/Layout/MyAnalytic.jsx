@@ -409,8 +409,10 @@ const ReelActionsDropdown = ({
     >
       <ul className="py-1 text-sm text-slate-700 dark:text-slate-200">
         <li>
+          {/* ✨ ЗМІНА: Додано e.stopPropagation() */}
           <button
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               onEdit(reel);
               onClose();
             }}
@@ -421,8 +423,10 @@ const ReelActionsDropdown = ({
           </button>
         </li>
         <li>
+          {/* ✨ ЗМІНА: Додано e.stopPropagation() */}
           <button
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               onCopy(reel);
               onClose();
             }}
@@ -433,8 +437,10 @@ const ReelActionsDropdown = ({
           </button>
         </li>
         <li>
+          {/* ✨ ЗМІНА: Додано e.stopPropagation() */}
           <button
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               onToggleStatus(reel.id, reel.status);
               onClose();
             }}
@@ -452,8 +458,10 @@ const ReelActionsDropdown = ({
           <div className="my-1 h-px bg-slate-100 dark:bg-slate-700"></div>
         </li>
         <li>
+          {/* ✨ ЗМІНА: Додано e.stopPropagation() */}
           <button
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation();
               onDelete(reel);
               onClose();
             }}
