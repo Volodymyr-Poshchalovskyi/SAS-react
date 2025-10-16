@@ -274,19 +274,25 @@ app.delete('/artists/:id', async (req, res) => {
 // ========================================================================== //
 
 app.post('/reels/log-event', async (req, res) => {
-  const { reel_id, session_id, event_type, media_item_id, duration_seconds } =
-    req.body;
-  if (!reel_id || !session_id || !event_type) {
-    return res
-      .status(400)
-      .json({ error: 'Missing required fields for logging.' });
-  }
-  if (event_type === 'completion' && !media_item_id) {
-    return res
-      .status(400)
-      .json({ error: 'media_item_id is required for completion events.' });
-  }
   try {
+    // ✨ ПОЧАТОК ЗМІНИ: Робимо ендпоінт універсальним
+    // Перевіряємо, чи тіло запиту є рядком (від sendBeacon) чи об'єктом (від fetch)
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    const { reel_id, session_id, event_type, media_item_id, duration_seconds } = body;
+    // ✨ КІНЕЦЬ ЗМІНИ
+
+    if (!reel_id || !session_id || !event_type) {
+      return res
+        .status(400)
+        .json({ error: 'Missing required fields for logging.' });
+    }
+    // Ця перевірка залишається, але вона стосується media_completion, а не session_duration
+    if (event_type === 'completion' && !media_item_id) {
+      return res
+        .status(400)
+        .json({ error: 'media_item_id is required for completion events.' });
+    }
+  
     const { error } = await supabase
       .from('reel_views')
       .insert({
@@ -298,6 +304,7 @@ app.post('/reels/log-event', async (req, res) => {
       });
     if (error) throw error;
     res.status(201).json({ message: 'Event logged successfully.' });
+
   } catch (error) {
     console.error('Error logging analytics event:', error);
     res

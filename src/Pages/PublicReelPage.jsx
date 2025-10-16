@@ -511,8 +511,9 @@ export default function PublicReelPage() {
     window.scrollTo(0, 0);
   }, [reelId]);
 
-  useEffect(() => {
+useEffect(() => {
     if (!reelId || !data?.reelDbId) return;
+
     const handlePageExit = () => {
       if (isVideo) {
         const videoElement = videoRef.current;
@@ -526,21 +527,41 @@ export default function PublicReelPage() {
       sessionStorage.setItem(`reel_${reelId}_slide`, currentSlide);
       const sessionStartTimeKey = `session_start_time_${data.reelDbId}`;
       const startTime = sessionStorage.getItem(sessionStartTimeKey);
+
       if (startTime) {
         const durationSeconds = Math.round((Date.now() - parseInt(startTime, 10)) / 1000);
+        
+        // ✨ ПОЧАТОК ЗМІНИ: Замінюємо fetch на sendBeacon для надійності
         if (durationSeconds > 0) {
-          logEvent('session_duration', null, durationSeconds);
+          const sessionId = sessionStorage.getItem(`session_id_${data.reelDbId}`);
+          if (sessionId) { // Відправляємо тільки якщо є ID сесії
+            const payload = {
+              reel_id: data.reelDbId,
+              session_id: sessionId,
+              event_type: 'session_duration',
+              media_item_id: null, // Для session_duration media_item_id не потрібен
+              duration_seconds: durationSeconds,
+            };
+            
+            // Використовуємо navigator.sendBeacon
+            navigator.sendBeacon(
+              'http://localhost:3001/reels/log-event',
+              JSON.stringify(payload)
+            );
+          }
         }
+        // ✨ КІНЕЦЬ ЗМІНИ
+
         sessionStorage.removeItem(sessionStartTimeKey);
       }
     };
+
     window.addEventListener('beforeunload', handlePageExit);
     return () => {
       window.removeEventListener('beforeunload', handlePageExit);
       handlePageExit();
     };
   }, [reelId, data, currentSlide, logEvent, isVideo]);
-
   const nextSlide = () => {
     if (!hasMultipleSlides) return;
     setCurrentSlide((prev) => (prev + 1) % data.mediaItems.length);
