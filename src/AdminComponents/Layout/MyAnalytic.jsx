@@ -535,17 +535,21 @@ const MyAnalytics = () => {
   }, []);
 
   useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
+    // ✨ ЗМІНА: Додано перевірку, щоб не зберігати дані, поки йде початкове завантаження
+    if (isInitialMount.current || loading) {
+      if (isInitialMount.current) {
+        isInitialMount.current = false;
+      }
       return;
     }
+
     if (currentUserId) {
       const storedPinsRaw = localStorage.getItem('userPinnedReels');
       const allUsersPins = storedPinsRaw ? JSON.parse(storedPinsRaw) : {};
       allUsersPins[currentUserId] = Array.from(pinnedReelIds);
       localStorage.setItem('userPinnedReels', JSON.stringify(allUsersPins));
     }
-  }, [pinnedReelIds, currentUserId]);
+  }, [pinnedReelIds, currentUserId, loading]); // ✨ ЗМІНА: Додано `loading` в масив залежностей
 
   useEffect(() => {
     const reelIdToOpen = location.state?.openModalForReelId;

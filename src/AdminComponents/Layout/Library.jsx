@@ -869,9 +869,14 @@ const Library = () => {
     fetchData();
   }, []);
 
+ 
+
   useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
+    // ✨ ЗМІНА: Додано перевірку, щоб не зберігати дані, поки йде початкове завантаження
+    if (isInitialMount.current || loading) {
+      if (isInitialMount.current) {
+        isInitialMount.current = false;
+      }
       return;
     }
 
@@ -881,7 +886,7 @@ const Library = () => {
       allUsersPins[currentUserId] = Array.from(pinnedItemIds);
       localStorage.setItem('userPinnedItems', JSON.stringify(allUsersPins));
     }
-  }, [pinnedItemIds, currentUserId]);
+  }, [pinnedItemIds, currentUserId, loading]); // ✨ ЗМІНА: Додано `loading` в масив залежностей
 
   useEffect(() => {
     const reelToCopy = location.state?.reelToCopy;
