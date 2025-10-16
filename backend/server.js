@@ -40,6 +40,7 @@ const allowedOrigins = [
   'http://192.168.0.123:5173',
   'http://192.168.1.103:5173',
   'http://192.168.1.106:5173',
+  "http://192.168.1.105:5173",
   'http://192.168.1.110:5173',
   'https://sas-frontend-zhgs.onrender.com',
 ];
@@ -52,7 +53,7 @@ const corsOptions = {
       callback(new Error('Not allowed by CORS'));
     }
   },
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
