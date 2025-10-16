@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+// ✨ ЗМІНА 1: Імпортуємо useContext та DataRefreshContext
+import React, { useState, useEffect, useMemo, useRef, useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Eye,
@@ -24,11 +25,13 @@ import {
   Edit,
   Pin,
 } from 'lucide-react';
+// Переконайтеся, що шлях до AdminLayout правильний
+import { DataRefreshContext } from './AdminLayout';
 
 const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
 
 // =======================
-// HELPER FUNCTIONS & UTILITIES
+// HELPER FUNCTIONS & COMPONENTS (без змін)
 // =======================
 const Highlight = ({ text, highlight }) => {
   if (!highlight?.trim() || !text) return <span>{text}</span>;
@@ -85,7 +88,8 @@ const SortableHeader = ({
     </th>
   );
 };
-
+// ... решта компонентів (FormField, ConfirmationModal, EditReelModal, ReelActionsDropdown) залишаються без змін ...
+// (Код цих компонентів приховано для стислості, оскільки в них немає змін)
 const FormField = ({ label, children }) => (
   <div>
     <label className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -97,10 +101,6 @@ const FormField = ({ label, children }) => (
 const inputClasses =
   'flex h-10 w-full rounded-md border border-slate-300 bg-white dark:bg-slate-800 px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50';
 
-// =======================
-// MODAL & DROPDOWN COMPONENTS
-// =======================
-// ✨ ЗМІНА: Модальне вікно тепер приймає `itemCount` для обробки множинного видалення
 const ConfirmationModal = ({
   isOpen,
   onClose,
@@ -220,7 +220,6 @@ const ConfirmationModal = ({
     </div>
   );
 };
-
 const EditReelModal = ({ isOpen, onClose, reel, onSaveSuccess, onCopy }) => {
   const [formData, setFormData] = useState({ title: '' });
   const [status, setStatus] = useState('idle');
@@ -382,7 +381,6 @@ const EditReelModal = ({ isOpen, onClose, reel, onSaveSuccess, onCopy }) => {
     </div>
   );
 };
-
 const ReelActionsDropdown = ({
   reel,
   onEdit,
@@ -409,7 +407,6 @@ const ReelActionsDropdown = ({
     >
       <ul className="py-1 text-sm text-slate-700 dark:text-slate-200">
         <li>
-          {/* ✨ ЗМІНА: Додано e.stopPropagation() */}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -423,7 +420,6 @@ const ReelActionsDropdown = ({
           </button>
         </li>
         <li>
-          {/* ✨ ЗМІНА: Додано e.stopPropagation() */}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -437,7 +433,6 @@ const ReelActionsDropdown = ({
           </button>
         </li>
         <li>
-          {/* ✨ ЗМІНА: Додано e.stopPropagation() */}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -458,7 +453,6 @@ const ReelActionsDropdown = ({
           <div className="my-1 h-px bg-slate-100 dark:bg-slate-700"></div>
         </li>
         <li>
-          {/* ✨ ЗМІНА: Додано e.stopPropagation() */}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -501,15 +495,18 @@ const MyAnalytics = () => {
   const [currentUserId, setCurrentUserId] = useState(null);
   const isInitialMount = useRef(true);
   const headerCheckboxRef = useRef(null);
-
-  // ✨ ЗМІНА: Додано стан для модального вікна множинного видалення
   const [isMultiDeleteModalOpen, setIsMultiDeleteModalOpen] = useState(false);
+
+  // ✨ ЗМІНА 2: Отримуємо ключ оновлення з контексту
+  const { refreshKey } = useContext(DataRefreshContext);
 
   useEffect(() => {
     const fetchReels = async () => {
       setLoading(true);
       try {
-        const user = { id: 'mock-user-id-123' };
+        // Замість mock-user-id, вам треба буде отримати реального користувача
+        // наприклад, з вашого Auth-контексту
+        const user = { id: 'mock-user-id-123' }; 
         if (user) setCurrentUserId(user.id);
 
         const response = await fetch('http://localhost:3001/reels');
@@ -532,10 +529,11 @@ const MyAnalytics = () => {
       }
     };
     fetchReels();
-  }, []);
+  // ✨ ЗМІНА 3: Додаємо refreshKey до масиву залежностей
+  }, [refreshKey]);
 
+  // ... решта useEffect та функцій-обробників залишаються без змін ...
   useEffect(() => {
-    // ✨ ЗМІНА: Додано перевірку, щоб не зберігати дані, поки йде початкове завантаження
     if (isInitialMount.current || loading) {
       if (isInitialMount.current) {
         isInitialMount.current = false;
@@ -549,7 +547,7 @@ const MyAnalytics = () => {
       allUsersPins[currentUserId] = Array.from(pinnedReelIds);
       localStorage.setItem('userPinnedReels', JSON.stringify(allUsersPins));
     }
-  }, [pinnedReelIds, currentUserId, loading]); // ✨ ЗМІНА: Додано `loading` в масив залежностей
+  }, [pinnedReelIds, currentUserId, loading]);
 
   useEffect(() => {
     const reelIdToOpen = location.state?.openModalForReelId;
@@ -607,10 +605,9 @@ const MyAnalytics = () => {
     setReelsData((currentData) =>
       currentData.filter((r) => r.id !== reelToDelete.id)
     );
-    setReelToDelete(null); // Close modal on success
+    setReelToDelete(null);
   };
 
-  // ✨ ЗМІНА: Нова функція для обробки множинного видалення
   const handleConfirmMultiDelete = async () => {
     const reelIdsToDelete = Array.from(selectedReels);
     const deletePromises = reelIdsToDelete.map((id) =>
@@ -725,7 +722,7 @@ const MyAnalytics = () => {
     const start = (currentPage - 1) * itemsPerPage;
     return filteredData.slice(start, start + itemsPerPage);
   }, [filteredData, currentPage]);
-
+    
   const handleSort = (key) =>
     setSortConfig((prev) => ({
       key,
@@ -768,12 +765,50 @@ const MyAnalytics = () => {
   const formatNumber = (num) => new Intl.NumberFormat('en-US').format(num);
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
-  if (loading)
+  // ✨ ЗМІНА 4: Створюємо компонент для скелетону таблиці
+  const SkeletonRow = () => (
+    <tr className="animate-pulse">
+        <td className="p-4"><div className="h-4 w-4 bg-slate-200 dark:bg-slate-700 rounded"></div></td>
+        <td className="p-4"><div className="h-4 w-4 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto"></div></td>
+        <td className="p-4">
+            <div className="flex items-center gap-4">
+                <div className="w-20 h-12 bg-slate-200 dark:bg-slate-700 rounded-md shrink-0"></div>
+                <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div>
+            </div>
+        </td>
+        <td className="p-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-12 mx-auto"></div></td>
+        <td className="p-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-16 mx-auto"></div></td>
+        <td className="p-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-10 mx-auto"></div></td>
+        <td className="p-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-24"></div></td>
+        <td className="p-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-28"></div></td>
+        <td className="p-4"><div className="h-6 bg-slate-200 dark:bg-slate-700 rounded-full w-20 mx-auto"></div></td>
+        <td className="p-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-16 mx-auto"></div></td>
+        <td className="p-4"><div className="h-6 w-6 bg-slate-200 dark:bg-slate-700 rounded-md mx-auto"></div></td>
+    </tr>
+  );
+
+  // ✨ ЗМІНА 5: Використовуємо скелетон під час завантаження
+  if (loading) {
     return (
-      <div className="p-4 text-center text-slate-500">
-        Loading analytics... ⏳
-      </div>
+       <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center mb-6">
+                <div className="h-9 w-48 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse"></div>
+                <div className="h-10 w-72 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse"></div>
+            </div>
+            <div className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden">
+                <table className="w-full text-sm">
+                    {/* Заголовок можна залишити реальним, бо він не залежить від даних */}
+                    <thead className="text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900">
+                        {/* ... реальний thead ... */}
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {[...Array(10)].map((_, i) => <SkeletonRow key={i} />)}
+                    </tbody>
+                </table>
+            </div>
+       </div>
     );
+  }
 
   return (
     <>
@@ -783,7 +818,6 @@ const MyAnalytics = () => {
         onConfirm={handleConfirmDelete}
         itemTitle={reelToDelete?.title}
       />
-      {/* ✨ ЗМІНА: Додано модальне вікно для множинного видалення */}
       <ConfirmationModal
         isOpen={isMultiDeleteModalOpen}
         onClose={() => setIsMultiDeleteModalOpen(false)}
@@ -799,7 +833,8 @@ const MyAnalytics = () => {
       />
 
       <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+         {/* ... решта JSX-коду компонента без змін ... */}
+         <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
           <div className="flex items-center gap-4">
             <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">
               Analytics
@@ -813,7 +848,6 @@ const MyAnalytics = () => {
                   <Pin size={16} />
                   {pinActionText} ({selectedReels.size})
                 </button>
-                {/* ✨ ЗМІНА: Додано кнопку видалення вибраних елементів */}
                 <button
                   onClick={() => setIsMultiDeleteModalOpen(true)}
                   className="flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-red-600 text-white rounded-md hover:bg-red-700"
@@ -939,8 +973,8 @@ const MyAnalytics = () => {
                         <input
   type="checkbox"
   checked={selectedReels.has(reel.id)}
-  onChange={() => handleRowCheck(reel.id)} // Тепер викликає функцію вибору
-  onClick={(e) => e.stopPropagation()}     // Залишено, щоб уникнути подвійного спрацювання
+  onChange={() => handleRowCheck(reel.id)}
+  onClick={(e) => e.stopPropagation()}
   className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 accent-blue-600 cursor-pointer"
 />
                       </td>

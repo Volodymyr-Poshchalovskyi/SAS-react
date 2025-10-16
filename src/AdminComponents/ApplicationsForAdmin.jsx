@@ -1,11 +1,16 @@
 // src/AdminComponents/ApplicationsForAdmin.jsx
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+// ✨ ЗМІНА 1: Імпортуємо useContext та DataRefreshContext
+import React, { useState, useEffect, useMemo, useCallback, useContext } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
+// Переконайтеся, що шлях до AdminLayout правильний
+import { DataRefreshContext } from './Layout/AdminLayout';
+
 
 // =======================
-// Status Badge Component (No changes)
+// Helper Components (StatusBadge, Highlight, Modal)
+// (Ці компоненти залишаються без змін)
 // =======================
 const StatusBadge = ({ status }) => {
   const baseClasses =
@@ -32,9 +37,6 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-// =======================
-// Highlight Component (No changes)
-// =======================
 const Highlight = ({ text, highlight }) => {
   if (!text) return null;
   if (!highlight.trim()) return <span>{text}</span>;
@@ -60,9 +62,6 @@ const Highlight = ({ text, highlight }) => {
   );
 };
 
-// ===================================
-// Modal Component (No changes)
-// ===================================
 const Modal = ({
   isOpen,
   onClose,
@@ -208,6 +207,57 @@ const Modal = ({
   );
 };
 
+
+// =======================
+// Skeleton Loader Component
+// =======================
+const SkeletonLoader = () => {
+  const SkeletonRow = () => (
+    <tr className="animate-pulse">
+      <td className="p-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div></td>
+      <td className="p-4 max-w-md">
+        <div className="space-y-2">
+            <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
+            <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-5/6"></div>
+        </div>
+      </td>
+      <td className="p-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-28"></div></td>
+      <td className="p-4 text-center"><div className="h-6 bg-slate-200 dark:bg-slate-700 rounded-full w-24 mx-auto"></div></td>
+      <td className="p-4 text-center"><div className="h-7 bg-slate-200 dark:bg-slate-700 rounded w-32 mx-auto"></div></td>
+    </tr>
+  );
+
+  return (
+    <div className="max-w-7xl mx-auto">
+      <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+        <div className="h-9 w-48 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse"></div>
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="h-10 w-48 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse"></div>
+          <div className="h-10 w-64 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse"></div>
+        </div>
+      </div>
+      <div className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="text-slate-500 dark:text-slate-400">
+             {/* Реальний заголовок для кращої візуалізації */}
+            <tr className="border-b border-slate-200 dark:border-slate-800">
+              <th className="p-4 font-medium text-left">Email</th>
+              <th className="p-4 font-medium text-left">Application Text</th>
+              <th className="p-4 font-medium text-left">Date</th>
+              <th className="p-4 font-medium text-center">Status</th>
+              <th className="p-4 font-medium text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            {[...Array(8)].map((_, i) => <SkeletonRow key={i} />)}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
+
 // =======================
 // Main Component
 // =======================
@@ -230,7 +280,9 @@ const ApplicationsForAdmin = () => {
     successTitle: '',
     successMessage: '',
   });
-
+  
+  // ✨ ЗМІНА 2: Отримуємо ключ оновлення з контексту
+  const { refreshKey } = useContext(DataRefreshContext);
   const { getApplications, updateApplicationStatus } = useAuth();
 
   const fetchApplications = useCallback(async () => {
@@ -250,11 +302,13 @@ const ApplicationsForAdmin = () => {
       setLoading(false);
     }
   }, [getApplications]);
-
+  
+  // ✨ ЗМІНА 3: Додаємо refreshKey до масиву залежностей
   useEffect(() => {
     fetchApplications();
-  }, [fetchApplications]);
+  }, [fetchApplications, refreshKey]);
 
+  // ... решта логіки компонента без змін ...
   const filteredApplications = useMemo(() => {
     return applications
       .filter((app) => {
@@ -312,7 +366,6 @@ const ApplicationsForAdmin = () => {
     setVisibleCount((prevCount) => prevCount + 5);
   };
 
-  // ✨ ЗМІНА: Додано `year: 'numeric'` до форматування дати
   const formatApplicationDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -333,12 +386,7 @@ const ApplicationsForAdmin = () => {
   const inputClasses =
     'flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500 dark:focus-visible:ring-offset-slate-900';
 
-  if (loading)
-    return (
-      <div className="p-4 text-center text-slate-500 dark:text-slate-400">
-        Loading applications... ⏳
-      </div>
-    );
+  if (loading) return <SkeletonLoader />;
   if (error)
     return <div className="p-4 text-center text-red-500">Error: {error}</div>;
 
@@ -349,7 +397,6 @@ const ApplicationsForAdmin = () => {
           Applications
         </h1>
         <div className="flex items-center gap-4 flex-wrap">
-          {/* ✨ ЗМІНА: Збільшено ширину контейнера для dropdown */}
           <div className="w-full sm:w-48">
             <select
               value={statusFilter}

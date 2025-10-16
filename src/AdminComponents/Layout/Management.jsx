@@ -1,5 +1,5 @@
-// ManagementPage.js
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+// ✨ ЗМІНА 1: Імпортуємо useContext та наш DataRefreshContext
+import React, { useState, useMemo, useEffect, useRef, useContext } from 'react';
 import {
   Plus,
   Edit,
@@ -10,7 +10,9 @@ import {
   Image as ImageIcon,
   Loader2,
 } from 'lucide-react';
-import { supabase } from '../../lib/supabaseClient'; // Adjust the import path as needed
+import { supabase } from '../../lib/supabaseClient'; 
+// Переконайтесь, що шлях до AdminLayout правильний
+import { DataRefreshContext } from './AdminLayout';
 
 // --- Reusable Highlight Component for Search (No changes) ---
 const Highlight = ({ text, highlight }) => {
@@ -35,10 +37,10 @@ const Highlight = ({ text, highlight }) => {
   );
 };
 
-// --- ✨ ОНОВЛЕНИЙ Reusable Data Table Component ✨ ---
+// --- Reusable Data Table Component (No changes) ---
 const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [visibleCount, setVisibleCount] = useState(10); // Стан для кількості видимих рядків
+  const [visibleCount, setVisibleCount] = useState(10); 
 
   const filteredData = useMemo(() => {
     if (!searchTerm) return data;
@@ -47,12 +49,10 @@ const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
     );
   }, [data, searchTerm]);
 
-  // Скидаємо лічильник видимих рядків при зміні пошукового запиту
   useEffect(() => {
     setVisibleCount(10);
   }, [searchTerm]);
 
-  // Дані, які фактично будуть показані користувачу
   const dataToDisplay = useMemo(() => {
     return filteredData.slice(0, visibleCount);
   }, [filteredData, visibleCount]);
@@ -62,7 +62,6 @@ const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
   };
 
   return (
-    // ✨ ВИДАЛЕНО h-full для динамічної висоти
     <div className="bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl flex flex-col min-h-[300px]">
       <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-3">
         <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
@@ -89,7 +88,6 @@ const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
         </div>
       </div>
       <div className="p-2 overflow-y-auto flex-1">
-        {/* ✨ ВІДОБРАЖЕННЯ ОБРІЗАНОГО СПИСКУ */}
         {dataToDisplay.length > 0 ? (
           <ul className="divide-y divide-slate-100 dark:divide-slate-800">
             {dataToDisplay.map((item) => (
@@ -126,7 +124,6 @@ const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
         )}
       </div>
 
-      {/* ✨ НОВИЙ БЛОК: Кнопка "Показати ще" */}
       {filteredData.length > visibleCount && (
         <div className="p-4 border-t border-slate-200 dark:border-slate-800 mt-auto">
           <button
@@ -141,7 +138,7 @@ const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
   );
 };
 
-// --- Main Page Component (Rest of the code remains the same) ---
+// --- Main Page Component ---
 const ManagementPage = () => {
   const [artists, setArtists] = useState([]);
   const [clients, setClients] = useState([]);
@@ -163,6 +160,9 @@ const ManagementPage = () => {
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const fileInputRef = useRef(null);
+  
+  // ✨ ЗМІНА 2: Отримуємо ключ оновлення з контексту
+  const { refreshKey } = useContext(DataRefreshContext);
 
   const dataMap = {
     Artists: {
@@ -188,6 +188,7 @@ const ManagementPage = () => {
   // --- Data Fetching Effect ---
   useEffect(() => {
     const fetchAllData = async () => {
+      console.log("Fetching management data..."); // Для відладки
       setLoading(true);
       try {
         const [artistsRes, clientsRes, celebritiesRes] = await Promise.all([
@@ -219,7 +220,9 @@ const ManagementPage = () => {
       }
     };
     fetchAllData();
-  }, []);
+    // ✨ ЗМІНА 3: Додаємо refreshKey до масиву залежностей.
+    // Тепер цей ефект спрацює при першому завантаженні І коли натиснуто кнопку оновлення.
+  }, [refreshKey]);
 
   // Effect for photo preview
   useEffect(() => {
@@ -251,12 +254,7 @@ const ManagementPage = () => {
       setCurrentItem(item);
       setFormData({ name: item.name, description: item.description || '' });
       if (item.photo_gcs_path) {
-        // Fetch signed URL for preview
         try {
-          const { data, error } = await supabase.storage
-            .from('your-bucket-name')
-            .createSignedUrl(item.photo_gcs_path, 60);
-          // Or use your own backend endpoint
           const response = await fetch(
             'http://localhost:3001/generate-read-urls',
             {
@@ -305,7 +303,6 @@ const ManagementPage = () => {
     return gcsPath;
   };
 
-  // --- CRUD Handlers ---
   const handleSave = async () => {
     if (!formData.name.trim() || !currentTable) return;
     setIsSubmitting(true);
@@ -342,7 +339,6 @@ const ManagementPage = () => {
             description: formData.description.trim(),
             photo_gcs_path,
           };
-          // Use our new backend endpoint to handle update and old file deletion
           const response = await fetch(
             `http://localhost:3001/artists/${currentItem.id}`,
             {
@@ -358,7 +354,6 @@ const ManagementPage = () => {
             prev.map((item) => (item.id === currentItem.id ? data : item))
           );
         } else {
-          // For clients, celebrities
           const { data, error } = await supabase
             .from(tableName)
             .update(payload)
@@ -387,14 +382,12 @@ const ManagementPage = () => {
 
     try {
       if (hasDetails) {
-        // Use backend endpoint for artist
         const response = await fetch(
           `http://localhost:3001/artists/${currentItem.id}`,
           { method: 'DELETE' }
         );
         if (!response.ok) throw new Error('Failed to delete artist on server.');
       } else {
-        // Direct DB delete for others
         const { error } = await supabase
           .from(tableName)
           .delete()
@@ -407,7 +400,6 @@ const ManagementPage = () => {
       resetModalState();
     } catch (error) {
       console.error('Error deleting item:', error);
-      // Keep modal open to show error
       setIsSubmitting(false);
     }
   };
@@ -423,9 +415,20 @@ const ManagementPage = () => {
         Artists / Clients / Featured Celebrity
       </h1>
       {loading ? (
-        <p className="text-center text-slate-500 dark:text-slate-400">
-          Loading data...
-        </p>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Скелетони завантаження */}
+            {[...Array(3)].map((_, i) => (
+                 <div key={i} className="bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl p-4 min-h-[300px] animate-pulse">
+                    <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-1/3 mb-4"></div>
+                    <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded w-full mb-4"></div>
+                    <div className="space-y-2">
+                        <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                        <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                        <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                    </div>
+                 </div>
+            ))}
+        </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:items-start">
           <DataTable
@@ -452,7 +455,7 @@ const ManagementPage = () => {
         </div>
       )}
 
-      {/* Modal for Add/Edit */}
+      {/* MODALS (No changes) */}
       {isEditModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
@@ -465,11 +468,10 @@ const ManagementPage = () => {
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-50">
-                  {' '}
                   {modalMode === 'add' ? 'Add' : 'Edit'}{' '}
                   {currentTable
                     ?.replace(/s$/, '')
-                    .replace('Featured ', '')}{' '}
+                    .replace('Featured ', '')}
                 </h3>
                 <button
                   onClick={resetModalState}
@@ -480,7 +482,7 @@ const ManagementPage = () => {
               </div>
 
               <div className="space-y-4">
-                {dataMap[currentTable].hasDetails && (
+                {dataMap[currentTable]?.hasDetails && (
                   <div className="grid grid-cols-3 gap-4">
                     <div className="col-span-1">
                       <label className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">
@@ -553,7 +555,7 @@ const ManagementPage = () => {
                     </div>
                   </div>
                 )}
-                {!dataMap[currentTable].hasDetails && (
+                {!dataMap[currentTable]?.hasDetails && (
                   <div>
                     <label
                       htmlFor="itemNameSimple"
@@ -601,7 +603,6 @@ const ManagementPage = () => {
         </div>
       )}
 
-      {/* Modal for Delete Confirmation */}
       {isDeleteModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
@@ -614,26 +615,23 @@ const ManagementPage = () => {
             <div className="p-6">
               <div className="flex items-start">
                 <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/40 sm:mx-0 sm:h-10 sm:w-10">
-                  {' '}
                   <AlertTriangle
                     className="h-6 w-6 text-red-600 dark:text-red-400"
                     aria-hidden="true"
-                  />{' '}
+                  />
                 </div>
                 <div className="ml-4 text-left">
                   <h3 className="text-lg leading-6 font-medium text-slate-900 dark:text-slate-50">
                     Delete Item
                   </h3>
                   <div className="mt-2">
-                    {' '}
                     <p className="text-sm text-slate-500 dark:text-slate-400">
-                      {' '}
                       Are you sure you want to delete{' '}
                       <span className="font-bold text-slate-700 dark:text-slate-200">
                         "{currentItem?.name}"
                       </span>
-                      ? This action cannot be undone.{' '}
-                    </p>{' '}
+                      ? This action cannot be undone.
+                    </p>
                   </div>
                 </div>
               </div>

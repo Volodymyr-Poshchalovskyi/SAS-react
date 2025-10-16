@@ -1,6 +1,7 @@
 // src/AdminComponents/UserManagement.jsx
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+// ✨ ЗМІНА 1: Імпортуємо useContext та DataRefreshContext
+import React, { useState, useEffect, useMemo, useCallback, useContext } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import {
   Loader2,
@@ -9,9 +10,13 @@ import {
   ArrowUp,
   ArrowDown,
 } from 'lucide-react';
+// Переконайтеся, що шлях до AdminLayout правильний
+import { DataRefreshContext } from './Layout/AdminLayout';
+
 
 // =======================
-// Modal Component (No changes)
+// Helper Components (Modal, StatusBadge, Highlight)
+// (Ці компоненти залишаються без змін)
 // =======================
 const Modal = ({
   isOpen,
@@ -157,10 +162,6 @@ const Modal = ({
     </div>
   );
 };
-
-// =======================
-// Status Badge Component (No changes)
-// =======================
 const StatusBadge = ({ status }) => {
   const baseClasses =
     'inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full text-xs font-medium capitalize';
@@ -186,10 +187,6 @@ const StatusBadge = ({ status }) => {
     </span>
   );
 };
-
-// =======================
-// Highlight Component (No changes)
-// =======================
 const Highlight = ({ text, highlight }) => {
   if (!text) return null;
   if (!highlight.trim()) return <span>{text}</span>;
@@ -214,6 +211,57 @@ const Highlight = ({ text, highlight }) => {
     </span>
   );
 };
+
+// =======================
+// Skeleton Loader Component
+// =======================
+const SkeletonLoader = () => {
+  const SkeletonRow = () => (
+    <tr className="animate-pulse">
+      <td className="p-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div></td>
+      <td className="p-4">
+        <div className="space-y-2">
+          <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
+          <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-2/3"></div>
+        </div>
+      </td>
+      <td className="p-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/5"></div></td>
+      <td className="p-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-28"></div></td>
+      <td className="p-4 text-center"><div className="h-6 bg-slate-200 dark:bg-slate-700 rounded-full w-24 mx-auto"></div></td>
+      <td className="p-4 text-center"><div className="h-7 bg-slate-200 dark:bg-slate-700 rounded w-24 mx-auto"></div></td>
+    </tr>
+  );
+
+  return (
+    <div className="max-w-7xl mx-auto">
+      <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
+        <div className="h-9 w-60 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse"></div>
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="h-10 w-48 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse"></div>
+          <div className="h-10 w-72 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse"></div>
+        </div>
+      </div>
+      <div className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden">
+        <table className="w-full text-sm">
+          <thead className="text-slate-500 dark:text-slate-400">
+            <tr className="border-b border-slate-200 dark:border-slate-800">
+              <th className="p-4 font-medium text-left">User</th>
+              <th className="p-4 font-medium text-left">Contact Information</th>
+              <th className="p-4 font-medium text-left">Location</th>
+              <th className="p-4 font-medium text-left">Registration Date</th>
+              <th className="p-4 font-medium text-center">Status</th>
+              <th className="p-4 font-medium text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            {[...Array(8)].map((_, i) => <SkeletonRow key={i} />)}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
 
 // =======================
 // Main Component
@@ -241,7 +289,9 @@ const UserManagement = () => {
     successTitle: '',
     successMessage: '',
   });
-
+  
+  // ✨ ЗМІНА 2: Отримуємо ключ оновлення з контексту
+  const { refreshKey } = useContext(DataRefreshContext);
   const { getUsers, updateUserStatus } = useAuth();
 
   const closeModal = useCallback(() => {
@@ -268,21 +318,21 @@ const UserManagement = () => {
     }
   }, [getUsers]);
 
+  // ✨ ЗМІНА 3: Додаємо refreshKey до масиву залежностей
   useEffect(() => {
     fetchUsers();
-  }, [fetchUsers]);
+  }, [fetchUsers, refreshKey]);
 
+  // ... решта логіки компонента без змін ...
   const filteredAndSortedUsers = useMemo(() => {
     let sortableUsers = [...users];
 
-    // 1. Фільтрація за статусом
     if (statusFilter !== 'all') {
       sortableUsers = sortableUsers.filter(
         (user) => user.state === statusFilter
       );
     }
 
-    // 2. Фільтрація за пошуковим терміном
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       sortableUsers = sortableUsers.filter(
@@ -296,7 +346,6 @@ const UserManagement = () => {
       );
     }
 
-    // 3. Сортування
     if (sortConfig.key) {
       sortableUsers.sort((a, b) => {
         const dateA = new Date(a[sortConfig.key]);
@@ -375,13 +424,8 @@ const UserManagement = () => {
     'border-red-600/50 text-red-700 hover:bg-red-50 dark:border-red-500/50 dark:text-red-400 dark:hover:bg-red-500/10 focus-visible:ring-red-400';
   const inputClasses =
     'flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500 dark:focus-visible:ring-offset-slate-900';
-
-  if (loading)
-    return (
-      <div className="p-4 text-center text-slate-500 dark:text-slate-400">
-        Loading users... ⏳
-      </div>
-    );
+  
+  if (loading) return <SkeletonLoader />;
   if (error)
     return <div className="p-4 text-center text-red-500">Error: {error}</div>;
 
@@ -449,7 +493,6 @@ const UserManagement = () => {
                     Contact Information
                   </th>
                   <th className="p-4 font-medium text-left">Location</th>
-                  {/* ✨ ЗМІНА: Порядок колонок змінено */}
                   <th className="p-4 font-medium text-left">
                     <button
                       onClick={() => handleSort('registered_at')}
@@ -491,7 +534,6 @@ const UserManagement = () => {
                     <td className="p-4 text-left text-slate-600 dark:text-slate-300 whitespace-nowrap">
                       <Highlight text={user.location} highlight={searchTerm} />
                     </td>
-                    {/* ✨ ЗМІНА: Порядок колонок змінено */}
                     <td className="p-4 text-left text-slate-600 dark:text-slate-300 whitespace-nowrap">
                       {formatDateTime(user.registered_at)}
                     </td>

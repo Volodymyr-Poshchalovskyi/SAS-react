@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+// ✨ ЗМІНА 1: Імпортуємо useContext та DataRefreshContext
+import React, { useState, useRef, useEffect, useCallback, useContext } from 'react';
 import {
   Upload,
   FileText,
@@ -13,11 +14,14 @@ import {
   AlertTriangle,
   Download,
   Replace,
-  CheckSquare, // Іконка для статистики
+  CheckSquare,
 } from 'lucide-react';
+// Переконайтеся, що шлях до AdminLayout правильний
+import { DataRefreshContext } from './Layout/AdminLayout';
 
 // =======================
-// Modal Component (без змін)
+// Helper Components (Modal, FormSection, etc.)
+// (Ці компоненти залишаються без змін)
 // =======================
 const Modal = ({ isOpen, onClose, title, children, confirmText, onConfirm, successTitle = 'Success', successMessage }) => {
   const [actionStatus, setActionStatus] = useState('idle');
@@ -99,14 +103,11 @@ const Modal = ({ isOpen, onClose, title, children, confirmText, onConfirm, succe
     </div>
   );
 };
-
-
-// --- Helper Components for Styling (без змін) ---
 const FormSection = ({ title, children }) => ( <div className="bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl p-6"> {title && ( <h2 className="text-base font-semibold text-slate-500 dark:text-slate-400 mb-4 uppercase tracking-wider"> {title} </h2> )} {children} </div> );
 const FormField = ({ label, children }) => ( <div className="mb-4"> <label className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300"> {label} </label> {children} </div> );
 const inputClasses = 'flex h-10 w-full rounded-md border border-slate-300 bg-white dark:bg-slate-800 px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500 disabled:cursor-not-allowed disabled:bg-slate-100 dark:disabled:bg-slate-800/50';
 const PasswordInputField = ({ label, value, onChange }) => { const [isVisible, setIsVisible] = useState(false); return ( <FormField label={label}> <div className="relative"> <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" /> <input type={isVisible ? 'text' : 'password'} value={value} onChange={onChange} placeholder="••••••••••••" className={`${inputClasses} pl-10 pr-10`} /> <button type="button" onClick={() => setIsVisible(prev => !prev)} className="absolute inset-y-0 right-0 flex items-center justify-center w-10 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200" aria-label={isVisible ? 'Hide password' : 'Show password'}> {isVisible ? <EyeOff size={18} /> : <Eye size={18} />} </button> </div> </FormField> ); };
-  
+
 
 // --- Main Page Component ---
 function FeatureManagement() {
@@ -128,67 +129,64 @@ function FeatureManagement() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
-  // Стани для статистики та історії
+  // States for stats and history
   const [fileHistory, setFileHistory] = useState([]);
   const [isHistoryLoading, setIsHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState(null);
-
+  
+  // ✨ ЗМІНА 2: Отримуємо ключ оновлення з контексту
+  const { refreshKey } = useContext(DataRefreshContext);
 
   // Fetch initial data on component mount
   useEffect(() => {
     const fetchInitialData = async () => {
-      await Promise.all([
-        (async () => {
-          setIsPdfLoading(true);
-          try {
+      // Set all loading states to true at the beginning of a fetch
+      setIsPdfLoading(true);
+      setIsPasswordLoading(true);
+      setIsHistoryLoading(true);
+      setHistoryError(null);
+      
+      try {
+        await Promise.all([
+          // Fetch PDF
+          (async () => {
             const pdfResponse = await fetch('http://localhost:3001/feature-pdf/current');
             if (pdfResponse.ok) setCurrentPdf(await pdfResponse.json());
             else throw new Error('Failed to fetch PDF data');
-          } catch (error) {
-            console.error("Error fetching PDF:", error);
-            setCurrentPdf(null);
-          } finally {
-            setIsPdfLoading(false);
-          }
-        })(),
-        (async () => {
-          setIsPasswordLoading(true);
-          try {
+          })(),
+          // Fetch Password
+          (async () => {
             const passwordResponse = await fetch('http://localhost:3001/feature-pdf-password/current');
             if (passwordResponse.ok) {
               const passwordData = await passwordResponse.json();
               setCurrentPassword(passwordData.value);
             } else throw new Error('Failed to fetch password');
-          } catch (error) {
-            console.error("Error fetching password:", error);
-            setCurrentPassword(null);
-          } finally {
-            setIsPasswordLoading(false);
-          }
-        })(),
-        (async () => {
-          setIsHistoryLoading(true);
-          setHistoryError(null);
-          try {
+          })(),
+          // Fetch History
+          (async () => {
             const historyResponse = await fetch('http://localhost:3001/feature-pdf/history-with-stats');
             if (historyResponse.ok) {
               setFileHistory(await historyResponse.json());
             } else throw new Error('Failed to fetch file history');
-          } catch (error) {
-            console.error("Error fetching history:", error);
-            setHistoryError(error.message);
-            setFileHistory([]);
-          } finally {
-            setIsHistoryLoading(false);
-          }
-        })()
-      ]);
+          })()
+        ]);
+      } catch (error) {
+          console.error("Error fetching data:", error);
+          // Handle specific errors if needed, e.g., setHistoryError
+          setHistoryError('Could not load some or all data.');
+      } finally {
+        // Set all loading states to false after all fetches are complete
+        setIsPdfLoading(false);
+        setIsPasswordLoading(false);
+        setIsHistoryLoading(false);
+      }
     };
 
     fetchInitialData();
-  }, []);
+  // ✨ ЗМІНА 3: Додаємо refreshKey до масиву залежностей
+  }, [refreshKey]);
   
-  // --- PDF File Handlers ---
+  // --- Handlers for PDF File, Password, etc. (no changes in logic) ---
   const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (file && file.type === 'application/pdf') {
@@ -243,7 +241,6 @@ function FeatureManagement() {
       const { newFile } = await saveMetaRes.json();
       
       setCurrentPdf(newFile);
-      // Оновлюємо історію, додаючи новий файл на початок
       setFileHistory(prev => [{ ...newFile, visits: 0, avg_completion_percentage: 0 }, ...prev]);
       setPdfToUpload(null);
 
@@ -281,8 +278,6 @@ function FeatureManagement() {
     }
   };
 
-
-  // --- Password Handlers ---
   const togglePasswordVisibility = () => setIsPasswordVisible((prev) => !prev);
   const handleCopyPassword = () => { if (!currentPassword) return; navigator.clipboard.writeText(currentPassword).then(() => { setCopySuccess(true); setTimeout(() => setCopySuccess(false), 2000); }); };
   const handleCloseModal = useCallback(() => { setIsModalOpen(false); setNewPassword(''); setConfirmPassword(''); }, []);
@@ -296,6 +291,46 @@ function FeatureManagement() {
     setCurrentPassword(newPassword);
   };
 
+  // --- Skeleton Components for Loading State ---
+  const PdfSkeleton = () => (
+    <div className="animate-pulse space-y-4">
+      <div className="flex items-center justify-between p-4 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-slate-200 dark:bg-slate-700 rounded"></div>
+          <div className="w-48 h-5 bg-slate-200 dark:bg-slate-700 rounded"></div>
+        </div>
+        <div className="w-32 h-9 bg-slate-200 dark:bg-slate-700 rounded-md"></div>
+      </div>
+    </div>
+  );
+
+  const HistorySkeleton = () => (
+    <div className="animate-pulse space-y-3">
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="p-4 bg-slate-100 dark:bg-slate-800/50 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-6 h-6 bg-slate-200 dark:bg-slate-700 rounded"></div>
+              <div className="space-y-1.5">
+                <div className="h-4 w-40 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                <div className="h-3 w-24 bg-slate-200 dark:bg-slate-700 rounded"></div>
+              </div>
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="h-4 w-8 bg-slate-200 dark:bg-slate-700 rounded"></div>
+              <div className="h-4 w-12 bg-slate-200 dark:bg-slate-700 rounded"></div>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const PasswordSkeleton = () => (
+    <div className="animate-pulse">
+      <div className="h-10 bg-slate-100 dark:bg-slate-800/50 rounded-md"></div>
+    </div>
+  );
 
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -305,14 +340,10 @@ function FeatureManagement() {
 
       {/* PDF Upload Section */}
       <FormSection title="Document Management (PDF only)">
-        {isPdfLoading ? (
-            <div className="text-center p-8 text-slate-500">
-                <Loader2 className="animate-spin inline-block mr-2" /> Loading document info...
-            </div>
-        ) : currentPdf ? (
+        {isPdfLoading ? <PdfSkeleton /> : currentPdf ? (
             <div className="space-y-4">
                 <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg">
-                    <div className='flex items-center gap-3'>
+                    <div className='flex items-center gap-3 min-w-0'>
                         <FileText className="w-8 h-8 text-red-500 flex-shrink-0" />
                         <span className="font-semibold text-slate-700 dark:text-slate-200 truncate" title={currentPdf.title}>
                             {currentPdf.title}
@@ -336,9 +367,7 @@ function FeatureManagement() {
                 </button>
             </div>
         )}
-
         <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileChange} accept="application/pdf" />
-
         {pdfToUpload && (
             <div className="mt-4 p-4 border-t border-slate-200 dark:border-slate-700">
                 <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-2">New file ready for upload:</h3>
@@ -361,13 +390,9 @@ function FeatureManagement() {
         )}
       </FormSection>
 
-      {/* БЛОК СТАТИСТИКИ ТА ІСТОРІЇ */}
+      {/* Analytics & History Section */}
       <FormSection title="Analytics & History">
-        {isHistoryLoading ? (
-          <div className="text-center p-8 text-slate-500">
-            <Loader2 className="animate-spin inline-block mr-2" /> Loading file history...
-          </div>
-        ) : historyError ? (
+        {isHistoryLoading ? <HistorySkeleton /> : historyError ? (
           <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-md">
             <AlertTriangle className="h-5 w-5 flex-shrink-0" />
             <span>Could not load history: {historyError}</span>
@@ -414,20 +439,22 @@ function FeatureManagement() {
       {/* Password Change Section */}
       <FormSection title="Security Settings">
         <FormField label="Current Password">
-          <div className="relative">
-            <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-            <div className={`${inputClasses} pl-10 pr-20 flex items-center bg-slate-100 dark:bg-slate-800/50 select-none`}>
-              {isPasswordLoading ? ( <span className="text-slate-400 italic">Loading password...</span> ) : currentPassword ? ( <span className="font-mono tracking-wider"> {isPasswordVisible ? currentPassword : '••••••••••••'} </span> ) : ( <span className="text-slate-400 italic">Password not set yet.</span> )}
-            </div>
-            <div className="absolute inset-y-0 right-0 flex items-center">
-                <button type="button" onClick={handleCopyPassword} disabled={!currentPassword} className="flex items-center justify-center w-10 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Copy password">
-                    {copySuccess ? <Check size={18} className="text-green-500" /> : <Copy size={18} />}
-                </button>
-                <button type="button" onClick={togglePasswordVisibility} disabled={!currentPassword} className="flex items-center justify-center w-10 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed" aria-label={isPasswordVisible ? 'Hide password' : 'Show password'}>
-                    {isPasswordVisible ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-            </div>
-          </div>
+            {isPasswordLoading ? <PasswordSkeleton /> : (
+                 <div className="relative">
+                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
+                    <div className={`${inputClasses} pl-10 pr-20 flex items-center bg-slate-50 dark:bg-slate-800/50 select-none`}>
+                        {currentPassword ? ( <span className="font-mono tracking-wider"> {isPasswordVisible ? currentPassword : '••••••••••••'} </span> ) : ( <span className="text-slate-400 italic">Password not set yet.</span> )}
+                    </div>
+                    <div className="absolute inset-y-0 right-0 flex items-center">
+                        <button type="button" onClick={handleCopyPassword} disabled={!currentPassword} className="flex items-center justify-center w-10 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed" aria-label="Copy password">
+                            {copySuccess ? <Check size={18} className="text-green-500" /> : <Copy size={18} />}
+                        </button>
+                        <button type="button" onClick={togglePasswordVisibility} disabled={!currentPassword} className="flex items-center justify-center w-10 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 disabled:opacity-50 disabled:cursor-not-allowed" aria-label={isPasswordVisible ? 'Hide password' : 'Show password'}>
+                            {isPasswordVisible ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                    </div>
+                </div>
+            )}
         </FormField>
         <div className="flex justify-end mt-6">
           <button type="button" onClick={() => setIsModalOpen(true)} className="px-5 py-2 bg-teal-600 text-white text-sm font-semibold rounded-lg shadow-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-75 transition-all"> Change Password </button>

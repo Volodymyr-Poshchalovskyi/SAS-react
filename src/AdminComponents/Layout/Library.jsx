@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useContext } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -19,12 +19,8 @@ import {
 } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { DataRefreshContext } from './AdminLayout';
 
-// =======================
-// HELPER FUNCTIONS & SETUP
-// =======================
-
-// ✨ ЗМІНА: Використовуємо змінну середовища для базової URL-адреси API
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
@@ -34,10 +30,6 @@ const SUPABASE_ANON_KEY =
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
-
-// =======================
-// SUB-COMPONENTS
-// =======================
 
 const MediaPreviewModal = ({ mediaUrl, mediaType, onClose }) => {
   if (!mediaUrl) return null;
@@ -832,6 +824,9 @@ const Library = () => {
     })})`
   );
   const [editingReel, setEditingReel] = useState(null);
+  const { refreshKey } = useContext(DataRefreshContext);
+
+
 
   useEffect(() => {
     const fetchData = async () => {
@@ -867,9 +862,7 @@ const Library = () => {
       }
     };
     fetchData();
-  }, []);
-
- 
+  }, [refreshKey]);
 
   useEffect(() => {
     // ✨ ЗМІНА: Додано перевірку, щоб не зберігати дані, поки йде початкове завантаження
@@ -1326,9 +1319,7 @@ const Library = () => {
                             onClick={(e) => {
                               e.stopPropagation();
                               setActiveDropdown((prev) =>
-                                prev?.id === item.id
-                                  ? null
-                                  : { id: item.id }
+                                prev?.id === item.id ? null : { id: item.id }
                               );
                             }}
                             className="p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700"

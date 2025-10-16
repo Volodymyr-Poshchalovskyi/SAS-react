@@ -1,6 +1,9 @@
-import React, { useState, useMemo, useEffect } from 'react';
+// ✨ ЗМІНА 1: Імпортуємо useContext та DataRefreshContext
+import React, { useState, useMemo, useEffect, useContext } from 'react';
 import { Plus, Edit, Trash2, X, Search, AlertTriangle } from 'lucide-react';
-import { supabase } from '../../lib/supabaseClient'; // Перевірте правильність шляху
+import { supabase } from '../../lib/supabaseClient'; 
+// Переконайтеся, що шлях до AdminLayout правильний
+import { DataRefreshContext } from './AdminLayout';
 
 // Компонент Highlight залишається без змін
 const Highlight = ({ text, highlight }) => {
@@ -25,10 +28,10 @@ const Highlight = ({ text, highlight }) => {
   );
 };
 
-// ✨ ОНОВЛЕНИЙ КОМПОНЕНТ DataTable (див. вище) ✨
+// Компонент DataTable залишається без змін
 const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [visibleCount, setVisibleCount] = useState(10); // Стан для кількості видимих рядків
+  const [visibleCount, setVisibleCount] = useState(10);
 
   const filteredData = useMemo(() => {
     if (!searchTerm) return data;
@@ -37,12 +40,10 @@ const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
     );
   }, [data, searchTerm]);
 
-  // Скидаємо лічильник видимих рядків при зміні пошукового запиту
   useEffect(() => {
     setVisibleCount(10);
   }, [searchTerm]);
-
-  // Дані, які фактично будуть показані користувачу
+  
   const dataToDisplay = useMemo(() => {
     return filteredData.slice(0, visibleCount);
   }, [filteredData, visibleCount]);
@@ -52,7 +53,6 @@ const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
   };
 
   return (
-    // ✨ ВИДАЛЕНО h-full для динамічної висоти
     <div className="bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl flex flex-col min-h-[300px]">
       <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-3">
         <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200">
@@ -79,7 +79,6 @@ const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
         </div>
       </div>
       <div className="p-2 overflow-y-auto flex-1">
-        {/* ✨ ВІДОБРАЖЕННЯ ОБРІЗАНОГО СПИСКУ */}
         {dataToDisplay.length > 0 ? (
           <ul className="divide-y divide-slate-100 dark:divide-slate-800">
             {dataToDisplay.map((item) => (
@@ -116,7 +115,6 @@ const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
         )}
       </div>
 
-      {/* ✨ НОВИЙ БЛОК: Кнопка "Показати ще" */}
       {filteredData.length > visibleCount && (
         <div className="p-4 border-t border-slate-200 dark:border-slate-800 mt-auto">
           <button
@@ -131,6 +129,19 @@ const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
   );
 };
 
+const SkeletonCard = () => (
+    <div className="bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl p-4 min-h-[300px] animate-pulse">
+        <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-1/3 mb-4"></div>
+        <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded w-full mb-4"></div>
+        <div className="space-y-2 p-2">
+            <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded"></div>
+            <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded"></div>
+            <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded"></div>
+        </div>
+    </div>
+);
+
+
 const MetaDataManagement = () => {
   const [contentTypes, setContentTypes] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -143,6 +154,9 @@ const MetaDataManagement = () => {
   const [currentTable, setCurrentTable] = useState(null);
   const [currentItem, setCurrentItem] = useState(null);
   const [newItemName, setNewItemName] = useState('');
+  
+  // ✨ ЗМІНА 2: Отримуємо ключ оновлення з контексту
+  const { refreshKey } = useContext(DataRefreshContext);
 
   const dataMap = {
     'Content Types': {
@@ -192,7 +206,8 @@ const MetaDataManagement = () => {
     };
 
     fetchAllData();
-  }, []);
+  // ✨ ЗМІНА 3: Додаємо refreshKey до масиву залежностей
+  }, [refreshKey]);
 
   const openEditModal = (table, mode, item = null) => {
     setCurrentTable(table);
@@ -288,9 +303,11 @@ const MetaDataManagement = () => {
       </p>
 
       {loading ? (
-        <p className="text-center text-slate-500 dark:text-slate-400">
-          Loading metadata...
-        </p>
+         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <SkeletonCard />
+            <SkeletonCard />
+            <SkeletonCard />
+         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:items-start">
           <DataTable
@@ -319,8 +336,8 @@ const MetaDataManagement = () => {
 
       {/* Модальні вікна залишаються без змін */}
       {isEditModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="relative bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md m-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onMouseDown={closeEditModal}>
+          <div className="relative bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md m-4" onMouseDown={(e) => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-50">
@@ -373,8 +390,8 @@ const MetaDataManagement = () => {
       )}
 
       {isDeleteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="relative bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md m-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onMouseDown={closeDeleteModal}>
+          <div className="relative bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md m-4" onMouseDown={(e) => e.stopPropagation()}>
             <div className="p-6">
               <div className="flex items-start">
                 <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/40 sm:mx-0 sm:h-10 sm:w-10">

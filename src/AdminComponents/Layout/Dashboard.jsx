@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+// ✨ ЗМІНА 1: Імпортуємо 'useContext' та 'DataRefreshContext'
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import WeeklyViewsChart from './WeeklyViewsChart';
 import DateRangePicker from './DateRangePicker';
 import { formatDistanceToNow } from 'date-fns';
 import TrendingVideos from './TrendingVideos';
 import TrendingDirectors from './TrendingDirectors';
+// Переконайтеся, що шлях до AdminLayout правильний
+import { DataRefreshContext } from './AdminLayout'; 
 
 const CDN_BASE_URL = 'http://34.54.191.201';
 
@@ -85,6 +88,9 @@ const Dashboard = () => {
   const [recentActivity, setRecentActivity] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // ✨ ЗМІНА 2: Отримуємо 'refreshKey' з контексту
+  const { refreshKey } = useContext(DataRefreshContext);
+
   const handleShowreelClick = (reelId) => {
     navigate('/adminpanel/analytics', {
       state: { openModalForReelId: reelId },
@@ -143,8 +149,7 @@ const Dashboard = () => {
             }
           );
           const directorDetails = await detailsRes.json();
-
-          // ✨ ЗМІНА 1: Визначаємо шлях до зображення за замовчуванням
+          
           const defaultDirectorImagePath = 'back-end/artists/director.jpg';
 
           const directorDetailsMap = directorDetails.reduce((acc, director) => {
@@ -154,7 +159,6 @@ const Dashboard = () => {
 
           finalTopDirectors = topDirectors.map((director) => ({
             ...director,
-            // ✨ ЗМІНА 2: Використовуємо шлях за замовчуванням, якщо іншого немає
             photoGcsPath:
               directorDetailsMap[director.name]?.photoGcsPath ||
               defaultDirectorImagePath,
@@ -172,7 +176,9 @@ const Dashboard = () => {
       }
     };
     fetchDashboardData();
-  }, [dateRange]);
+    // ✨ ЗМІНА 3: Додаємо 'refreshKey' до масиву залежностей
+    // Тепер цей ефект спрацює, коли зміниться діапазон дат АБО коли буде натиснута кнопка оновлення.
+  }, [dateRange, refreshKey]);
 
   return (
     <div className="w-full p-4 sm:p-6 lg:p-8">
