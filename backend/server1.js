@@ -17,14 +17,12 @@ if (!BUCKET_NAME || !KEY_BASE64) {
   process.exit(1); // Зупиняємо виконання, якщо чогось не вистачає
 }
 
-// 4. Ініціалізація клієнта Google Cloud Storage
+
 const keyJson = Buffer.from(KEY_BASE64, 'base64').toString('utf-8');
 const credentials = JSON.parse(keyJson);
 const storage = new Storage({ credentials });
 
-/**
- * Основна функція для сканування бакета та збереження результату
- */
+
 async function scanBucket() {
   try {
     console.log(`🚀 Починаємо сканування папки '${TARGET_FOLDER}' у бакеті '${BUCKET_NAME}'...`);
