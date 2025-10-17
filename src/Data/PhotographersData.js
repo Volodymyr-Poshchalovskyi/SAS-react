@@ -12,7 +12,7 @@ const section2_title = 'Vestibulum Ante';
 const section2_text =
   'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit asnatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit.';
 
-const placeholderCollagePhotos = Array(9).fill(gridPreviewPhoto);
+const placeholderCollagePhotos = Array(14).fill(gridPreviewPhoto);
 const placeholderGalleryPhotos = Array.from({ length: 8 }, (_, i) => ({
   id: `p-placeholder-${i}`,
   title: `Placeholder Image ${i + 1}`,
@@ -39,15 +39,41 @@ Agius’s work is held in prominent collections, and his exhibitions have spanne
       exhibitions: [
         { year: 2009, description: 'Solo, Getty Gallery, London' },
         { year: 2009, description: 'Exhibition, Alon Zakaim Gallery, London' },
-        { year: 2009, description: 'Commissioned by BMW for “Art Car” project, Russia' },
-        { year: 2010, description: 'Solo, Red October Art Gallery / BMW, Moscow' },
-        { year: 2010, description: 'Open-air exhibitions, Stoleshnikov Lane, Moscow' },
-        { year: 2010, description: 'Exhibition (with British Fashion Council), Natural History Museum, London' },
-        { year: 2010, description: 'Images displayed across Cannes for 63rd Festival' },
-        { year: 2011, description: 'Solo, Palais Chaumet Museum, Paris (for “Les César”)' },
+        {
+          year: 2009,
+          description: 'Commissioned by BMW for “Art Car” project, Russia',
+        },
+        {
+          year: 2010,
+          description: 'Solo, Red October Art Gallery / BMW, Moscow',
+        },
+        {
+          year: 2010,
+          description: 'Open-air exhibitions, Stoleshnikov Lane, Moscow',
+        },
+        {
+          year: 2010,
+          description:
+            'Exhibition (with British Fashion Council), Natural History Museum, London',
+        },
+        {
+          year: 2010,
+          description: 'Images displayed across Cannes for 63rd Festival',
+        },
+        {
+          year: 2011,
+          description: 'Solo, Palais Chaumet Museum, Paris (for “Les César”)',
+        },
         { year: 2012, description: 'Solo, Alon Zakaim Gallery, London' },
-        { year: 2017, description: 'Solo, Xposure Festival, Sharjah (opened by Sultan Bin Muhammad Al-Qasimi)' },
-        { year: 2025, description: 'Retrospective, Spazju Kreattiv Gallery, Malta' },
+        {
+          year: 2017,
+          description:
+            'Solo, Xposure Festival, Sharjah (opened by Sultan Bin Muhammad Al-Qasimi)',
+        },
+        {
+          year: 2025,
+          description: 'Retrospective, Spazju Kreattiv Gallery, Malta',
+        },
         { year: 2025, description: 'Retrospective, Abu Dhabi' },
         { year: 2026, description: 'Retrospective, London Corinthia' },
       ],
@@ -58,9 +84,26 @@ Agius’s work is held in prominent collections, and his exhibitions have spanne
         'Canon Ambassador since 2008',
       ],
       clients: [
-        'Warner Bros', 'Netflix', 'Disney', '20th Century Fox', 'HBO', 'Lionsgate', 'Sony Pictures',
-        'Universal', 'CW', 'Starz', 'CBS', 'Paramount', 'Vogue', 'Elle', 'Harper’s Bazaar', 'GQ',
-        'Esquire', 'Town & Country', 'The Face', 'ID',
+        'Warner Bros',
+        'Netflix',
+        'Disney',
+        '20th Century Fox',
+        'HBO',
+        'Lionsgate',
+        'Sony Pictures',
+        'Universal',
+        'CW',
+        'Starz',
+        'CBS',
+        'Paramount',
+        'Vogue',
+        'Elle',
+        'Harper’s Bazaar',
+        'GQ',
+        'Esquire',
+        'Town & Country',
+        'The Face',
+        'ID',
       ],
     },
     collagePhotos: [
@@ -73,7 +116,13 @@ Agius’s work is held in prominent collections, and his exhibitions have spanne
       `${CDN_BASE_URL}/front-end/02-Photographers/01-Lorenzo%20Agius/07i.php-101.jpeg`,
       `${CDN_BASE_URL}/front-end/02-Photographers/01-Lorenzo%20Agius/08i.php-111.jpeg`,
       `${CDN_BASE_URL}/front-end/02-Photographers/01-Lorenzo%20Agius/09i.php-92.jpeg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/01-Lorenzo%20Agius/10i.php-112.jpeg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/01-Lorenzo%20Agius/11i.php-93.jpeg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/01-Lorenzo%20Agius/12i.php-73.jpeg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/01-Lorenzo%20Agius/13i.php-9.jpeg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/01-Lorenzo%20Agius/14i.php-2.jpeg`,
     ],
+    // MODIFICATION: Removed the last 5 photos that are now used in the collage
     photos: [
       {
         id: 'la-s1',
@@ -130,34 +179,8 @@ Agius’s work is held in prominent collections, and his exhibitions have spanne
         title: 'Gallery Photo 11',
         src: `${CDN_BASE_URL}/front-end/02-Photographers/01-Lorenzo%20Agius/00-galleryi.php-99.jpeg`,
       },
-      {
-        id: 'la-s12',
-        title: 'Gallery Photo 12',
-        src: `${CDN_BASE_URL}/front-end/02-Photographers/01-Lorenzo%20Agius/10i.php-112.jpeg`,
-      },
-      {
-        id: 'la-s13',
-        title: 'Gallery Photo 13',
-        src: `${CDN_BASE_URL}/front-end/02-Photographers/01-Lorenzo%20Agius/11i.php-93.jpeg`,
-      },
-      {
-        id: 'la-s14',
-        title: 'Gallery Photo 14',
-        src: `${CDN_BASE_URL}/front-end/02-Photographers/01-Lorenzo%20Agius/12i.php-73.jpeg`,
-      },
-      {
-        id: 'la-s15',
-        title: 'Gallery Photo 15',
-        src: `${CDN_BASE_URL}/front-end/02-Photographers/01-Lorenzo%20Agius/13i.php-9.jpeg`,
-      },
-      {
-        id: 'la-s16',
-        title: 'Gallery Photo 16',
-        src: `${CDN_BASE_URL}/front-end/02-Photographers/01-Lorenzo%20Agius/14i.php-2.jpeg`,
-      },
     ],
   },
-
   {
     id: 2,
     name: 'Bud Force',
@@ -167,11 +190,9 @@ Agius’s work is held in prominent collections, and his exhibitions have spanne
     profilePhotoSrc: 'front-end/artists/photographers/2-Bud Force.png',
     bio: 'Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
     section1_title: 'Lorem Ipsum',
-    section1_text:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua, et quidem faciunt, ut aut reiciendis voluptatibus maiores alias consequatur aut perferendis doloribus asperiores repellat. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus. Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet ut et voluptates repudiandae sint et molestiae non recusandae.',
+    section1_text,
     section2_title: 'Vestibulum Ante',
-    section2_text:
-      'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit asnatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit.',
+    section2_text,
     collagePhotos: placeholderCollagePhotos,
     photos: placeholderGalleryPhotos,
   },
@@ -180,16 +201,15 @@ Agius’s work is held in prominent collections, and his exhibitions have spanne
     name: 'Janelle Shirtcliff',
     slug: 'janelle-shirtcliff',
     category: 'Editorial, Youth Campaigns',
-
     coverImage: `${CDN_BASE_URL}/front-end/02-Photographers/04-Janelle%20Shirtcliff/00-main%20Image%20.jpg.webp`,
     profilePhotoSrc: 'front-end/artists/photographers/3-JANELLE SHIRTCLIFF.png',
-    bio: 'Is a Dominican-American director, producer, and founder of the production company Cinema Giants...lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
-    section1_title: 'Lorem Ipsum',
+    bio: 'Born in Texas and now based in Los Angeles, Janell Shirtcliff began her career in front of the camera as a model for brands like Levi’s and Urban Outfitters before transitioning into directing, writing, and photography. Her diverse creative background — spanning performance, fashion, and narrative storytelling — informs a deeply collaborative approach and a distinctive visual signature. Across mediums, Janell’s work continues to celebrate individuality, challenge convention, and capture the spirit of contemporary culture.',
+    section1_title: 'About Janell',
     section1_text:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua, et quidem faciunt, ut aut reiciendis voluptatibus maiores alias consequatur aut perferendis doloribus asperiores repellat. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus. Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet ut et voluptates repudiandae sint et molestiae non recusandae.',
-    section2_title: 'Vestibulum Ante',
+      'Janell Shirtcliff is a multidisciplinary visual artist whose work lives at the intersection of fashion, film, and pop culture. Known for a bold visual language and instinctive storytelling, she crafts imagery that’s as emotionally resonant as it is visually striking — blending cinematic mood with a modern, irreverent edge. Whether shooting stills or directing moving images, Janell builds worlds that feel at once nostalgic and new, authentic yet dreamlike.Her photography first took shape as part of a creative extension of her vintage shop, quickly gaining attention for its effortless cool and subcultural sensitivity. Today, her images appear in leading publications including Variety, Billboard, Nylon, and Teen Vogue, and often explore themes of identity, intimacy, and transformation.',
+    section2_title: 'Exhibitions & Clients',
     section2_text:
-      'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit asnatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit.',
+      'As a director, Janell’s storytelling expands into music videos, feature films, and documentaries. She’s created visual narratives for artists like The Band Perry, Bethany Cosentino, Mayer Hawthorne, and Tashaki Miyaki — projects that showcase her gift for translating emotion into unforgettable frames. In 2021, she made her feature debut with Habit, followed by the documentary Mother of the Dawn, and is currently developing the fantasy-horror project Triton.',
     collagePhotos: [
       `${CDN_BASE_URL}/front-end/02-Photographers/04-Janelle%20Shirtcliff/01-Collective%2BProduct_011719-844-Edit.jpg`,
       `${CDN_BASE_URL}/front-end/02-Photographers/04-Janelle%20Shirtcliff/02-DSC_7052.jpg`,
@@ -200,7 +220,13 @@ Agius’s work is held in prominent collections, and his exhibitions have spanne
       `${CDN_BASE_URL}/front-end/02-Photographers/04-Janelle%20Shirtcliff/07-image5-1.jpeg`,
       `${CDN_BASE_URL}/front-end/02-Photographers/04-Janelle%20Shirtcliff/08-ioanna-gika-janell-shirtcliff-web.jpg`,
       `${CDN_BASE_URL}/front-end/02-Photographers/04-Janelle%20Shirtcliff/09-js-entertainment-right-07.jpg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/04-Janelle%20Shirtcliff/10-VgP-bTDRjZWzMpfKh0vtOZC2ePYyf5ORBApMBq6iGrE.jpg.webp`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/04-Janelle%20Shirtcliff/00-Gallery2022_08_30_JanelleShirtcliff_JennaOrtega_0005%201-Edit-2-2.jpg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/04-Janelle%20Shirtcliff/12-Screenshot%202024-10-03%20at%2011.28.12%20PM.png`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/04-Janelle%20Shirtcliff/13-Screenshot%202024-10-03%20at%2011.28.26%20PM.png`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/04-Janelle%20Shirtcliff/14-thehabit022421_1.372.1.jpg`,
     ],
+    // MODIFICATION: Removed the last 5 photos that are now used in the collage
     photos: [
       {
         id: 'js-1',
@@ -210,7 +236,7 @@ Agius’s work is held in prominent collections, and his exhibitions have spanne
       {
         id: 'js-2',
         title: 'Gallery2022_08_30',
-        src: `${CDN_BASE_URL}/front-end/02-Photographers/04-Janelle%20Shirtcliff/00-Gallery2022_08_30_JanelleShirtcliff_JennaOrtega_0005%201-Edit-2-2.jpg`,
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/04-Janelle%20Shirtcliff/11-Screen%2BShot%2B2020-10-01%2Bat%2B4.43.48%2BPM.png`,
       },
       {
         id: 'js-3',
@@ -237,31 +263,6 @@ Agius’s work is held in prominent collections, and his exhibitions have spanne
         title: 'Galleryrosemcg',
         src: `${CDN_BASE_URL}/front-end/02-Photographers/04-Janelle%20Shirtcliff/00-Galleryrosemcg.jpg`,
       },
-      {
-        id: 'js-8',
-        title: '10-VgP...',
-        src: `${CDN_BASE_URL}/front-end/02-Photographers/04-Janelle%20Shirtcliff/10-VgP-bTDRjZWzMpfKh0vtOZC2ePYyf5ORBApMBq6iGrE.jpg.webp`,
-      },
-      {
-        id: 'js-9',
-        title: 'Screen Shot 2020',
-        src: `${CDN_BASE_URL}/front-end/02-Photographers/04-Janelle%20Shirtcliff/11-Screen%2BShot%2B2020-10-01%2Bat%2B4.43.48%2BPM.png`,
-      },
-      {
-        id: 'js-10',
-        title: 'Screenshot 2024-10-03 11.28.12',
-        src: `${CDN_BASE_URL}/front-end/02-Photographers/04-Janelle%20Shirtcliff/12-Screenshot%202024-10-03%20at%2011.28.12%20PM.png`,
-      },
-      {
-        id: 'js-11',
-        title: 'Screenshot 2024-10-03 11.28.26',
-        src: `${CDN_BASE_URL}/front-end/02-Photographers/04-Janelle%20Shirtcliff/13-Screenshot%202024-10-03%20at%2011.28.26%20PM.png`,
-      },
-      {
-        id: 'js-12',
-        title: 'thehabit022421',
-        src: `${CDN_BASE_URL}/front-end/02-Photographers/04-Janelle%20Shirtcliff/14-thehabit022421_1.372.1.jpg`,
-      },
     ],
   },
   {
@@ -269,17 +270,50 @@ Agius’s work is held in prominent collections, and his exhibitions have spanne
     name: 'Janette Beckman',
     slug: 'janette-beckman',
     category: 'Editorial, Youth Campaigns',
-    coverImage: gridPreviewPhoto,
+    // NOTE: images for Janette are stored in a nested folder: "05-Janette Beckman/04-Janette Beckman"
+    // Use the HERO image as the cover image
+    coverImage: `${CDN_BASE_URL}/front-end/02-Photographers/05-Janette%20Beckman/04-Janette%20Beckman/00-HERO-IMAGE-Screenshot%202024-10-01%20at%204.27.55%20PM.png`,
     profilePhotoSrc: 'front-end/artists/photographers/4-Janette+Beckman.png',
     bio: 'Is a Dominican-American director, producer, and founder of the production company Cinema Giants...',
-    section1_title: 'Lorem Ipsum',
-    section1_text:
-      'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua, et quidem faciunt, ut aut reiciendis voluptatibus maiores alias consequatur aut perferendis doloribus asperiores repellat. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus. Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet ut et voluptates repudiandae sint et molestiae non recusandae.',
-    section2_title: 'Vestibulum Ante',
-    section2_text:
-      'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit asnatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit.',
-    collagePhotos: placeholderCollagePhotos,
-    photos: placeholderGalleryPhotos,
+    section1_title,
+    section1_text,
+    section2_title,
+    section2_text,
+    // Collage uses photos 1-9 (these are the numbered images)
+    collagePhotos: [
+      `${CDN_BASE_URL}/front-end/02-Photographers/05-Janette%20Beckman/04-Janette%20Beckman/1-Big-Daddy-Kane-1831x1900.jpg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/05-Janette%20Beckman/04-Janette%20Beckman/2-CHAKA-web-2252x1900.jpg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/05-Janette%20Beckman/04-Janette%20Beckman/3-LL-COOL-J_-NY-1985-1413x1900.jpg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/05-Janette%20Beckman/04-Janette%20Beckman/4-Dorothee-shcumacher-2-3693x1900-1.jpg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/05-Janette%20Beckman/04-Janette%20Beckman/5-joe-strummer-backstage%C2%A9j-beckman-2779x1900.jpg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/05-Janette%20Beckman/04-Janette%20Beckman/6-BEASTIE-1889x1900.jpg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/05-Janette%20Beckman/04-Janette%20Beckman/7Latifah--1720x1900.jpg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/05-Janette%20Beckman/04-Janette%20Beckman/8-Mod-twins-London-1979-3-1231x1900.jpg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/05-Janette%20Beckman/04-Janette%20Beckman/9-Pubic-Enemy-Flava-flav--1467x1900.jpg`,
+    ],
+    // Remaining images go into the gallery/photos array
+    photos: [
+      {
+        id: 'jb-g1',
+        title: 'Gallery ANDRE 3000',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/05-Janette%20Beckman/04-Janette%20Beckman/00-galleryANDRE-3000-NYC-2003-1537x1900.jpg`,
+      },
+      {
+        id: 'jb-g2',
+        title: 'Gallery DEBBIE HARRY',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/05-Janette%20Beckman/04-Janette%20Beckman/00-galleryDEBBIE-HARRY_London-1979-1261x1900.jpg`,
+      },
+      {
+        id: 'jb-g3',
+        title: 'Gallery Dr Dre',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/05-Janette%20Beckman/04-Janette%20Beckman/00-galleryDr-Dre--1452x1900.jpg`,
+      },
+      {
+        id: 'jb-g4',
+        title: 'Gallery KEITH HARING PRINT',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/05-Janette%20Beckman/04-Janette%20Beckman/00-galleryKEITH-HARING-PRINT-1638x1900.jpg`,
+      },
+    ],
   },
   {
     id: 6,

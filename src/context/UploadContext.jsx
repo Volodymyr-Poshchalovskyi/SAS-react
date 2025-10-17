@@ -69,16 +69,10 @@ export const UploadProvider = ({ children }) => {
                 const isVideoFile = reel.selectedFile.type.startsWith('video/');
 
                 if (isVideoFile) {
-                    // ✨ NEW LOGIC FOR VIDEOS:
-                    // We don't upload a preview. Instead, we construct the path where
-                    // the Google Cloud Function will place the generated preview.
                     const fileName = content_gcs_path.split('/').pop();
                     preview_gcs_path = `back-end/previews/${fileName}.jpg`;
                 } else {
-                    // ✨ EXISTING LOGIC FOR IMAGES:
-                    // If a custom preview exists, upload it. Otherwise, use the main file itself.
                     const previewFile = reel.customPreviewFile || reel.selectedFile;
-                    // For images, we pass a dummy progress function as it's a quick upload.
                     preview_gcs_path = await uploadFileToGCS(previewFile, 'preview', () => {});
                 }
                 
@@ -121,14 +115,11 @@ export const UploadProvider = ({ children }) => {
 
             if (hasNewContent) {
                 videoPath = await uploadFileToGCS(reelToUpdate.selectedFile, 'main', onMainProgress);
-                // ✨ UPDATED LOGIC: If a new video is uploaded, set its preview path to null.
-                // This triggers the Cloud Function to generate a new preview for the new video.
                 if (reelToUpdate.selectedFile.type.startsWith('video/')) {
                     previewPath = null; 
                 }
             }
             
-            // A user can still change the preview manually, even without changing the main file.
             if (hasNewPreview) {
                 previewPath = await uploadFileToGCS(reelToUpdate.customPreviewFile, 'preview', onPreviewProgress);
             }
@@ -142,7 +133,7 @@ export const UploadProvider = ({ children }) => {
                 categories: commonFormData.categories.join(', '),
                 publish_date: commonFormData.publishOption === 'now' ? new Date().toISOString() : commonFormData.publicationDate.toISOString(),
                 video_gcs_path: videoPath,
-                preview_gcs_path: previewPath, // Will be `null` if a new video was just uploaded
+                preview_gcs_path: previewPath,
                 description: commonFormData.description,
                 featured_celebrity: commonFormData.featuredCelebrity.join(', '),
                 content_type: commonFormData.contentType,

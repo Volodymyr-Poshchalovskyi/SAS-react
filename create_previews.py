@@ -8,9 +8,9 @@ from collections import defaultdict
 PROJECT_ID = "new-sas-472103"
 BUCKET_NAME = "new-sas-media-storage"
 # Базова папка, де знаходяться папки ВСІХ режисерів
-BASE_TRANSCODED_DIRECTORY = "front-end/06-AI | POST PRODUCTION/TRANSCODED/"
+BASE_TRANSCODED_DIRECTORY = "front-end/01-Directors/TRANSCODED/"
 # Базова папка, куди будемо складати всі прев'ю
-DESTINATION_BASE_DIRECTORY = "front-end/06-AI | POST PRODUCTION/VIDEO_PREVIEW/"
+DESTINATION_BASE_DIRECTORY = "front-end/01-Directors/VIDEO_PREVIEW/"
 # ----------------------------------------------------
 
 # Ініціалізація клієнтів

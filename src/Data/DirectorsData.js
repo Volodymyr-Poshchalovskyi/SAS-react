@@ -273,9 +273,9 @@ export const directorsData = [
       {
         client: 'YOUTUBE ORIGINALS',
         title: 'BRAVAS',
-        src: 'front-end/01-Directors/TRANSCODED/06-jessy terrero/5 - Bravas ¦ Tráiler Oficial (1080p_24fps_H264-128kbit_AAC)/master.m3u8',
+        src: 'front-end/01-Directors/TRANSCODED/06-jessy terrero/5Bravas/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/06-jessy terrero/5 - Bravas ¦ Tráiler Oficial (1080p_24fps_H264-128kbit_AAC).jpg',
+          'front-end/01-Directors/VIDEO_PREVIEW/06-jessy terrero/5 - Bravas ¦ Tráiler Oficial (1080p_24fps_H264-128kbit_AAC).jpg',
       },
       {
         client: 'JENNIFER LOPEZ & RAUW ALEJANDRO',
@@ -423,23 +423,23 @@ export const directorsData = [
       {
         client: 'STELLA ARTOIS',
         title: 'DAVID AND DAVE',
-        src: 'front-end/01-Directors/TRANSCODED/10-Beedy/1-DD_SB_60_DunKings_Sometimes_YouTube/master.m3u8',
+        src: 'front-end/01-Directors/TRANSCODED/10-Beedy/1-AUSR4494H_SA_2025_LAUNCH_DAVIDANDDAVE__STREAMING_60/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/10-Beedy/1-DD_SB_60_DunKings_Sometimes_YouTube.jpg',
+          'front-end/01-Directors/VIDEO_PREVIEW/10-Beedy/1-AUSR4494H_SA_2025_LAUNCH_DAVIDANDDAVE__STREAMING_60.jpg',
       },
       {
         client: 'DUNKIN’',
         title: 'DUNKINGS FT. BEN AFFLECK AND JENNIFER LOPEZ',
-        src: 'front-end/01-Directors/TRANSCODED/10-Beedy/3-Front-End 01-Directors 10-Beedy Gift Ratings 60 Directors 12.5 Prores/master.m3u8',
+        src: 'front-end/01-Directors/TRANSCODED/10-Beedy/2-DD_SB_60_DunKings_Sometimes_YouTube/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/10-Beedy/3-Front-End 01-Directors 10-Beedy Gift Ratings 60 Directors 12.5 Prores.jpg',
+          'front-end/01-Directors/VIDEO_PREVIEW/10-Beedy/2-DD_SB_60_DunKings_Sometimes_YouTube.jpg ',
       },
       {
         client: 'PLAY STATION',
         title: 'GIFT RATING',
         src: 'front-end/01-Directors/TRANSCODED/10-Beedy/3-Front-End 01-Directors 10-Beedy Gift Ratings 60 Directors 12.5 Prores/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/10-Beedy/3-Front-End 01-Directors 10-Beedy Gift Ratings 60 Directors 12.5 Prores.jpg',
+          'front-end/01-Directors/VIDEO_PREVIEW/10-Beedy/3-Front-End 01-Directors 10-Beedy Gift Ratings 60 Directors 12.5 Prores.jpg ',
       },
       {
         client: 'DUNKIN’',
@@ -519,9 +519,9 @@ export const directorsData = [
       {
         client: 'ESTÉE LAUDER',
         title: 'DARE',
-        src: 'front-end/01-Directors/TRANSCODED/12-JEAN CLAUDE THIBAUT/2 - Estée Lauder  Dare_UHD_4K_DOWNLOAD/master.m3u8',
+        src: 'front-end/01-Directors/TRANSCODED/12-JEAN CLAUDE THIBAUT/2 - Estée Lauder  Dare_UHD_4K_DOWNLOAD/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/12-JEAN CLAUDE THIBAUT/2 - Estée Lauder  Dare_UHD_4K_DOWNLOAD.jpg',
+          'front-end/01-Directors/VIDEO_PREVIEW/12-JEAN CLAUDE THIBAUT/2 - Estée Lauder  Dare_UHD_4K_DOWNLOAD.jpg',
       },
       {
         client: 'HUAWEI',

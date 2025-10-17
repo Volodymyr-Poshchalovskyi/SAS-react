@@ -14,7 +14,6 @@ const AuthProvider = ({ children }) => {
 
   const clearError = () => setError(null);
 
-  // ---------- Initialize Session and Auth Listener ----------
   useEffect(() => {
     setLoading(true);
     const getSession = async () => {
@@ -52,7 +51,6 @@ const AuthProvider = ({ children }) => {
     return () => listener?.subscription.unsubscribe();
   }, []);
 
-  // ---------- Extract Invitation Token from URL Hash ----------
   useEffect(() => {
     const hash = window.location.hash;
     if (hash.includes('type=invite') && hash.includes('token_hash')) {
@@ -62,9 +60,6 @@ const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  // ===============================================================
-  // ▼▼▼ Realtime логіка (авто-логаут при деактивації) ▼▼▼
-  // ===============================================================
   useEffect(() => {
     if (!user?.id) return;
 
@@ -94,7 +89,6 @@ const AuthProvider = ({ children }) => {
     };
   }, [user?.id]);
 
-  // ---------- Authentication Methods ----------
   const signInWithGoogle = async () =>
     await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -134,7 +128,6 @@ const AuthProvider = ({ children }) => {
     setSession(null);
   };
 
-  // ---------- Application Methods ----------
   const submitApplication = async ({ email, message }) => {
     const { data, error } = await supabase
       .from('applications')
@@ -155,13 +148,10 @@ const AuthProvider = ({ children }) => {
     state,
     phone,
   }) => {
-    // 1. Оновлюємо пароль та метадані користувача в auth.users
     const { data: authData, error: authError } = await supabase.auth.updateUser(
       {
         password: password,
         data: {
-          // Ми оновлюємо метадані в auth, це можна залишити як є.
-          // Головне - виправити запит до public.user_profiles.
           full_name: `${firstName} ${lastName}`.trim(),
           location,
           state,
@@ -175,14 +165,12 @@ const AuthProvider = ({ children }) => {
       throw authError;
     }
 
-    // 2. Оновлюємо дані у публічній таблиці user_profiles
     const { data: profileData, error: profileError } = await supabase
       .from('user_profiles')
       .update({
-        // ▼▼▼ ОСНОВНІ ЗМІНИ ТУТ ▼▼▼
-        first_name: firstName, // Замінено "full_name" на правильні назви колонок
-        last_name: lastName, //
-        // ▲▲▲ КІНЕЦЬ ЗМІН ▲▲▲
+        first_name: firstName,
+        last_name: lastName,
+
         location,
         state,
         phone,
@@ -214,43 +202,44 @@ const AuthProvider = ({ children }) => {
   };
 
   const updateApplicationStatus = async (applicationId, newStatus, email) => {
-  if (newStatus === 'approved') {
-    console.log('🚀 Sending invite to:', email);
+    if (newStatus === 'approved') {
+      console.log('🚀 Sending invite to:', email);
 
-    const { data, error: inviteError } = await supabase.functions.invoke(
-      'invite-user',
-      { body: { email } }
-    );
+      const { data, error: inviteError } = await supabase.functions.invoke(
+        'invite-user',
+        { body: { email } }
+      );
 
-    console.log('📩 Invite response:', { data, inviteError });
+      console.log('📩 Invite response:', { data, inviteError });
 
-    if (inviteError)
-      throw new Error(`Failed to invite user: ${inviteError.message}`);
+      if (inviteError)
+        throw new Error(`Failed to invite user: ${inviteError.message}`);
 
-    const { data: updateData, error } = await supabase
-      .from('applications')
-      .update({ status: 'approved' })
-      .eq('id', applicationId);
+      const { data: updateData, error } = await supabase
+        .from('applications')
+        .update({ status: 'approved' })
+        .eq('id', applicationId);
 
-    if (error)
-      throw new Error(`Failed to update application status: ${error.message}`);
+      if (error)
+        throw new Error(
+          `Failed to update application status: ${error.message}`
+        );
 
-    console.log('✅ Application status updated to approved:', updateData);
-    return updateData;
-  } else if (newStatus === 'denied') {
-    console.log(`🚫 Denying application for ${email}`);
+      console.log('✅ Application status updated to approved:', updateData);
+      return updateData;
+    } else if (newStatus === 'denied') {
+      console.log(`🚫 Denying application for ${email}`);
 
-    const { data, error } = await supabase
-      .from('applications')
-      .update({ status: 'denied' })
-      .eq('id', applicationId);
+      const { data, error } = await supabase
+        .from('applications')
+        .update({ status: 'denied' })
+        .eq('id', applicationId);
 
-    if (error) throw error;
-    console.log(`ℹ️ Application denied for ${email}`);
-    return data;
-  }
-};
-
+      if (error) throw error;
+      console.log(`ℹ️ Application denied for ${email}`);
+      return data;
+    }
+  };
 
   // ---------- User Management Methods ----------
   const getUsers = async () => {

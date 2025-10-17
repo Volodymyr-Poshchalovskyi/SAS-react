@@ -1,3 +1,5 @@
+// src/pages/Production.js
+
 import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -5,17 +7,24 @@ import PreloaderBanner from '../Components/PreloaderBanner';
 import { useAnimation } from '../context/AnimationContext';
 import HlsVideoPlayer from '../Components/HlsVideoPlayer';
 import ScrollProgressBar from '../Components/ScrollProgressBar';
+// Дані залишаються тими самими, тому я їх приховав для стислості
 import { productionData } from '../Data/ProductionData';
 
 const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
 
 const nameAnimation = {
   hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: 'easeOut' } },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.8, ease: 'easeOut' },
+  },
 };
 
+// ▼▼▼ ЗМІНА №1: Приймаємо новий проп `client` ▼▼▼
 const VideoTitleOverlay = ({
   title,
+  client, // <--- ДОДАНО
   projectSlug,
   index,
   isPreloaderActive,
@@ -31,6 +40,13 @@ const VideoTitleOverlay = ({
         viewport={{ once: true, amount: 0.5 }}
       >
         <p className="font-chanel text-2xl sm:text-4xl text-shadow">{title}</p>
+        
+        {/* ▼▼▼ ЗМІНА №2: Відображаємо `client` з відповідними стилями ▼▼▼ */}
+        <p className="font-light text-sm tracking-widest uppercase text-shadow">
+          {client}
+        </p>
+        {/* ▲▲▲ ДОДАНО ▲▲▲ */}
+
         <Link
           to={`/projects/${projectSlug}`}
           className="py-3 px-8 text-xs font-normal bg-white text-black border-2 border-white hover:bg-transparent hover:text-white transition-colors duration-300 pointer-events-auto"
@@ -43,8 +59,6 @@ const VideoTitleOverlay = ({
 };
 
 export default function Production() {
-  // ✅ ЗМІНА: Тепер ми не використовуємо `onPreloaderPage` тут.
-  // Контекст сам керує початковим станом isPreloaderActive.
   const { isPreloaderActive, setIsPreloaderActive } = useAnimation();
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -52,20 +66,7 @@ export default function Production() {
     window.scrollTo(0, 0);
   }, []);
 
-  // ✅ ВИДАЛЕНО: Цей useEffect більше не потрібен.
-  // AnimationContext тепер автоматично встановлює isPreloaderActive = true
-  // при першому завантаженні відповідної сторінки.
-  /*
   useEffect(() => {
-    if (onPreloaderPage) setIsPreloaderActive(true);
-    return () => {
-      setIsPreloaderActive(false);
-    };
-  }, [onPreloaderPage, setIsPreloaderActive]);
-  */
-
-  useEffect(() => {
-    // Ця логіка залишається, вона блокує скрол, поки банер активний.
     document.body.style.overflow = isPreloaderActive ? 'hidden' : '';
     return () => {
       document.body.style.overflow = '';
@@ -96,9 +97,6 @@ export default function Production() {
       <AnimatePresence>
         {isPreloaderActive && (
           <PreloaderBanner
-            // ✅ ВАЖЛИВО: Цей пропс залишається. Коли банер завершить свою анімацію зникнення,
-            // він викличе цю функцію, яка встановить isPreloaderActive в false.
-            // Це, у свою чергу, розблокує скрол та запустить анімації на самій сторінці.
             onAnimationComplete={() => setIsPreloaderActive(false)}
             title={bannerTitle}
             description={bannerDescription}
@@ -131,6 +129,7 @@ export default function Production() {
             )}
             <VideoTitleOverlay
               title={video.title}
+              client={video.client} // <--- ▼▼▼ ЗМІНА №3: Передаємо проп `client` ▼▼▼
               projectSlug={video.projectSlug}
               index={index}
               isPreloaderActive={isPreloaderActive}
