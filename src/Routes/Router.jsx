@@ -1,3 +1,5 @@
+// AppRouter.jsx
+
 import { Routes, Route } from 'react-router-dom';
 
 // Layouts
@@ -34,7 +36,6 @@ import ManagementPage from '../AdminComponents/Layout/Management.jsx';
 import ApplicationsForAdmin from '../AdminComponents/ApplicationsForAdmin.jsx';
 import UserManagement from '../AdminComponents/UserManagement.jsx';
 import MetaDataManagement from '../AdminComponents/Layout/MetaDataManagement.jsx';
-// ✨ ЗМІНИ ТУТ: 1. Імпортуємо новий компонент
 import FeatureManagement from '../AdminComponents/FeatureManagement.jsx'; 
 
 
@@ -75,6 +76,8 @@ export default function AppRouter() {
         <Route path="/login" element={<Login />} />
         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
         <Route path="/table-top-studio" element={<TableTopStudio />} />
+        {/* ✅ ВИПРАВЛЕНО: шлях тепер '/table-top-studio/:directorSlug' */}
+        <Route path="/table-top-studio/:directorSlug" element={<DirectorPage />} />
         <Route path="/post-production" element={<PostProduction />} />
         <Route path="/post-production/:directorSlug" element={<DirectorPage />} />
       </Route>
@@ -103,7 +106,6 @@ export default function AppRouter() {
               <Route path="library" element={<Library />} />
               <Route path="management" element={<ManagementPage />} />
               <Route path="analytics" element={<MyAnalytic />} />
-              {/* ✨ ЗМІНИ ТУТ: 2. Додаємо новий маршрут */}
               <Route path="feature" element={<FeatureManagement />} />
               <Route
                 path="metadata-management"

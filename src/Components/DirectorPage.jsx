@@ -2,10 +2,10 @@
 
 import React, { useState, useLayoutEffect } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-// ✅ 1. Import new data source
 import { directorsData } from '../Data/DirectorsData';
 import { assignmentData } from '../Data/AssignmentData';
 import { postProductionData } from '../Data/PostProductionData';
+import { tableTopData } from '../Data/TableTopData'; // ✅ 1. Імпортуємо нове джерело даних
 import HlsVideoPlayer from '../Components/HlsVideoPlayer';
 import VideoModal from '../Components/VideoModal';
 import { useInView } from 'react-intersection-observer';
@@ -58,19 +58,24 @@ export default function DirectorPage() {
   const { directorSlug } = useParams();
   const location = useLocation();
 
-  // ✅ 2. Update logic to handle the '/production' route
+  // ✅ 2. Додаємо перевірку для маршруту '/table-top-studio'
   const isAssignmentPage = location.pathname.startsWith('/assignment');
   const isProductionPage = location.pathname.startsWith('/post-production');
+  const isTableTopPage = location.pathname.startsWith('/table-top-studio');
 
   let dataSource;
   let backLink;
 
+  // ✅ 3. Додаємо нову умову для вибору джерела даних та посилання "назад"
   if (isAssignmentPage) {
     dataSource = assignmentData;
     backLink = '/assignment';
   } else if (isProductionPage) {
     dataSource = postProductionData;
     backLink = '/post-production';
+  } else if (isTableTopPage) {
+    dataSource = tableTopData;
+    backLink = '/table-top-studio';
   } else {
     dataSource = directorsData;
     backLink = '/directors';

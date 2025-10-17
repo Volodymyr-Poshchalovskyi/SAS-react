@@ -1,32 +1,84 @@
-import React, { useEffect } from 'react';
+// src/Pages/TableTopStudio.jsx
+
+import React, { useState, useEffect, useLayoutEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import HlsVideoPlayer from '../Components/HlsVideoPlayer';
-import { AnimatePresence } from 'framer-motion';
 import PreloaderBanner from '../Components/PreloaderBanner';
+import ScrollProgressBar from '../Components/ScrollProgressBar';
 import { useAnimation } from '../context/AnimationContext';
-import { tableTopData } from '../Data/TableTopData';
-
-const showreelURL =
-  'front-end/04-Service/TRANSCODED/01-ROUGE ALLURE VELVET NUIT BLANCHE, lipstick for a moment, allure for a night — CHANEL Makeup (1080p_25fps_H264-128kbit_AAC)/master.m3u8';
-const showreelPreviewURL =
-  'front-end/04-Service/VIDEO_PREVIEW/04-Service/01-ROUGE ALLURE VELVET NUIT BLANCHE, lipstick for a moment, allure for a night — CHANEL Makeup (1080p_25fps_H264-128kbit_AAC).jpg';
+import { tableTopData } from '../Data/TableTopData'; // ✅ 1. Використовуємо дані для Table Top
 
 const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
 
-const TableTopStudio = () => {
-  // ✅ ЗМІНА 1: Залишаємо setIsPreloaderActive для колбеку
+const nameAnimation = {
+  hidden: { opacity: 0, y: 30 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.8, ease: 'easeOut' },
+  },
+};
+
+// ✅ 2. Створюємо компонент слайда, аналогічний AssignmentSlide
+const TableTopSlide = ({ project, isActive, shouldPreload, isPreloaderActive }) => {
+  const [videoSrc, setVideoSrc] = useState('');
+  const [previewSrc, setPreviewSrc] = useState('');
+
+  const firstVideo = project.videos[0];
+  const publicVideoUrl = `${CDN_BASE_URL}/${firstVideo.src}`;
+  const publicPreviewUrl = firstVideo.preview_src
+    ? `${CDN_BASE_URL}/${firstVideo.preview_src}`
+    : '';
+
+  useEffect(() => {
+    if (isActive || shouldPreload) {
+      setVideoSrc(publicVideoUrl);
+      setPreviewSrc(publicPreviewUrl);
+    } else {
+      setVideoSrc('');
+      setPreviewSrc('');
+    }
+  }, [isActive, shouldPreload, publicVideoUrl, publicPreviewUrl]);
+
+  return (
+    <div className="relative w-full h-screen snap-start">
+      {videoSrc && (
+        <HlsVideoPlayer
+          src={videoSrc}
+          previewSrc={previewSrc}
+          shouldPlay={isActive && !isPreloaderActive}
+          startTime={firstVideo.startTime}
+        />
+      )}
+      <div className="absolute top-[80%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full text-center">
+        <motion.div
+          className="flex flex-col items-center gap-4"
+          variants={nameAnimation}
+          initial="hidden"
+          animate={isActive && !isPreloaderActive ? 'visible' : 'hidden'}
+        >
+          {/* ✅ 3. Посилання веде на динамічний маршрут для Table Top */}
+          <Link
+            to={`/table-top-studio/${project.slug}`}
+            className="text-white font-chanel font-normal uppercase text-4xl sm:text-6xl md:text-[5rem] tracking-[-0.3rem] md:tracking-[-0.6rem] transition-opacity duration-500 hover:opacity-50"
+          >
+            {project.name}
+          </Link>
+        </motion.div>
+      </div>
+    </div>
+  );
+};
+
+// ✅ 4. Основний компонент тепер є слайдером
+export default function TableTopStudio() {
+  const [currentIndex, setCurrentIndex] = useState(0);
   const { isPreloaderActive, setIsPreloaderActive } = useAnimation();
 
-  // ❌❌❌ 2. ВИДАЛЯЄМО ЦЕЙ БЛОК ❌❌❌
-  // Він конфліктує з центральною логікою.
-  /*
-  useEffect(() => {
-    if (onPreloaderPage) setIsPreloaderActive(true);
-    return () => {
-      setIsPreloaderActive(false);
-    };
-  }, [onPreloaderPage, setIsPreloaderActive]);
-  */
+  useLayoutEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   useEffect(() => {
     document.body.style.overflow = isPreloaderActive ? 'hidden' : '';
@@ -35,62 +87,61 @@ const TableTopStudio = () => {
     };
   }, [isPreloaderActive]);
 
+  useEffect(() => {
+    const htmlElement = document.documentElement;
+    htmlElement.classList.add('scroll-snap-enabled');
+    
+    const handleScroll = () => {
+      if (isPreloaderActive) return;
+      const newIndex = Math.round(window.scrollY / window.innerHeight);
+      setCurrentIndex(newIndex);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    
+    return () => {
+      htmlElement.classList.remove('scroll-snap-enabled');
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [isPreloaderActive]);
+
   const bannerTitle = 'Beauty. Flavor. Precision in Motion.';
   const bannerDescription =
     'Our in-house studio crafts bold beauty, product, and food visuals with cinematic detail. From the perfect swipe to the slow-motion pour, we transform everyday objects into irresistible icons for commercials, social, and branded content.';
 
   return (
-    <div className="bg-white text-black min-h-screen">
+    <div className="bg-black">
       <AnimatePresence>
         {isPreloaderActive && (
           <PreloaderBanner
+            onAnimationComplete={() => setIsPreloaderActive(false)}
             title={bannerTitle}
             description={bannerDescription}
-            // ✅ 3. Залишаємо цей колбек для коректного завершення анімації
-            onAnimationComplete={() => setIsPreloaderActive(false)}
           />
         )}
       </AnimatePresence>
 
-      <div className="relative w-full h-screen bg-black">
-        <HlsVideoPlayer
-          src={`${CDN_BASE_URL}/${showreelURL}`}
-          previewSrc={`${CDN_BASE_URL}/${showreelPreviewURL}`}
-          shouldPlay={!isPreloaderActive}
-          isMuted={true}
-          isLooped={true}
+      {!isPreloaderActive && (
+        <ScrollProgressBar
+          currentIndex={currentIndex}
+          totalItems={tableTopData.length}
         />
-      </div>
+      )}
 
-      <div className="w-full bg-gray-100 flex items-center justify-center text-center py-24 px-8">
-        <div className="max-w-3xl">
-          <p className="text-base text-black font-semibold uppercase">
-            HERE WILL BE LITTLE INFORMATION ABOUT STUDIO SPACE AND ECT...
-          </p>
-        </div>
-      </div>
+      {tableTopData.map((project, index) => {
+        const isActive = index === currentIndex;
+        const shouldPreload = Math.abs(index - currentIndex) === 1;
 
-      {tableTopData.map((project) => (
-        <div key={project.id} className="relative w-full h-screen bg-black">
-          <HlsVideoPlayer
-            src={`${CDN_BASE_URL}/${project.src}`}
-            previewSrc={`${CDN_BASE_URL}/${project.preview_src}`}
-            shouldPlay={!isPreloaderActive}
-            isMuted={true}
-            isLooped={true}
+        return (
+          <TableTopSlide
+            key={project.id}
+            project={project}
+            isActive={isActive}
+            shouldPreload={shouldPreload}
+            isPreloaderActive={isPreloaderActive}
           />
-          <div className="absolute top-[80%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 w-full text-center">
-            <Link to={`/projects/${project.projectSlug}`}>
-              {/* Цей заголовок залишається без анімації, як ви й просили */}
-              <h1 className="text-white font-chanel font-normal uppercase text-4xl sm:text-6xl md:text-[5rem] tracking-[-0.3rem] md:tracking-[-0.6rem] mb-8">
-                {project.title}
-              </h1>
-            </Link>
-          </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
-};
-
-export default TableTopStudio;
+}

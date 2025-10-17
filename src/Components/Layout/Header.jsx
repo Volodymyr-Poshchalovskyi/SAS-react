@@ -71,6 +71,7 @@ const Header = forwardRef(function Header(props, ref) {
   const isSpecialPage =
     location.pathname === '/' ||
     location.pathname.startsWith('/directors/') ||
+    location.pathname.startsWith('/table-top-studio/') ||
     location.pathname.startsWith('/assignment/') ||
     location.pathname.startsWith('/photographers/') ||
     location.pathname.startsWith('/post-production/') ||
