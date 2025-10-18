@@ -230,13 +230,39 @@ const AuthProvider = ({ children }) => {
     } else if (newStatus === 'denied') {
       console.log(`🚫 Denying application for ${email}`);
 
+      // Крок 1: Оновлюємо статус в базі даних
       const { data, error } = await supabase
         .from('applications')
         .update({ status: 'denied' })
         .eq('id', applicationId);
 
-      if (error) throw error;
-      console.log(`ℹ️ Application denied for ${email}`);
+      if (error) {
+        // Якщо помилка в базі, зупиняємо все
+        throw new Error(`Failed to update application status: ${error.message}`);
+      }
+      
+      console.log(`ℹ️ Application denied for ${email}. Now sending rejection email...`);
+
+      // Крок 2: ✨ НОВИЙ КОД: Надсилаємо лист про відмову ✨
+      try {
+        const { error: emailError } = await supabase.functions.invoke(
+          'send-rejection-email', // Назва нашої нової функції
+          { body: { email } } // Передаємо пошту
+        );
+        
+        if (emailError) {
+          // Важливо: Ми не зупиняємо процес, якщо лист не відправився.
+          // Статус в базі вже оновлено. Просто логуємо помилку.
+          console.warn('⚠️ Failed to send rejection email:', emailError.message);
+        } else {
+          console.log('✅ Rejection email sent successfully.');
+        }
+      } catch (invokeError) {
+        // Так само, просто логуємо помилку
+        console.warn('⚠️ Error invoking rejection email function:', invokeError.message);
+      }
+
+      // Повертаємо дані про оновлення з Кроку 1
       return data;
     }
   };
