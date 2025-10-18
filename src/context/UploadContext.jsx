@@ -1,6 +1,6 @@
 // src/context/UploadContext.jsx
 
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useRef } from 'react'; // Import useRef
 import { supabase } from '../lib/supabaseClient';
 
 const UploadContext = createContext();
@@ -11,19 +11,50 @@ export const useUpload = () => {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
-const uploadFileToGCS = async (file, role, onProgress) => {
+// We need to pass the refs to this function so it can store the active XHR
+const uploadFileToGCS = async (file, role, onProgress, activeXHRsRef) => {
     if (!file) return null;
     const response = await fetch(`${API_BASE_URL}/generate-upload-url`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ fileName: file.name, fileType: file.type, role: role }), });
     if (!response.ok) { const errorData = await response.json(); throw new Error(`Failed to get signed URL: ${errorData.details || errorData.error}`); }
     const { signedUrl, gcsPath } = await response.json();
+    
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
         xhr.open('PUT', signedUrl);
         xhr.setRequestHeader('Content-Type', file.type);
+        
+        // Store the XHR object
+        activeXHRsRef.current.set(gcsPath, xhr);
+
         xhr.upload.onprogress = (event) => { if (event.lengthComputable) { const percentComplete = Math.round((event.loaded / event.total) * 100); onProgress(percentComplete); } };
-        xhr.onload = () => { if (xhr.status >= 200 && xhr.status < 300) { onProgress(100); resolve(gcsPath); } else { reject(new Error(`Upload failed: ${xhr.statusText}`)); } };
-        xhr.onerror = () => reject(new Error('Upload failed due to a network error.'));
-        xhr.ontimeout = () => reject(new Error('Upload timed out.'));
+        
+        xhr.onload = () => { 
+            activeXHRsRef.current.delete(gcsPath); // Remove from tracking
+            if (xhr.status >= 200 && xhr.status < 300) { 
+                onProgress(100); 
+                resolve(gcsPath); 
+            } else { 
+                reject(new Error(`Upload failed: ${xhr.statusText}`)); 
+            } 
+        };
+        
+        xhr.onerror = () => {
+            activeXHRsRef.current.delete(gcsPath); // Remove from tracking
+            reject(new Error('Upload failed due to a network error.'));
+        };
+        xhr.ontimeout = () => {
+            activeXHRsRef.current.delete(gcsPath); // Remove from tracking
+            reject(new Error('Upload timed out.'));
+        };
+
+        // Check for cancellation *before* sending
+        if (activeXHRsRef.current.get('__CANCELED__')) {
+             xhr.abort();
+             activeXHRsRef.current.delete(gcsPath);
+             reject(new Error('Upload canceled before start.'));
+             return;
+        }
+
         xhr.send(file);
     });
 };
@@ -33,6 +64,11 @@ export const UploadProvider = ({ children }) => {
         isActive: false, message: '', error: null, isSuccess: false,
         totalFiles: 0, completedFiles: 0, currentFileName: '', currentFileProgress: 0,
     });
+    
+    // Refs to track active requests and cancellation state
+    const activeXHRs = useRef(new Map());
+    const isCanceled = useRef(false);
+
 
     const resetStatus = () => {
         setTimeout(() => {
@@ -40,11 +76,42 @@ export const UploadProvider = ({ children }) => {
                 isActive: false, message: '', error: null, isSuccess: false,
                 totalFiles: 0, completedFiles: 0, currentFileName: '', currentFileProgress: 0,
             });
-        }, 5000);
+        }, 5000); // Keep modal for 5 seconds after success/error
+    };
+
+    // New function to cancel all active uploads
+    const cancelUpload = () => {
+        console.log('Canceling upload...');
+        isCanceled.current = true; // Set flag to stop loops
+        activeXHRs.current.set('__CANCELED__', true); // Flag for pending requests
+
+        activeXHRs.current.forEach((xhr, path) => {
+            if (path !== '__CANCELED__') {
+                xhr.abort(); // Abort active XHR
+                console.log(`Aborted upload for: ${path}`);
+            }
+        });
+        
+        activeXHRs.current.clear();
+        
+        setUploadStatus(prev => ({
+            ...prev,
+            isActive: true, // Keep modal open
+            message: 'Upload Canceled',
+            error: 'Upload was canceled by the user.',
+            isSuccess: false,
+            currentFileProgress: 0,
+        }));
+        
+        resetStatus(); // Use existing reset logic
     };
 
     const startUpload = async (reelsToUpload, commonFormData) => {
         if (!reelsToUpload || reelsToUpload.length === 0) return;
+
+        // Reset cancellation flag
+        isCanceled.current = false;
+        activeXHRs.current.clear();
 
         setUploadStatus({
             isActive: true, message: 'Preparing to upload...', error: null, isSuccess: false,
@@ -58,22 +125,34 @@ export const UploadProvider = ({ children }) => {
             const allUploadedRecords = [];
 
             for (const reel of reelsToUpload) {
+                // Check for cancellation before each file
+                if (isCanceled.current) {
+                    throw new Error('Upload was canceled by the user.');
+                }
+
                 const currentIndex = reelsToUpload.indexOf(reel);
                 setUploadStatus(prev => ({ ...prev, message: `Processing file ${currentIndex + 1} of ${prev.totalFiles}`, currentFileName: reel.title, currentFileProgress: 0 }));
                 
                 const onMainProgress = p => setUploadStatus(prev => ({ ...prev, message: `Uploading content...`, currentFileProgress: p }));
                 
-                const content_gcs_path = await uploadFileToGCS(reel.selectedFile, 'main', onMainProgress);
+                // Pass the ref to the upload function
+                const content_gcs_path = await uploadFileToGCS(reel.selectedFile, 'main', onMainProgress, activeXHRs);
                 
                 let preview_gcs_path;
                 const isVideoFile = reel.selectedFile.type.startsWith('video/');
+
+                // Check for cancellation again before uploading preview
+                if (isCanceled.current) {
+                    throw new Error('Upload was canceled by the user.');
+                }
 
                 if (isVideoFile) {
                     const fileName = content_gcs_path.split('/').pop();
                     preview_gcs_path = `back-end/previews/${fileName}.jpg`;
                 } else {
                     const previewFile = reel.customPreviewFile || reel.selectedFile;
-                    preview_gcs_path = await uploadFileToGCS(previewFile, 'preview', () => {});
+                    // Pass the ref to the upload function
+                    preview_gcs_path = await uploadFileToGCS(previewFile, 'preview', () => {}, activeXHRs);
                 }
                 
                 allUploadedRecords.push({
@@ -81,6 +160,11 @@ export const UploadProvider = ({ children }) => {
                 });
                 
                 setUploadStatus(prev => ({ ...prev, completedFiles: prev.completedFiles + 1 }));
+            }
+
+            // Check for cancellation before saving metadata
+            if (isCanceled.current) {
+                throw new Error('Upload was canceled by the user.');
             }
 
             setUploadStatus(prev => ({ ...prev, message: 'Saving metadata...', currentFileName: '' }));
@@ -91,13 +175,22 @@ export const UploadProvider = ({ children }) => {
 
         } catch (err) {
             console.error('An error occurred during upload:', err);
-            setUploadStatus(prev => ({ ...prev, message: 'Upload Failed!', error: err.message, isSuccess: false }));
+            // Don't show error message if it was a user cancellation
+            if (!isCanceled.current) {
+                setUploadStatus(prev => ({ ...prev, message: 'Upload Failed!', error: err.message, isSuccess: false }));
+            }
         } finally {
+            activeXHRs.current.clear();
+            isCanceled.current = false;
             resetStatus();
         }
     };
     
     const startUpdate = async (itemId, reelToUpdate, commonFormData) => {
+        // Reset cancellation flag
+        isCanceled.current = false;
+        activeXHRs.current.clear();
+
         setUploadStatus({
             isActive: true, message: 'Preparing to update...', error: null, isSuccess: false,
             totalFiles: 1, completedFiles: 0, currentFileName: reelToUpdate.title, currentFileProgress: 0,
@@ -113,17 +206,20 @@ export const UploadProvider = ({ children }) => {
             const onMainProgress = p => setUploadStatus(prev => ({ ...prev, message: 'Uploading new content...', currentFileProgress: hasNewPreview ? p / 2 : p }));
             const onPreviewProgress = p => setUploadStatus(prev => ({ ...prev, message: 'Uploading new preview...', currentFileProgress: hasNewContent ? 50 + (p / 2) : p }));
 
+            if (isCanceled.current) throw new Error('Upload was canceled by the user.');
             if (hasNewContent) {
-                videoPath = await uploadFileToGCS(reelToUpdate.selectedFile, 'main', onMainProgress);
+                videoPath = await uploadFileToGCS(reelToUpdate.selectedFile, 'main', onMainProgress, activeXHRs);
                 if (reelToUpdate.selectedFile.type.startsWith('video/')) {
                     previewPath = null; 
                 }
             }
             
+            if (isCanceled.current) throw new Error('Upload was canceled by the user.');
             if (hasNewPreview) {
-                previewPath = await uploadFileToGCS(reelToUpdate.customPreviewFile, 'preview', onPreviewProgress);
+                previewPath = await uploadFileToGCS(reelToUpdate.customPreviewFile, 'preview', onPreviewProgress, activeXHRs);
             }
             
+            if (isCanceled.current) throw new Error('Upload was canceled by the user.');
             setUploadStatus(prev => ({...prev, message: "Updating metadata..."}));
 
             const recordToUpdate = {
@@ -156,8 +252,12 @@ export const UploadProvider = ({ children }) => {
 
         } catch (err) {
              console.error('An error occurred during update:', err);
-            setUploadStatus(prev => ({ ...prev, message: 'Update Failed!', error: err.message, isSuccess: false }));
+             if (!isCanceled.current) {
+                setUploadStatus(prev => ({ ...prev, message: 'Update Failed!', error: err.message, isSuccess: false }));
+             }
         } finally {
+            activeXHRs.current.clear();
+            isCanceled.current = false;
             resetStatus();
         }
     };
@@ -165,7 +265,8 @@ export const UploadProvider = ({ children }) => {
     const value = {
         uploadStatus,
         startUpload,
-        startUpdate, 
+        startUpdate,
+        cancelUpload, // Expose the cancel function
     };
 
     return (

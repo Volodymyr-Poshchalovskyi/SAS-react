@@ -7,20 +7,20 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { supabase } from '../../lib/supabaseClient';
 import { X, Trash2, Loader2, CheckCircle2 } from 'lucide-react';
 import Hls from 'hls.js';
+// 1. Імпортуємо useUpload з контексту
+import { useUpload } from '../../context/UploadContext'; 
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
-// ✨ HLS-плеєр залишається
+// --- HLS-плеєр ---
 const InlineHlsPlayer = React.forwardRef(({ src, ...props }, ref) => {
   const internalVideoRef = useRef(null);
   const videoRef = ref || internalVideoRef;
 
   useEffect(() => {
     if (!src || !videoRef.current) return;
-
     const video = videoRef.current;
     let hls;
-
     if (Hls.isSupported()) {
       hls = new Hls();
       hls.loadSource(src);
@@ -28,7 +28,6 @@ const InlineHlsPlayer = React.forwardRef(({ src, ...props }, ref) => {
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       video.src = src;
     }
-
     return () => {
       if (hls) {
         hls.destroy();
@@ -46,6 +45,7 @@ const InlineHlsPlayer = React.forwardRef(({ src, ...props }, ref) => {
   );
 });
 
+// --- Функція компресії ---
 const compressImage = (file, maxSize = 800) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -98,19 +98,20 @@ const compressImage = (file, maxSize = 800) => {
   });
 };
 
-// --- Icons and basic components ---
+// --- Icons and basic components (без змін) ---
 const UploadIcon = () => ( <svg className="w-12 h-12 text-slate-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 16" > <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2" /> </svg> );
 const CalendarIcon = () => ( <svg className="w-5 h-5 text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" > <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /> </svg> );
 const FormSection = ({ title, children, hasSeparator = true }) => ( <div className="bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl p-6"> {title && ( <h2 className="text-base font-semibold text-slate-500 dark:text-slate-400 mb-4 uppercase tracking-wider"> {title} </h2> )} {children} {hasSeparator && ( <div className="mt-6 border-t border-slate-200 dark:border-slate-800"></div> )} </div> );
 const FormField = ({ label, children, required = false }) => ( <div className="mb-4"> <label className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300"> {label} {required && <span className="text-red-500">*</span>} </label> {children} </div> );
 const inputClasses = 'flex h-10 w-full rounded-md border border-slate-300 bg-white dark:bg-slate-800 px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500 disabled:cursor-not-allowed disabled:bg-slate-100 dark:disabled:bg-slate-800/50';
-// --- Select components ---
+
+// --- Select components (без змін) ---
 const SingleSearchableSelect = ({ label, options, value, onChange, placeholder, required = false }) => { const [inputValue, setInputValue] = useState(value || ''); const [isOpen, setIsOpen] = useState(false); const wrapperRef = useRef(null); const filteredOptions = useMemo(() => options.filter(option => option.name.toLowerCase().includes((inputValue || '').toLowerCase())), [inputValue, options]); useEffect(() => { function handleClickOutside(event) { if (wrapperRef.current && !wrapperRef.current.contains(event.target)) setIsOpen(false); } document.addEventListener("mousedown", handleClickOutside); return () => document.removeEventListener("mousedown", handleClickOutside); }, []); useEffect(() => { if (!isOpen) { const isValid = options.some(opt => opt.name === inputValue); if (!isValid) setInputValue(value || ''); } }, [isOpen, value, options, inputValue]); useEffect(() => { setInputValue(value || ''); }, [value]); const handleSelectOption = (optionName) => { onChange(optionName); setInputValue(optionName); setIsOpen(false); }; return ( <FormField label={label} required={required}> <div className="relative" ref={wrapperRef}> <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onFocus={() => setIsOpen(true)} placeholder={placeholder} className={inputClasses} required={required} /> {isOpen && ( <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md shadow-lg max-h-60 overflow-y-auto"> {filteredOptions.length > 0 ? ( <ul> {filteredOptions.map((option) => ( <li key={option.id} onMouseDown={() => handleSelectOption(option.name)} className="px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"> {option.name} </li> ))} </ul> ) : ( <div className="px-3 py-2 text-sm text-slate-500">No matches found.</div> )} </div> )} </div> </FormField> ); };
 const MultiSelectCategories = ({ label, options, selectedOptions, onChange, placeholder, limit = 10 }) => { const [inputValue, setInputValue] = useState(''); const [isOpen, setIsOpen] = useState(false); const wrapperRef = useRef(null); const availableOptions = useMemo(() => options.filter(opt => !selectedOptions.includes(opt.name)).filter(opt => opt.name.toLowerCase().includes(inputValue.toLowerCase())), [options, selectedOptions, inputValue]); const handleSelect = (optionName) => { if (selectedOptions.length < limit) onChange([...selectedOptions, optionName]); setInputValue(''); setIsOpen(false); }; const handleRemove = (optionName) => onChange(selectedOptions.filter(opt => opt !== optionName)); useEffect(() => { function handleClickOutside(event) { if (wrapperRef.current && !wrapperRef.current.contains(event.target)) setIsOpen(false); } document.addEventListener("mousedown", handleClickOutside); return () => document.removeEventListener("mousedown", handleClickOutside); }, [wrapperRef]); return ( <FormField label={`${label} (${selectedOptions.length}/${limit})`}> <div className="relative" ref={wrapperRef}> <div className="flex flex-wrap items-center gap-2 p-2 min-h-[40px] border border-slate-300 dark:border-slate-700 rounded-md" onClick={() => setIsOpen(true)}> {selectedOptions.map(option => ( <span key={option} className="flex items-center bg-teal-100 dark:bg-teal-900/50 text-teal-800 dark:text-teal-200 text-sm font-medium px-2.5 py-1 rounded-full"> {option} <button type="button" onClick={(e) => { e.stopPropagation(); handleRemove(option); }} className="ml-2 -mr-1 p-0.5 text-teal-600 dark:text-teal-300 hover:bg-teal-200 dark:hover:bg-teal-700 rounded-full"> <X size={14} /> </button> </span> ))} {selectedOptions.length < limit && ( <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onFocus={() => setIsOpen(true)} placeholder={placeholder} className="flex-grow bg-transparent focus:outline-none p-1 text-sm" /> )} </div> {isOpen && ( <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md shadow-lg max-h-60 overflow-y-auto"> {availableOptions.length > 0 ? ( <ul> {availableOptions.map((option) => ( <li key={option.id} onMouseDown={() => handleSelect(option.name)} className="px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"> {option.name} </li> ))} </ul> ) : ( <div className="px-3 py-2 text-sm text-slate-500">No available options.</div> )} </div> )} </div> </FormField> ); };
 const MultiCreatableSelect = ({ label, options, selectedOptions, onChange, placeholder, limit = 10, required = false }) => { const [inputValue, setInputValue] = useState(''); const [isOpen, setIsOpen] = useState(false); const wrapperRef = useRef(null); const availableOptions = useMemo(() => options.filter(opt => !selectedOptions.includes(opt.name) && opt.name.toLowerCase().includes(inputValue.toLowerCase())), [options, selectedOptions, inputValue]); const handleAdd = (itemName) => { const trimmedItem = itemName.trim(); if (trimmedItem && selectedOptions.length < limit && !selectedOptions.find(opt => opt.toLowerCase() === trimmedItem.toLowerCase())) { onChange([...selectedOptions, trimmedItem]); } setInputValue(''); setIsOpen(false); }; const handleRemove = (itemName) => onChange(selectedOptions.filter(opt => opt !== itemName)); const handleKeyDown = (e) => { if (e.key === 'Enter' && inputValue) { e.preventDefault(); handleAdd(inputValue); } }; useEffect(() => { function handleClickOutside(event) { if (wrapperRef.current && !wrapperRef.current.contains(event.target)) { setIsOpen(false); setInputValue(''); } } document.addEventListener("mousedown", handleClickOutside); return () => document.removeEventListener("mousedown", handleClickOutside); }, [wrapperRef]); const canAddCustom = inputValue.trim() && !options.some(opt => opt.name.toLowerCase() === inputValue.trim().toLowerCase()) && !selectedOptions.some(opt => opt.toLowerCase() === inputValue.trim().toLowerCase()); return ( <FormField label={`${label} (${selectedOptions.length}/${limit})`} required={required}> <input type="text" value={selectedOptions.join(',')} required={required} className="hidden" onChange={() => {}}/> <div className="relative" ref={wrapperRef}> <div className="flex flex-wrap items-center gap-2 p-2 min-h-[40px] border border-slate-300 dark:border-slate-700 rounded-md" onClick={() => { setIsOpen(true); wrapperRef.current.querySelector('input[type=text]:not(.hidden)').focus(); }}> {selectedOptions.map(option => ( <span key={option} className="flex items-center bg-teal-100 dark:bg-teal-900/50 text-teal-800 dark:text-teal-200 text-sm font-medium px-2.5 py-1 rounded-full"> {option} <button type="button" onClick={(e) => { e.stopPropagation(); handleRemove(option); }} className="ml-2 -mr-1 p-0.5 text-teal-600 dark:text-teal-300 hover:bg-teal-200 dark:hover:bg-teal-700 rounded-full"> <X size={14} /> </button> </span> ))} {selectedOptions.length < limit && ( <input type="text" value={inputValue} onChange={(e) => setInputValue(e.target.value)} onKeyDown={handleKeyDown} onFocus={() => setIsOpen(true)} placeholder={placeholder} className="flex-grow bg-transparent focus:outline-none p-1 text-sm" /> )} </div> {isOpen && ( <div className="absolute z-10 w-full mt-1 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-md shadow-lg max-h-60 overflow-y-auto"> <ul onMouseDown={(e) => e.preventDefault()}> { canAddCustom && ( <li onClick={() => handleAdd(inputValue)} className="px-3 py-2 text-sm text-teal-600 dark:text-teal-400 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer italic"> Add "{inputValue.trim()}" </li> )} {availableOptions.map((option) => ( <li key={option.id} onClick={() => handleAdd(option.name)} className="px-3 py-2 text-sm text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"> {option.name} </li> ))} {!canAddCustom && availableOptions.length === 0 && ( <div className="px-3 py-2 text-sm text-slate-500">No available options</div> )} </ul> </div> )} </div> </FormField> ); };
 
 
-// --- ReelPartialForm Component ---
+// --- ReelPartialForm Component (без змін) ---
 const ReelPartialForm = ({ reel, onUpdate, onFilesSelected, isEditMode }) => {
     const { id, title, selectedFile, customPreviewFile, mainPreviewUrl, customPreviewUrl, } = reel;
     const [isDragging, setIsDragging] = useState(false);
@@ -315,10 +316,29 @@ const CreateReel = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isEditMode = !!itemId;
-  
-  const createNewReelState = () => ({ id: Date.now() + Math.random(), title: '', selectedFile: null, customPreviewFile: null, mainPreviewUrl: null, customPreviewUrl: null, isRemovable: true });
+
+  const createNewReelState = () => ({
+    id: Date.now() + Math.random(),
+    title: '',
+    selectedFile: null,
+    customPreviewFile: null,
+    mainPreviewUrl: null,
+    customPreviewUrl: null,
+    isRemovable: true,
+  });
   const [reels, setReels] = useState([createNewReelState()]);
-  const initialCommonFormData = { allowDownload: false, publicationDate: new Date(), publishOption: 'now', artist: [], client: [], description: '', featuredCelebrity: [], contentType: '', craft: '', categories: [] };
+  const initialCommonFormData = {
+    allowDownload: false,
+    publicationDate: new Date(),
+    publishOption: 'now',
+    artist: [],
+    client: [],
+    description: '',
+    featuredCelebrity: [],
+    contentType: '',
+    craft: '',
+    categories: [],
+  };
   const [commonFormData, setCommonFormData] = useState(initialCommonFormData);
 
   const [artists, setArtists] = useState([]);
@@ -330,14 +350,8 @@ const CreateReel = () => {
   const [isLoadingOptions, setIsLoadingOptions] = useState(true);
   const [toast, setToast] = useState({ message: '', visible: false });
 
-  // ✨ ПОВЕРНЕНО: Локальний стан для відстеження процесу завантаження
-  const [uploadStatus, setUploadStatus] = useState({
-    isActive: false,
-    message: '',
-    files: {},
-    error: null,
-    isSuccess: false,
-  });
+  // 2. Отримуємо функції та стан з глобального контексту
+  const { uploadStatus, startUpload, startUpdate } = useUpload();
 
   const showToast = (message) => {
     setToast({ message, visible: true });
@@ -346,6 +360,9 @@ const CreateReel = () => {
     }, 3000);
   };
 
+  // --- Ефекти та хендлери (без логіки завантаження) ---
+  
+  // Очистка Object URL (без змін)
   useEffect(() => {
     return () => {
       reels.forEach((reel) => {
@@ -357,11 +374,19 @@ const CreateReel = () => {
     };
   }, [reels]);
 
+  // Завантаження опцій (без змін)
   useEffect(() => {
     const fetchOptions = async () => {
       setIsLoadingOptions(true);
       try {
-        const [artistsRes, clientsRes, celebritiesRes, contentTypesRes, categoriesRes, craftsRes] = await Promise.all([
+        const [
+          artistsRes,
+          clientsRes,
+          celebritiesRes,
+          contentTypesRes,
+          categoriesRes,
+          craftsRes,
+        ] = await Promise.all([
           supabase.from('artists').select('id, name'),
           supabase.from('clients').select('id, name'),
           supabase.from('celebrities').select('id, name'),
@@ -384,59 +409,73 @@ const CreateReel = () => {
     };
     fetchOptions();
   }, []);
-  
+
+  // Завантаження даних для режиму редагування (без змін)
   useEffect(() => {
     if (isEditMode) {
       const fetchItemData = async () => {
         setIsLoadingOptions(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/media-items/${itemId}`);
-            if (!response.ok) throw new Error('Failed to fetch media item data.');
-            const item = await response.json();
-            
-            const pathsToSign = [item.video_gcs_path, item.preview_gcs_path, item.video_hls_path].filter(Boolean);
-            const urlsMap = {};
-            if (pathsToSign.length > 0) {
-              const urlsResponse = await fetch(`${API_BASE_URL}/generate-read-urls`, {
+          const response = await fetch(`${API_BASE_URL}/media-items/${itemId}`);
+          if (!response.ok)
+            throw new Error('Failed to fetch media item data.');
+          const item = await response.json();
+
+          const pathsToSign = [
+            item.video_gcs_path,
+            item.preview_gcs_path,
+            item.video_hls_path,
+          ].filter(Boolean);
+          const urlsMap = {};
+          if (pathsToSign.length > 0) {
+            const urlsResponse = await fetch(
+              `${API_BASE_URL}/generate-read-urls`,
+              {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ gcsPaths: pathsToSign }),
-              });
-              if (urlsResponse.ok) {
-                const signedUrls = await urlsResponse.json();
-                Object.assign(urlsMap, signedUrls);
-              } else {
-                 console.error('Failed to get signed URLs for previews.');
               }
+            );
+            if (urlsResponse.ok) {
+              const signedUrls = await urlsResponse.json();
+              Object.assign(urlsMap, signedUrls);
+            } else {
+              console.error('Failed to get signed URLs for previews.');
             }
-            
-            const parseString = (str) => str ? str.split(',').map(s => s.trim()).filter(Boolean) : [];
+          }
 
-            setCommonFormData({
-              allowDownload: item.allow_download,
-              publicationDate: new Date(item.publish_date),
-              publishOption: 'schedule',
-              artist: parseString(item.artists),
-              client: parseString(item.client),
-              description: item.description || '',
-              featuredCelebrity: parseString(item.featured_celebrity),
-              contentType: item.content_type || '',
-              craft: item.craft || '',
-              categories: parseString(item.categories),
-            });
+          const parseString = (str) =>
+            str ? str.split(',').map((s) => s.trim()).filter(Boolean) : [];
 
-            setReels([{
+          setCommonFormData({
+            allowDownload: item.allow_download,
+            publicationDate: new Date(item.publish_date),
+            publishOption: 'schedule',
+            artist: parseString(item.artists),
+            client: parseString(item.client),
+            description: item.description || '',
+            featuredCelebrity: parseString(item.featured_celebrity),
+            contentType: item.content_type || '',
+            craft: item.craft || '',
+            categories: parseString(item.categories),
+          });
+
+          setReels([
+            {
               id: item.id,
               title: item.title,
               selectedFile: null,
               customPreviewFile: null,
-              mainPreviewUrl: urlsMap[item.video_hls_path] || urlsMap[item.video_gcs_path] || null,
+              mainPreviewUrl:
+                urlsMap[item.video_hls_path] ||
+                urlsMap[item.video_gcs_path] ||
+                null,
               customPreviewUrl: urlsMap[item.preview_gcs_path] || null,
               original_video_path: item.video_gcs_path,
               original_preview_path: item.preview_gcs_path,
-              isRemovable: false, 
-            }]);
-
+              isRemovable: false,
+            },
+          ]);
         } catch (error) {
           console.error(error);
           showToast(`Error: ${error.message}`);
@@ -451,306 +490,232 @@ const CreateReel = () => {
 
   const isImageFile = (file) => {
     if (!file) return false;
-    const imageMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    const imageMimeTypes = [
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+    ];
     return imageMimeTypes.includes(file.type);
   };
-
+  
+  // (без змін)
   const handleUpdateReel = (idToUpdate, updatedFields) => {
     setReels((prevReels) => {
-        if (updatedFields.shouldRemove) {
-            if (prevReels.length <= 1) { showToast('You cannot remove the last form.'); return prevReels; }
-            return prevReels.filter((r) => r.id !== idToUpdate);
+      if (updatedFields.shouldRemove) {
+        if (prevReels.length <= 1) {
+          showToast('You cannot remove the last form.');
+          return prevReels;
         }
-        return prevReels.map((reel) => {
-            if (reel.id === idToUpdate) {
-                const newReel = { ...reel, ...updatedFields };
-                if (updatedFields.customPreviewFile instanceof File) {
-                    if (reel.customPreviewUrl && reel.customPreviewUrl.startsWith('blob:')) { URL.revokeObjectURL(reel.customPreviewUrl); }
-                    newReel.customPreviewUrl = URL.createObjectURL(updatedFields.customPreviewFile);
-                }
-                return newReel;
+        return prevReels.filter((r) => r.id !== idToUpdate);
+      }
+      return prevReels.map((reel) => {
+        if (reel.id === idToUpdate) {
+          const newReel = { ...reel, ...updatedFields };
+          if (updatedFields.customPreviewFile instanceof File) {
+            if (
+              reel.customPreviewUrl &&
+              reel.customPreviewUrl.startsWith('blob:')
+            ) {
+              URL.revokeObjectURL(reel.customPreviewUrl);
             }
-            return reel;
-        });
+            newReel.customPreviewUrl = URL.createObjectURL(
+              updatedFields.customPreviewFile
+            );
+          }
+          return newReel;
+        }
+        return reel;
+      });
     });
   };
 
+  // (без змін)
   const handleFilesSelected = async (files, reelId) => {
-      if (!files || files.length === 0) {
-        handleUpdateReel(reelId, { selectedFile: null, customPreviewFile: null, mainPreviewUrl: null, customPreviewUrl: null });
-        return;
-      }
-      const validFiles = Array.from(files).filter((f) => isImageFile(f) || f.type.startsWith('video/'));
-      if (validFiles.length === 0) return;
-  
-      const firstFile = validFiles[0];
-      const otherFiles = validFiles.slice(1);
-  
-      let newReels = [];
-      if (otherFiles.length > 0 && !isEditMode) {
-        const newReelsPromises = otherFiles.map(async (file) => {
-          const fileNameWithoutExt = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
-          const fileUrl = URL.createObjectURL(file);
-          const isImage = isImageFile(file);
-          let customPreview = null;
-          if (isImage) {
-            try { customPreview = await compressImage(file); } 
-            catch (error) { console.error('Failed to compress additional file preview:', error); customPreview = file; }
-          }
-          const customPreviewUrl = customPreview ? URL.createObjectURL(customPreview) : null;
-  
-          return { ...createNewReelState(), title: fileNameWithoutExt, selectedFile: file, customPreviewFile: customPreview, mainPreviewUrl: fileUrl, customPreviewUrl: customPreviewUrl };
-        });
-        newReels = await Promise.all(newReelsPromises);
-      }
-  
-      const isFirstFileImage = isImageFile(firstFile);
-      let compressedPreviewForFirst = null;
-      if (isFirstFileImage) {
-        try { compressedPreviewForFirst = await compressImage(firstFile); } 
-        catch (error) { console.error('Failed to compress first file preview:', error); compressedPreviewForFirst = firstFile; }
-      }
-  
-      setReels((prev) => {
-        const updatedExistingReels = prev.map((reel) => {
-          if (reel.id === reelId) {
-            const fileNameWithoutExt = firstFile.name.substring(0, firstFile.name.lastIndexOf('.')) || firstFile.name;
-            const fileUrl = URL.createObjectURL(firstFile);
-            const customPreviewUrl = compressedPreviewForFirst ? URL.createObjectURL(compressedPreviewForFirst) : null;
-            return { ...reel, title: reel.title || fileNameWithoutExt, selectedFile: firstFile, customPreviewFile: compressedPreviewForFirst, mainPreviewUrl: fileUrl, customPreviewUrl: customPreviewUrl };
-          }
-          return reel;
-        });
-        return [...updatedExistingReels, ...newReels];
+    if (!files || files.length === 0) {
+      handleUpdateReel(reelId, {
+        selectedFile: null,
+        customPreviewFile: null,
+        mainPreviewUrl: null,
+        customPreviewUrl: null,
       });
+      return;
+    }
+    const validFiles = Array.from(files).filter(
+      (f) => isImageFile(f) || f.type.startsWith('video/')
+    );
+    if (validFiles.length === 0) return;
+
+    const firstFile = validFiles[0];
+    const otherFiles = validFiles.slice(1);
+
+    let newReels = [];
+    if (otherFiles.length > 0 && !isEditMode) {
+      const newReelsPromises = otherFiles.map(async (file) => {
+        const fileNameWithoutExt =
+          file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+        const fileUrl = URL.createObjectURL(file);
+        const isImage = isImageFile(file);
+        let customPreview = null;
+        if (isImage) {
+          try {
+            customPreview = await compressImage(file);
+          } catch (error) {
+            console.error('Failed to compress additional file preview:', error);
+            customPreview = file;
+          }
+        }
+        const customPreviewUrl = customPreview
+          ? URL.createObjectURL(customPreview)
+          : null;
+
+        return {
+          ...createNewReelState(),
+          title: fileNameWithoutExt,
+          selectedFile: file,
+          customPreviewFile: customPreview,
+          mainPreviewUrl: fileUrl,
+          customPreviewUrl: customPreviewUrl,
+        };
+      });
+      newReels = await Promise.all(newReelsPromises);
+    }
+
+    const isFirstFileImage = isImageFile(firstFile);
+    let compressedPreviewForFirst = null;
+    if (isFirstFileImage) {
+      try {
+        compressedPreviewForFirst = await compressImage(firstFile);
+      } catch (error) {
+        console.error('Failed to compress first file preview:', error);
+        compressedPreviewForFirst = firstFile;
+      }
+    }
+
+    setReels((prev) => {
+      const updatedExistingReels = prev.map((reel) => {
+        if (reel.id === reelId) {
+          const fileNameWithoutExt =
+            firstFile.name.substring(0, firstFile.name.lastIndexOf('.')) ||
+            firstFile.name;
+          const fileUrl = URL.createObjectURL(firstFile);
+          const customPreviewUrl = compressedPreviewForFirst
+            ? URL.createObjectURL(compressedPreviewForFirst)
+            : null;
+          return {
+            ...reel,
+            title: reel.title || fileNameWithoutExt,
+            selectedFile: firstFile,
+            customPreviewFile: compressedPreviewForFirst,
+            mainPreviewUrl: fileUrl,
+            customPreviewUrl: customPreviewUrl,
+          };
+        }
+        return reel;
+      });
+      return [...updatedExistingReels, ...newReels];
+    });
   };
-  
+
   const handleAddReel = () => setReels((prev) => [...prev, createNewReelState()]);
-  const handleCommonFormChange = (field, value) => setCommonFormData((prev) => ({ ...prev, [field]: value }));
+  const handleCommonFormChange = (field, value) =>
+    setCommonFormData((prev) => ({ ...prev, [field]: value }));
   const isSchedulingDisabled = commonFormData.publishOption === 'now';
 
-  // ✨ ПОВЕРНЕНО: Функція завантаження файлу в GCS
-  const uploadFileToGCS = async (file, role, onProgress) => {
-    if (!file) return null;
+  // 3. ВИДАЛЕНО: Локальна функція `uploadFileToGCS`.
+  // 4. ВИДАЛЕНО: Локальний стан `uploadStatus`.
 
-    const response = await fetch(`${API_BASE_URL}/generate-upload-url`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        fileName: file.name,
-        fileType: file.type,
-        role: role,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        `Failed to get signed URL: ${errorData.details || errorData.error}`
-      );
-    }
-    const { signedUrl, gcsPath } = await response.json();
-
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open('PUT', signedUrl);
-      xhr.setRequestHeader('Content-Type', file.type);
-
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const percentComplete = Math.round(
-            (event.loaded / event.total) * 100
-          );
-          onProgress(percentComplete);
-        }
-      };
-
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          onProgress(100);
-          resolve(gcsPath);
-        } else {
-          reject(new Error(`Upload failed: ${xhr.statusText}`));
-        }
-      };
-
-      xhr.onerror = () =>
-        reject(new Error('Upload failed due to a network error.'));
-      xhr.ontimeout = () => reject(new Error('Upload timed out.'));
-
-      xhr.send(file);
-    });
-  };
-
-  // ✨ ПОВЕРНЕНО: Повна логіка обробки форми
+  // 5. Повністю оновлений handleSubmit
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    // --- Валідація (без змін) ---
     for (const reel of reels) {
-        if (!reel.title.trim()) {
-            showToast(`Please provide a title for Media #${reels.indexOf(reel) + 1}.`);
-            return;
-        }
-        if (!reel.selectedFile && !isEditMode && !reel.mainPreviewUrl) {
-            showToast(`Please provide a content file for "${reel.title}".`);
-            return;
-        }
+      if (!reel.title.trim()) {
+        showToast(`Please provide a title for Media #${reels.indexOf(reel) + 1}.`);
+        return;
+      }
+      if (!reel.selectedFile && !isEditMode && !reel.mainPreviewUrl) {
+        showToast(`Please provide a content file for "${reel.title}".`);
+        return;
+      }
     }
     if (!commonFormData.craft) {
-        showToast('Please select a Craft.');
-        return;
+      showToast('Please select a Craft.');
+      return;
     }
-
-    const filesToUpload = [];
-    if (isEditMode) {
-      const reel = reels[0];
-      if (reel.selectedFile) filesToUpload.push({ file: reel.selectedFile, role: 'main' });
-      if (reel.customPreviewFile) filesToUpload.push({ file: reel.customPreviewFile, role: 'preview' });
-    } else {
-      reels.forEach((reel) => {
-        if (reel.selectedFile) filesToUpload.push({ file: reel.selectedFile, role: 'main' });
-        if (reel.customPreviewFile) filesToUpload.push({ file: reel.customPreviewFile, role: 'preview' });
-      });
+    if (!isEditMode && reels.filter((r) => r.selectedFile).length === 0) {
+      showToast('Please add at least one file to upload.');
+      return;
     }
-    
-    if (!isEditMode && reels.filter(r => r.selectedFile).length === 0) {
-       showToast("Please add at least one file to upload.");
-       return;
-    }
-
-    const initialFileStatus = {};
-    filesToUpload.forEach(({ file }) => {
-      initialFileStatus[file.name] = { progress: 0, status: 'pending' };
-    });
-
-    setUploadStatus({
-      isActive: true,
-      message: isEditMode ? 'Applying changes...' : 'Starting upload...',
-      files: initialFileStatus,
-      error: null,
-      isSuccess: false,
-    });
+    // --- Кінець валідації ---
 
     try {
-      const onProgress = (fileName) => (progress) => {
-        setUploadStatus((prev) => ({
-          ...prev,
-          files: {
-            ...prev.files,
-            [fileName]: { ...prev.files[fileName], progress, status: 'uploading' },
-          },
-        }));
-      };
-
       if (isEditMode) {
+        // --- Режим редагування ---
         const reelToUpdate = reels[0];
-        let videoPath = reelToUpdate.original_video_path;
-        let previewPath = reelToUpdate.original_preview_path;
-
-        if (reelToUpdate.selectedFile instanceof File) {
-           setUploadStatus((prev) => ({...prev, message: `Uploading ${reelToUpdate.selectedFile.name}...`}));
-           videoPath = await uploadFileToGCS(reelToUpdate.selectedFile, 'main', onProgress(reelToUpdate.selectedFile.name));
-        }
-        if (reelToUpdate.customPreviewFile instanceof File) {
-           setUploadStatus((prev) => ({...prev, message: `Uploading ${reelToUpdate.customPreviewFile.name}...`}));
-           previewPath = await uploadFileToGCS(reelToUpdate.customPreviewFile, 'preview', onProgress(reelToUpdate.customPreviewFile.name));
-        }
+        // Викликаємо startUpdate з контексту
+        await startUpdate(itemId, reelToUpdate, commonFormData);
         
-        setUploadStatus((prev) => ({ ...prev, message: 'Saving changes...' }));
-        const recordToUpdate = {
-            title: reelToUpdate.title,
-            artists: commonFormData.artist.join(', '),
-            client: commonFormData.client.join(', '),
-            categories: commonFormData.categories.join(', '),
-            publish_date: commonFormData.publishOption === 'now' ? new Date().toISOString() : commonFormData.publicationDate.toISOString(),
-            video_gcs_path: videoPath,
-            preview_gcs_path: previewPath,
-            description: commonFormData.description,
-            featured_celebrity: commonFormData.featuredCelebrity.join(', '),
-            content_type: commonFormData.contentType,
-            craft: commonFormData.craft,
-            allow_download: commonFormData.allowDownload,
-        };
+        // Негайно показуємо toast про *початок* процесу
+        showToast('Update process started successfully!');
 
-        const response = await fetch(`${API_BASE_URL}/media-items/${itemId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(recordToUpdate),
-        });
-        if (!response.ok) {
-            const errData = await response.json();
-            throw new Error(errData.details || 'Failed to update media item.');
-        }
-        setUploadStatus((prev) => ({ ...prev, message: 'Success!', isSuccess: true }));
+        // Перенаправляємо користувача
+        const returnPath = location.pathname.startsWith('/adminpanel')
+          ? '/adminpanel/library'
+          : '/userpanel/library';
+        setTimeout(() => navigate(returnPath), 1000); // Невелика затримка
 
-        const returnPath = location.pathname.startsWith('/adminpanel') ? '/adminpanel/library' : '/userpanel/library';
-        setTimeout(() => navigate(returnPath), 2000);
-
-      } else { // Create mode
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('User not found.');
-
-        const uploadPromises = reels.map(async (reel) => {
-            setUploadStatus((prev) => ({ ...prev, message: `Uploading ${reel.title}...` }));
-            const content_gcs_path = await uploadFileToGCS(reel.selectedFile, 'main', onProgress(reel.selectedFile.name));
-            const preview_gcs_path = reel.customPreviewFile ? await uploadFileToGCS(reel.customPreviewFile, 'preview', onProgress(reel.customPreviewFile.name)) : null;
-            return { reelData: reel, content_gcs_path, preview_gcs_path };
-        });
-
-        const uploadResults = await Promise.all(uploadPromises);
-
-        const recordsToInsert = uploadResults.map((result) => ({
-            user_id: user.id,
-            title: result.reelData.title,
-            artists: commonFormData.artist.join(', '),
-            client: commonFormData.client.join(', '),
-            categories: commonFormData.categories.join(', '),
-            publish_date: commonFormData.publishOption === 'now' ? new Date().toISOString() : commonFormData.publicationDate.toISOString(),
-            video_gcs_path: result.content_gcs_path,
-            preview_gcs_path: result.preview_gcs_path,
-            description: commonFormData.description,
-            featured_celebrity: commonFormData.featuredCelebrity.join(', '),
-            content_type: commonFormData.contentType,
-            craft: commonFormData.craft,
-            allow_download: commonFormData.allowDownload,
-        }));
-
-        setUploadStatus((prev) => ({ ...prev, message: 'Saving metadata...' }));
-        const { error: insertError } = await supabase.from('media_items').insert(recordsToInsert);
-        if (insertError) {
-            throw new Error(`Database error: ${insertError.message}`);
+      } else {
+        // --- Режим створення ---
+        const reelsToUpload = reels.filter((r) => r.selectedFile);
+        if (reelsToUpload.length === 0) {
+          showToast('Please add at least one file to upload.');
+          return;
         }
 
-        setUploadStatus((prev) => ({ ...prev, message: 'All media uploaded!', isSuccess: true }));
+        // Викликаємо startUpload з контексту
+        await startUpload(reelsToUpload, commonFormData);
+        
+        // Негайно показуємо toast про *початок* процесу
+        showToast('Upload process started successfully!');
+
+        // Негайно скидаємо форму
         setReels([createNewReelState()]);
         setCommonFormData(initialCommonFormData);
       }
     } catch (err) {
-        console.error('An error occurred:', err);
-        setUploadStatus((prev) => ({ ...prev, message: 'Upload Failed!', error: err.message, isSuccess: false }));
-    } finally {
-        setTimeout(() => {
-            setUploadStatus({ isActive: false, message: '', files: {}, error: null, isSuccess: false });
-        }, 5000);
+      // Цей catch спрацює, якщо помилка виникне *до* старту завантаження
+      // (наприклад, не вдалось отримати юзера з supabase)
+      console.error('Failed to initiate upload:', err);
+      showToast(`Error: ${err.message}`);
     }
+    // Блок `finally` не потрібен, контекст сам керує своїм станом
   };
 
   if (isLoadingOptions && isEditMode) {
     return (
       <div className="p-8 text-center text-slate-500">
-        <Loader2 className="animate-spin inline-block mr-2" /> Loading item data...
+        <Loader2 className="animate-spin inline-block mr-2" /> Loading item
+        data...
       </div>
     );
   }
 
   return (
     <form onSubmit={handleSubmit} className="max-w-7xl mx-auto space-y-8 pb-36">
+      {/* Toast для локальних помилок (напр. валідації) */}
       {toast.visible && (
-        <div className="fixed top-5 right-5 z-[100] bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg shadow-lg" role="alert">
+        <div
+          className="fixed top-5 right-5 z-[100] bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg shadow-lg"
+          role="alert"
+        >
           <strong className="font-bold">Error: </strong>
           <span className="block sm:inline">{toast.message}</span>
         </div>
       )}
 
+      {/* Рендер форм для кожного ріла (без змін) */}
       {reels.map((reel, index) => (
         <div key={reel.id}>
           <h2 className="text-xl font-bold text-slate-700 dark:text-slate-200 mb-4">
@@ -764,105 +729,214 @@ const CreateReel = () => {
           />
         </div>
       ))}
-      
+
+      {/* Кнопка "Add Another Media" (без змін) */}
       {!isEditMode && (
         <div className="flex justify-center">
-          <button type="button" onClick={handleAddReel} className="px-6 py-2 border-2 border-dashed border-teal-500 text-teal-600 font-semibold rounded-lg hover:bg-teal-50 dark:hover:bg-slate-800 transition-colors">
+          <button
+            type="button"
+            onClick={handleAddReel}
+            className="px-6 py-2 border-2 border-dashed border-teal-500 text-teal-600 font-semibold rounded-lg hover:bg-teal-50 dark:hover:bg-slate-800 transition-colors"
+          >
             + Add Another Media
           </button>
         </div>
       )}
       <hr className="border-slate-300 dark:border-slate-700" />
+
+      {/* Форма "Common Content Data" (без змін) */}
       <FormSection title="Common Content Data">
-         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="md:col-span-2">
             <FormField label="Publication Date" required>
               <div className="flex items-center space-x-6 mb-3">
                 <div className="flex items-center">
-                  <input id="schedule" type="radio" name="publishOption" value="schedule" checked={!isSchedulingDisabled} onChange={(e) => handleCommonFormChange('publishOption', e.target.value)} className="h-4 w-4 border-slate-300 text-teal-600 focus:ring-teal-500" />
-                  <label htmlFor="schedule" className="ml-2 text-sm text-slate-700 dark:text-slate-300">Schedule</label>
+                  <input
+                    id="schedule"
+                    type="radio"
+                    name="publishOption"
+                    value="schedule"
+                    checked={!isSchedulingDisabled}
+                    onChange={(e) =>
+                      handleCommonFormChange('publishOption', e.target.value)
+                    }
+                    className="h-4 w-4 border-slate-300 text-teal-600 focus:ring-teal-500"
+                  />
+                  <label
+                    htmlFor="schedule"
+                    className="ml-2 text-sm text-slate-700 dark:text-slate-300"
+                  >
+                    Schedule
+                  </label>
                 </div>
                 <div className="flex items-center">
-                  <input id="publish-now" type="radio" name="publishOption" value="now" checked={isSchedulingDisabled} onChange={(e) => handleCommonFormChange('publishOption', e.target.value)} className="h-4 w-4 border-slate-300 text-teal-600 focus:ring-teal-500" />
-                  <label htmlFor="publish-now" className="ml-2 text-sm text-slate-700 dark:text-slate-300">Publish Now</label>
+                  <input
+                    id="publish-now"
+                    type="radio"
+                    name="publishOption"
+                    value="now"
+                    checked={isSchedulingDisabled}
+                    onChange={(e) =>
+                      handleCommonFormChange('publishOption', e.target.value)
+                    }
+                    className="h-4 w-4 border-slate-300 text-teal-600 focus:ring-teal-500"
+                  />
+                  <label
+                    htmlFor="publish-now"
+                    className="ml-2 text-sm text-slate-700 dark:text-slate-300"
+                  >
+                    Publish Now
+                  </label>
                 </div>
               </div>
               <div className="relative">
-                <DatePicker selected={commonFormData.publicationDate} onChange={(date) => handleCommonFormChange('publicationDate', date)} disabled={isSchedulingDisabled} showTimeSelect dateFormat="MMMM d, yyyy h:mm aa" className={`${inputClasses} pl-10 w-full`} />
-                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none"><CalendarIcon /></div>
+                <DatePicker
+                  selected={commonFormData.publicationDate}
+                  onChange={(date) =>
+                    handleCommonFormChange('publicationDate', date)
+                  }
+                  disabled={isSchedulingDisabled}
+                  showTimeSelect
+                  dateFormat="MMMM d, yyyy h:mm aa"
+                  className={`${inputClasses} pl-10 w-full`}
+                />
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <CalendarIcon />
+                </div>
               </div>
             </FormField>
           </div>
-          <MultiCreatableSelect label="Artist" options={artists} selectedOptions={commonFormData.artist} onChange={(newValue) => handleCommonFormChange('artist', newValue)} placeholder={isLoadingOptions ? 'Loading...' : 'Choose or type artist...'} required limit={10} />
-          <MultiCreatableSelect label="Client" options={clients} selectedOptions={commonFormData.client} onChange={(newValue) => handleCommonFormChange('client', newValue)} placeholder={isLoadingOptions ? 'Loading...' : 'Choose or type client...'} limit={10} />
-          <div className="md:col-span-2"><MultiCreatableSelect label="Featured Celebrity" options={celebrities} selectedOptions={commonFormData.featuredCelebrity} onChange={(newValue) => handleCommonFormChange('featuredCelebrity', newValue)} placeholder={isLoadingOptions ? 'Loading...' : 'Choose celebrity...'} limit={10} /></div>
+          <MultiCreatableSelect
+            label="Artist"
+            options={artists}
+            selectedOptions={commonFormData.artist}
+            onChange={(newValue) => handleCommonFormChange('artist', newValue)}
+            placeholder={isLoadingOptions ? 'Loading...' : 'Choose or type artist...'}
+            required
+            limit={10}
+          />
+          <MultiCreatableSelect
+            label="Client"
+            options={clients}
+            selectedOptions={commonFormData.client}
+            onChange={(newValue) => handleCommonFormChange('client', newValue)}
+            placeholder={isLoadingOptions ? 'Loading...' : 'Choose or type client...'}
+            limit={10}
+          />
+          <div className="md:col-span-2">
+            <MultiCreatableSelect
+              label="Featured Celebrity"
+              options={celebrities}
+              selectedOptions={commonFormData.featuredCelebrity}
+              onChange={(newValue) =>
+                handleCommonFormChange('featuredCelebrity', newValue)
+              }
+              placeholder={
+                isLoadingOptions ? 'Loading...' : 'Choose celebrity...'
+              }
+              limit={10}
+            />
+          </div>
           <div className="md:col-span-2">
             <FormField label="Description">
               <div className="relative w-full">
-                <textarea value={commonFormData.description} onChange={(e) => handleCommonFormChange('description', e.target.value)} maxLength="200" placeholder="Enter Clip Description..." className="flex min-h-[120px] w-full rounded-md border border-slate-300 bg-white dark:bg-slate-800 px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500 resize-none" ></textarea>
-                <div className="absolute bottom-2 right-2 text-xs text-slate-400">{commonFormData.description.length} / 200</div>
+                <textarea
+                  value={commonFormData.description}
+                  onChange={(e) =>
+                    handleCommonFormChange('description', e.target.value)
+                  }
+                  maxLength="200"
+                  placeholder="Enter Clip Description..."
+                  className="flex min-h-[120px] w-full rounded-md border border-slate-300 bg-white dark:bg-slate-800 px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500 resize-none"
+                ></textarea>
+                <div className="absolute bottom-2 right-2 text-xs text-slate-400">
+                  {commonFormData.description.length} / 200
+                </div>
               </div>
             </FormField>
           </div>
-          <div className="flex items-center"><input id="allow-download" type="checkbox" checked={commonFormData.allowDownload} onChange={(e) => handleCommonFormChange('allowDownload', e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500" /><label htmlFor="allow-download" className="ml-3 text-sm font-medium text-slate-700 dark:text-slate-300">Allow download</label></div>
+          <div className="flex items-center">
+            <input
+              id="allow-download"
+              type="checkbox"
+              checked={commonFormData.allowDownload}
+              onChange={(e) =>
+                handleCommonFormChange('allowDownload', e.target.checked)
+              }
+              className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+            />
+            <label
+              htmlFor="allow-download"
+              className="ml-3 text-sm font-medium text-slate-700 dark:text-slate-300"
+            >
+              Allow download
+            </label>
+          </div>
         </div>
       </FormSection>
+
+      {/* Форма "Common Meta Data" (без змін) */}
       <FormSection title="Common Meta Data" hasSeparator={false}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
-          <div className="md:col-span-2"><SingleSearchableSelect label="Content Type" options={contentTypes} value={commonFormData.contentType} onChange={(newValue) => handleCommonFormChange('contentType', newValue)} placeholder={isLoadingOptions ? 'Loading...' : 'Choose content type...'}/></div>
-          <div className="md:col-span-2"><SingleSearchableSelect label="Craft" options={crafts} value={commonFormData.craft} onChange={(newValue) => handleCommonFormChange('craft', newValue)} placeholder={isLoadingOptions ? 'Loading...' : 'Choose craft...'} required /></div>
-          <div className="md:col-span-2"><MultiSelectCategories label="Categories" options={categories} selectedOptions={commonFormData.categories} onChange={(newSelection) => handleCommonFormChange('categories', newSelection)} placeholder="Search and add categories..." limit={10} /></div>
+          <div className="md:col-span-2">
+            <SingleSearchableSelect
+              label="Content Type"
+              options={contentTypes}
+              value={commonFormData.contentType}
+              onChange={(newValue) =>
+                handleCommonFormChange('contentType', newValue)
+              }
+              placeholder={
+                isLoadingOptions ? 'Loading...' : 'Choose content type...'
+              }
+            />
+          </div>
+          <div className="md:col-span-2">
+            <SingleSearchableSelect
+              label="Craft"
+              options={crafts}
+              value={commonFormData.craft}
+              onChange={(newValue) =>
+                handleCommonFormChange('craft', newValue)
+              }
+              placeholder={isLoadingOptions ? 'Loading...' : 'Choose craft...'}
+              required
+            />
+          </div>
+          <div className="md:col-span-2">
+            <MultiSelectCategories
+              label="Categories"
+              options={categories}
+              selectedOptions={commonFormData.categories}
+              onChange={(newSelection) =>
+                handleCommonFormChange('categories', newSelection)
+              }
+              placeholder="Search and add categories..."
+              limit={10}
+            />
+          </div>
         </div>
       </FormSection>
-      
-      {/* ✨ ПОВЕРНЕНО: Блок статусу завантаження та оновлена кнопка */}
+
+      {/* 6. ВИДАЛЕНО: Локальна модалка статусу */}
+
+      {/* 7. Оновлена кнопка відправки, що використовує глобальний стан */}
       <div className="fixed bottom-6 right-6 z-50">
-          {uploadStatus.isActive && (
-             <div className="w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl p-4 transition-all mb-4">
-                <div className="flex items-center justify-between mb-3">
-                   <h3 className="font-semibold text-sm text-slate-800 dark:text-slate-200 flex items-center">
-                     {uploadStatus.isSuccess ? (
-                       <CheckCircle2 size={18} className="mr-2 text-teal-500" />
-                     ) : (
-                       <Loader2 size={18} className="animate-spin mr-2" />
-                     )}
-                     {uploadStatus.message}
-                   </h3>
-                   {uploadStatus.error && (
-                     <span className="text-xs text-red-500">Error</span>
-                   )}
-                </div>
-                {!uploadStatus.error && !uploadStatus.isSuccess && Object.keys(uploadStatus.files).length > 0 && (
-                  <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
-                    {Object.entries(uploadStatus.files).map(([fileName, status]) => (
-                      <div key={fileName}>
-                        <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 mb-1">
-                          <span className="truncate w-4/5 font-medium">{fileName}</span>
-                          <span className="font-mono">{status.progress}%</span>
-                        </div>
-                        <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full">
-                          <div
-                            className={`h-1.5 rounded-full transition-all duration-300 ${status.progress === 100 ? 'bg-teal-500' : 'bg-slate-800 dark:bg-slate-200'}`}
-                            style={{ width: `${status.progress}%` }}
-                          ></div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-             </div>
-          )}
-          <div className="flex justify-end">
-            <button
-                type="submit"
-                disabled={uploadStatus.isActive}
-                className="px-4 py-2 bg-teal-600 text-white text-sm font-semibold rounded-lg shadow-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-75 transition-all transform hover:scale-105 disabled:bg-slate-400 disabled:cursor-not-allowed disabled:scale-100"
-            >
-                {uploadStatus.isActive 
-                    ? (isEditMode ? 'Applying...' : 'Uploading...') 
-                    : (isEditMode ? 'Apply Changes' : 'Deploy & Upload All')}
-            </button>
-          </div>
+        <div className="flex justify-end">
+          <button
+            type="submit"
+            disabled={uploadStatus.isActive} // Використовує стан з контексту
+            className="px-4 py-2 bg-teal-600 text-white text-sm font-semibold rounded-lg shadow-lg hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-opacity-75 transition-all transform hover:scale-105 disabled:bg-slate-400 disabled:cursor-not-allowed disabled:scale-100"
+          >
+            {uploadStatus.isActive // Використовує стан з контексту
+              ? isEditMode
+                ? 'Applying...'
+                : 'Uploading...'
+              : isEditMode
+              ? 'Apply Changes'
+              : 'Deploy & Upload All'}
+          </button>
+        </div>
       </div>
     </form>
   );
