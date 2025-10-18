@@ -1,5 +1,4 @@
 // src/Data/DirectorsData.js
-
 export const directorsData = [
   {
     id: 1,
@@ -20,7 +19,8 @@ export const directorsData = [
         title: 'THE SOUND OF YOUR SOUL',
         src: "front-end/01-Directors/TRANSCODED/01-SUPERNOVA/2. Levi's - The sound of your soul/master.m3u8",
         preview_src:
-          "front-end/01-Directors/VIDEO_PREVIEW/01-SUPERNOVA/2. Levi's - The sound of your soul.jpg", startTime:2
+          "front-end/01-Directors/VIDEO_PREVIEW/01-SUPERNOVA/2. Levi's - The sound of your soul.jpg",
+        startTime: 2,
       },
       {
         client: 'COCA-COLA',
@@ -136,23 +136,24 @@ export const directorsData = [
       {
         client: 'STARBUCKS',
         title: 'EQUITY',
-        src: 'front-end/01-Directors/TRANSCODED/04-MATTIA BENETTI/test/7-Mattia Benetti S1155 Starbucks Equity Dc V04 (1)/master.m3u8',
+        src: 'front-end/01-Directors/TRANSCODED/04-MATTIA BENETTI/7Starbucks/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/04-MATTIA BENETTI/7-Mattia Benetti S1155 Starbucks Equity Dc V04 (1).jpg',
+          'front-end/01-Directors/VIDEO_PREVIEW/04-MATTIA BENETTI/7Starbucks.jpg',
       },
       {
         client: 'ZEGNA',
         title: 'SPRING - SUMMER 2025 FT. MADS MIKKELSEN',
         src: 'front-end/01-Directors/TRANSCODED/04-MATTIA BENETTI/1-zegnaaaaaa/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/04-MATTIA BENETTI/1-zegnaaaaaa.jpg', startTime:2
+          'front-end/01-Directors/VIDEO_PREVIEW/04-MATTIA BENETTI/1-zegnaaaaaa.jpg',
+        startTime: 2,
       },
       {
         client: 'URBAN DECAY',
         title: 'ALL NIGHTER UNBEATABLE',
-        src: 'front-end/01-Directors/TRANSCODED/04-MATTIA BENETTI/2-Mattia Benetti 2-Ud-2025-Anss-Hero-16X9-30-Textless/master.m3u8',
+        src: 'front-end/01-Directors/TRANSCODED/04-MATTIA BENETTI/2Anns/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/04-MATTIA BENETTI/2-Mattia Benetti 2-Ud-2025-Anss-Hero-16X9-30-Textless.jpg',
+          'front-end/01-Directors/VIDEO_PREVIEW/04-MATTIA BENETTI/2Anns.jpg',
       },
       {
         client: 'THE ROYAL',
@@ -171,16 +172,16 @@ export const directorsData = [
       {
         client: 'SFERA EBBASTA',
         title: 'BABY FT. J BALVIN',
-        src: 'front-end/01-Directors/TRANSCODED/04-MATTIA BENETTI/5 - Sfera Ebbasta & J Balvin - Baby_FHD_DOWNLOAD/master.m3u8',
+        src: 'front-end/01-Directors/TRANSCODED/04-MATTIA BENETTI/5 Sfera/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/04-MATTIA BENETTI/5 - Sfera Ebbasta & J Balvin - Baby_FHD_DOWNLOAD.jpg',
+          'front-end/01-Directors/VIDEO_PREVIEW/04-MATTIA BENETTI/5 Sfera.jpg',
       },
       {
         client: 'SPLASH',
         title: 'RAMADAN',
-        src: 'front-end/01-Directors/TRANSCODED/04-MATTIA BENETTI/6- SPLASH  Ramadam_FHD_DOWNLOAD/master.m3u8',
+        src: 'front-end/01-Directors/TRANSCODED/04-MATTIA BENETTI/6SPLASH/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/04-MATTIA BENETTI/6- SPLASH  Ramadam_FHD_DOWNLOAD.jpg',
+          'front-end/01-Directors/VIDEO_PREVIEW/04-MATTIA BENETTI/6SPLASH.jpg',
       },
     ],
   },
@@ -210,14 +211,16 @@ export const directorsData = [
         title: 'APP GALERY',
         src: 'front-end/01-Directors/TRANSCODED/05-ELI SVERDLOV/3 - Huawei - App Gallery/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/05-ELI SVERDLOV/3 - Huawei - App Gallery.jpg', startTime:6
+          'front-end/01-Directors/VIDEO_PREVIEW/05-ELI SVERDLOV/3 - Huawei - App Gallery.jpg',
+        startTime: 6,
       },
       {
         client: 'HUAWEI',
         title: 'P30',
         src: 'front-end/01-Directors/TRANSCODED/05-ELI SVERDLOV/4 - Huawei - P30/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/05-ELI SVERDLOV/4 - Huawei - P30.jpg', startTime:2
+          'front-end/01-Directors/VIDEO_PREVIEW/05-ELI SVERDLOV/4 - Huawei - P30.jpg',
+        startTime: 2,
       },
       {
         client: 'MI MAX',
@@ -261,7 +264,8 @@ export const directorsData = [
         title: 'PA’TI FT. MALUMA',
         src: "front-end/01-Directors/TRANSCODED/06-jessy terrero/3 - Jennifer Lopez - Pa' Ti Feat Maluma/master.m3u8",
         preview_src:
-          "front-end/01-Directors/VIDEO_PREVIEW/06-jessy terrero/3 - Jennifer Lopez - Pa' Ti Feat Maluma.jpg", startTime:2
+          "front-end/01-Directors/VIDEO_PREVIEW/06-jessy terrero/3 - Jennifer Lopez - Pa' Ti Feat Maluma.jpg",
+        startTime: 2,
       },
       {
         client: 'CADILLAC',
@@ -299,7 +303,7 @@ export const directorsData = [
         src: 'front-end/01-Directors/TRANSCODED/07-VIVIENNE AND TAMAS/01. Kerastase - Chroma- Emily Ratajkowski/master.m3u8',
         preview_src:
           'front-end/01-Directors/VIDEO_PREVIEW/07-VIVIENNE AND TAMAS/01. Kerastase - Chroma- Emily Ratajkowski.jpg',
-          startTime:2,
+        startTime: 2,
       },
       {
         client: 'DOUGLAS COSMETICS',
@@ -313,14 +317,16 @@ export const directorsData = [
         title: 'JOY JORNEY',
         src: 'front-end/01-Directors/TRANSCODED/07-VIVIENNE AND TAMAS/03. Darphin - Joy Journey/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/07-VIVIENNE AND TAMAS/03. Darphin - Joy Journey.jpg', startTime:1
+          'front-end/01-Directors/VIDEO_PREVIEW/07-VIVIENNE AND TAMAS/03. Darphin - Joy Journey.jpg',
+        startTime: 1,
       },
       {
         client: 'WELLA PROFESSIONALS',
         title: 'ILLUMINA COLOR',
         src: 'front-end/01-Directors/TRANSCODED/07-VIVIENNE AND TAMAS/04. Wella Professionals – Illumina Color/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/07-VIVIENNE AND TAMAS/04. Wella Professionals – Illumina Color.jpg', startTime:2
+          'front-end/01-Directors/VIDEO_PREVIEW/07-VIVIENNE AND TAMAS/04. Wella Professionals – Illumina Color.jpg',
+        startTime: 2,
       },
     ],
   },
@@ -337,21 +343,23 @@ export const directorsData = [
         src: 'front-end/01-Directors/TRANSCODED/08-LORENZO CISI/1 - Q225_SUMMER_LONGFORM_60s_16x9_v13b_ONLINE/master.m3u8',
         preview_src:
           'front-end/01-Directors/VIDEO_PREVIEW/08-LORENZO CISI/1 - Q225_SUMMER_LONGFORM_60s_16x9_v13b_ONLINE.jpg',
-      startTime:3,
-        },
+        startTime: 3,
+      },
       {
         client: 'ZARA',
         title: 'KIDS - STUDIO COLLECTION',
         src: 'front-end/01-Directors/TRANSCODED/08-LORENZO CISI/2 - LORENZO CISI - ZARA KIDS - SS25 Studio Collection/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/08-LORENZO CISI/2 - LORENZO CISI - ZARA KIDS - SS25 Studio Collection.jpg', startTime:2
+          'front-end/01-Directors/VIDEO_PREVIEW/08-LORENZO CISI/2 - LORENZO CISI - ZARA KIDS - SS25 Studio Collection.jpg',
+        startTime: 2,
       },
       {
         client: 'GIVENCHY',
         title: 'L’INTERDIT THRILL',
         src: "front-end/01-Directors/TRANSCODED/08-LORENZO CISI/3 - givenchy_-_l'interdit_thrill/master.m3u8",
         preview_src:
-          "front-end/01-Directors/VIDEO_PREVIEW/08-LORENZO CISI/3 - givenchy_-_l'interdit_thrill.jpg", startTime:1
+          "front-end/01-Directors/VIDEO_PREVIEW/08-LORENZO CISI/3 - givenchy_-_l'interdit_thrill.jpg",
+        startTime: 1,
       },
       {
         client: 'ZARA',
@@ -365,7 +373,8 @@ export const directorsData = [
         title: 'BEAUTY CLUB VIDEO BOOTH FT. SINK THE PINK',
         src: 'front-end/01-Directors/TRANSCODED/08-LORENZO CISI/5 - ysl_-_beauty_club_video_booth_feat._sink_the_pink/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/08-LORENZO CISI/5 - ysl_-_beauty_club_video_booth_feat._sink_the_pink.jpg', startTime:2
+          'front-end/01-Directors/VIDEO_PREVIEW/08-LORENZO CISI/5 - ysl_-_beauty_club_video_booth_feat._sink_the_pink.jpg',
+        startTime: 2,
       },
     ],
   },
@@ -402,7 +411,8 @@ export const directorsData = [
         title: 'VALENTINE’S DAY',
         src: "front-end/01-Directors/TRANSCODED/09-REMY CAYUELA/4 - Match.com - Valentine's Day/master.m3u8",
         preview_src:
-          "front-end/01-Directors/VIDEO_PREVIEW/09-REMY CAYUELA/4 - Match.com - Valentine's Day.jpg", startTime:4
+          "front-end/01-Directors/VIDEO_PREVIEW/09-REMY CAYUELA/4 - Match.com - Valentine's Day.jpg",
+        startTime: 4,
       },
       {
         client: 'YOUNITED',
@@ -432,14 +442,14 @@ export const directorsData = [
         title: 'DUNKINGS FT. BEN AFFLECK AND JENNIFER LOPEZ',
         src: 'front-end/01-Directors/TRANSCODED/10-Beedy/2-DD_SB_60_DunKings_Sometimes_YouTube/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/10-Beedy/2-DD_SB_60_DunKings_Sometimes_YouTube.jpg ',
+          'front-end/01-Directors/VIDEO_PREVIEW/10-Beedy/2-DD_SB_60_DunKings_Sometimes_YouTube.jpg',
       },
       {
         client: 'PLAY STATION',
         title: 'GIFT RATING',
         src: 'front-end/01-Directors/TRANSCODED/10-Beedy/3-Front-End 01-Directors 10-Beedy Gift Ratings 60 Directors 12.5 Prores/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/10-Beedy/3-Front-End 01-Directors 10-Beedy Gift Ratings 60 Directors 12.5 Prores.jpg ',
+          'front-end/01-Directors/VIDEO_PREVIEW/10-Beedy/3-Front-End 01-Directors 10-Beedy Gift Ratings 60 Directors 12.5 Prores.jpg',
       },
       {
         client: 'DUNKIN’',
@@ -514,8 +524,8 @@ export const directorsData = [
         src: 'front-end/01-Directors/TRANSCODED/12-JEAN CLAUDE THIBAUT/1 - Kilian - Old Fashioned/master.m3u8',
         preview_src:
           'front-end/01-Directors/VIDEO_PREVIEW/12-JEAN CLAUDE THIBAUT/1 - Kilian - Old Fashioned.jpg',
-      startTime:4,
-        },
+        startTime: 4,
+      },
       {
         client: 'ESTÉE LAUDER',
         title: 'DARE',
@@ -566,14 +576,15 @@ export const directorsData = [
         src: 'front-end/01-Directors/TRANSCODED/13-Magda Wozinska/1-magdalena_wosinska_|_hers (1080p)/master.m3u8',
         preview_src:
           'front-end/01-Directors/VIDEO_PREVIEW/13-Magda Wozinska/1-magdalena_wosinska_|_hers (1080p).jpg',
-     startTime:8,
-        },
+        startTime: 8,
+      },
       {
         client: 'WALMART',
         title: 'BRING THE SPRING',
         src: 'front-end/01-Directors/TRANSCODED/13-Magda Wozinska/2-magdalena_wosinska_|_walmart (1080p)/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/13-Magda Wozinska/2-magdalena_wosinska_|_walmart (1080p).jpg', startTime:2
+          'front-end/01-Directors/VIDEO_PREVIEW/13-Magda Wozinska/2-magdalena_wosinska_|_walmart (1080p).jpg',
+        startTime: 2,
       },
       {
         client: 'CARERRA',
@@ -604,14 +615,15 @@ export const directorsData = [
         src: 'front-end/01-Directors/TRANSCODED/14-Directed by Mom/1-hennessy__nature_-_with_alicia_keys_&_lang_lang (1080p)/master.m3u8',
         preview_src:
           'front-end/01-Directors/VIDEO_PREVIEW/14-Directed by Mom/1-hennessy__nature_-_with_alicia_keys_&_lang_lang (1080p).jpg',
-      startTime:4,
-        },
+        startTime: 4,
+      },
       {
         client: 'Aryeè The Gem',
         title: 'FWM FT. DRAM',
         src: 'front-end/01-Directors/TRANSCODED/14-Directed by Mom/aryee-the-gem-fwm-2160p/master.m3u8',
         preview_src:
-          'front-end/01-Directors/VIDEO_PREVIEW/14-Directed by Mom/aryee-the-gem-fwm-2160p.jpg', startTime:7
+          'front-end/01-Directors/VIDEO_PREVIEW/14-Directed by Mom/aryee-the-gem-fwm-2160p.jpg',
+        startTime: 7,
       },
     ],
   },
@@ -626,19 +638,19 @@ export const directorsData = [
         client: 'waldorf astoria',
         title: 'timeless elegance',
         src: 'front-end/01-Directors/TRANSCODED/15-TYD/1/master.m3u8',
-        preview_src: 'front-end/01-Directors/VIDEO_PREVIEW/15-BYD/1.jpg',
+        preview_src: 'front-end/01-Directors/VIDEO_PREVIEW/15-TYD/1.jpg',
       },
       {
         client: 'sterling',
         title: 'Unleash the magic of halibut',
         src: 'front-end/01-Directors/TRANSCODED/15-TYD/2/master.m3u8',
-        preview_src: 'front-end/01-Directors/VIDEO_PREVIEW/15-BYD/2.jpg',
+        preview_src: 'front-end/01-Directors/VIDEO_PREVIEW/15-TYD/2.jpg',
       },
       {
         client: 'speilsalen',
         title: 'First act - prelude to perfection',
         src: 'front-end/01-Directors/TRANSCODED/15-TYD/3/master.m3u8',
-        preview_src: 'front-end/01-Directors/VIDEO_PREVIEW/15-BYD/3.jpg',
+        preview_src: 'front-end/01-Directors/VIDEO_PREVIEW/15-TYD/3.jpg',
       },
     ],
   },

@@ -60,6 +60,13 @@ export const tableTopData = [
     bio: 'Detailed information will be available soon.', // Placeholder bio
     videos: [
       {
+        client: 'Fam feast',
+        title: 'FAM FEAST',
+        src: 'front-end/07-Tabletop Studio/01-Raphael Hache/TRANSCODED/02-TYLER BOWDITCH/1-EPLL1183000H_EPL_25M5_Fam20Feast_Infinity_15/master.m3u8',
+        preview_src:
+          'front-end/07-Tabletop Studio/01-Raphael Hache/VIDEO_PREVIEW/02-TYLER BOWDITCH/1-EPLL1183000H_EPL_25M5_Fam20Feast_Infinity_15.jpg',
+      },
+      {
         client: 'PEPSI',
         title: 'PEPSI_03-1_V1_FINAL_Web',
         src: 'front-end/07-Tabletop Studio/01-Raphael Hache/TRANSCODED/02-TYLER BOWDITCH/2-PEPSI_03-1_V1_FINAL_Web/master.m3u8',

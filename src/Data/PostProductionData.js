@@ -14,8 +14,8 @@ export const postProductionData = [
         src: 'front-end/06-AI | POST PRODUCTION/TRANSCODED/1-EYEMIX/1 - Dior - The Ascendance (2024) Davinci Production/master.m3u8',
         preview_src:
           'front-end/06-AI | POST PRODUCTION/VIDEO_PREVIEW/1-EYEMIX/1 - Dior - The Ascendance (2024) Davinci Production.jpg',
-      startTime: 2,
-        },
+        startTime: 2,
+      },
       {
         client: 'COCA-COLA',
         title: 'Time Capsule',
@@ -52,7 +52,7 @@ export const postProductionData = [
         src: 'front-end/06-AI | POST PRODUCTION/TRANSCODED/2-Johannes Vorillon/1/master.m3u8',
         preview_src:
           'front-end/06-AI | POST PRODUCTION/VIDEO_PREVIEW/2-Johannes Vorillon/1.jpg',
-          startTime: 2,
+        startTime: 2,
       },
       {
         client: 'ASTON MARTIN',
@@ -83,7 +83,7 @@ export const postProductionData = [
         src: 'front-end/06-AI | POST PRODUCTION/TRANSCODED/3-Jeremy Gross/1-AI SHOWREEL/master.m3u8',
         preview_src:
           'front-end/06-AI | POST PRODUCTION/VIDEO_PREVIEW/3-Jeremy Gross/1-AI SHOWREEL.jpg',
-          startTime: 3,
+        startTime: 3,
       },
     ],
   },
@@ -97,9 +97,9 @@ export const postProductionData = [
       {
         client: 'EXTRACTION',
         title: 'EXTRACTION 2',
-        src: 'front-end/06-AI | POST PRODUCTION/TRANSCODED/4-Álex Rodríguez/EXTRACTION 2 ¦ Official Trailer ¦ Netflix (1080p_24fps_H264-128kbit_AAC)/master.m3u8',
+        src: 'front-end/06-AI | POST PRODUCTION/TRANSCODED/4-Álex Rodríguez/EXTRACTION 2/master.m3u8',
         preview_src:
-          'front-end/06-AI | POST PRODUCTION/VIDEO_PREVIEW/4-Álex Rodríguez/EXTRACTION 2 ¦ Official Trailer ¦ Netflix (1080p_24fps_H264-128kbit_AAC).jpg',
+          'front-end/06-AI | POST PRODUCTION/VIDEO_PREVIEW/4-Álex Rodríguez/EXTRACTION 2.jpg',
       },
     ],
   },
@@ -120,30 +120,30 @@ export const postProductionData = [
       {
         client: 'BILLIE EILISH',
         title: 'Oxytocin',
-        src: 'front-end/06-AI | POST PRODUCTION/5-David Checel/2-Billie%20Eilish%20-%20Oxytocin.mp4',
+        src: 'front-end/06-AI | POST PRODUCTION/TRANSCODED/5-David Checel/2BillieEllish/master.m3u8',
         preview_src:
-          'front-end/06-AI | POST PRODUCTION/VIDEO_PREVIEW/1-EYEMIX/2 - Coca-Cola - Time Capsule.jpg',
+          'front-end/06-AI | POST PRODUCTION/VIDEO_PREVIEW/5-David Checel/2BillieEllish.jpg',
       },
       {
         client: 'OLIVIA RODRIGO',
         title: 'Get Him Back',
-        src: 'front-end/06-AI | POST PRODUCTION/5-David Checel/3-Olivia%20Rodrigo%20-%20get%20him%20back%21%20%28Official%20Video%29%20%282160p_24fps_AV1-128kbit_AAC%29.mp4',
+        src: 'front-end/06-AI | POST PRODUCTION/TRANSCODED/5-David Checel/3-OliviaRodrigo_recoded/master.m3u8',
         preview_src:
-          'front-end/06-AI | POST PRODUCTION/VIDEO_PREVIEW/1-EYEMIX/3 - Davinci Production - Path Water - Path Of The Earth (2024).mov.jpg',
+          'front-end/06-AI | POST PRODUCTION/VIDEO_PREVIEW/5-David Checel/3-OliviaRodrigo_recoded.jpg',
       },
       {
         client: 'LADY GAGA',
         title: 'Rain On Me',
-        src: 'front-end/06-AI | POST PRODUCTION/5-David Checel/4-Lady%20Gaga%2C%20Ariana%20Grande%20-%20Rain%20On%20Me%20%28Official%20Music%20Video%29%20%281080p_24fps_H264-128kbit_AAC%29.mp4',
+        src: 'front-end/06-AI | POST PRODUCTION/TRANSCODED/5-David Checel/4-LadyGaga/master.m3u8',
         preview_src:
-          'front-end/06-AI | POST PRODUCTION/VIDEO_PREVIEW/1-EYEMIX/4 - Davinci Production - Maybelline AI.jpg',
+          'front-end/06-AI | POST PRODUCTION/VIDEO_PREVIEW/5-David Checel/4-LadyGaga.jpg',
       },
       {
         client: 'BILLIE X ADOBE',
         title: "Create What's True to You",
-        src: 'front-end/06-AI | POST PRODUCTION/5-David Checel/5-Create%20What%27s%20True%20to%20You%20_%20Billie%20x%20Adobe%20%281080p_24fps_H264-128kbit_AAC%29.mp4',
+        src: 'front-end/06-AI | POST PRODUCTION/TRANSCODED/5-David Checel/5-CreateWhat/master.m3u8',
         preview_src:
-          'front-end/06-AI | POST PRODUCTION/VIDEO_PREVIEW/6-Jared Kaplan/1-EPL_25M4_Quesadillas_Plot Twist Dalton_GM_30_16x9.jpg',
+          'front-end/06-AI | POST PRODUCTION/VIDEO_PREVIEW/5-David Checel/5-CreateWhat.jpg',
       },
     ],
   },

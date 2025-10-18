@@ -73,9 +73,9 @@ def create_adaptive_bitrate_job(input_uri, output_uri):
             },
         ],
         mux_streams=[
-            {"key": "hls-720p", "container": "ts", "elementary_streams": ["video-stream-720p", "audio-stream-stereo"], "segment_settings": {"segment_duration": "6s"}},
-            {"key": "hls-1080p", "container": "ts", "elementary_streams": ["video-stream-1080p", "audio-stream-stereo"], "segment_settings": {"segment_duration": "6s"}},
-            {"key": "hls-1440p", "container": "ts", "elementary_streams": ["video-stream-1440p", "audio-stream-stereo"], "segment_settings": {"segment_duration": "6s"}},
+            {"key": "hls-720p", "container": "ts", "elementary_streams": ["video-stream-720p", "audio-stream-stereo"], "segment_settings": {"segment_duration": "3s"}},
+            {"key": "hls-1080p", "container": "ts", "elementary_streams": ["video-stream-1080p", "audio-stream-stereo"], "segment_settings": {"segment_duration": "3s"}},
+            {"key": "hls-1440p", "container": "ts", "elementary_streams": ["video-stream-1440p", "audio-stream-stereo"], "segment_settings": {"segment_duration": "3s"}},
         ],
         manifests=[{"file_name": "master.m3u8", "type_": "HLS", "mux_streams": ["hls-720p", "hls-1080p", "hls-1440p"]}]
     )

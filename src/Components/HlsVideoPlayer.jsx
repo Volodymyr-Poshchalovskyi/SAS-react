@@ -8,7 +8,7 @@ const HlsVideoPlayer = ({
   shouldPlay,
   isMuted = true,
   previewSrc,
-  startTime = 0, // Пропс залишається
+  startTime = 0,
   ...props
 }) => {
   const videoRef = useRef(null);
@@ -25,28 +25,46 @@ const HlsVideoPlayer = ({
       setIsVideoVisible(true);
     };
 
+    // ✨ НОВА ЛОГІКА: Керування якістю
     const onManifestParsed = (event, data) => {
-      hls.startLevel = data.levels.length - 1;
+      // data.levels — це масив усіх доступних якостей
+      // Зазвичай вони відсортовані від найнижчої до найвищої
+      
+      // 1. Знаходимо індекс для якості 1080p
+      const level_1080p_index = data.levels.findIndex(({ height }) => height === 1080);
+      
+      // 2. Якщо такий рівень (1080p) знайдено:
+      if (level_1080p_index !== -1) {
+        
+        // Встановлюємо 1080p як СТАРТОВИЙ рівень
+        hls.startLevel = level_1080p_index;
+        
+        // Встановлюємо 1080p як МІНІМАЛЬНИЙ рівень для авто-якості
+        // Це заборонить плеєру опускатися до 720p
+        hls.minAutoLevel = level_1080p_index;
+      }
+      
+      // Якщо рівень 1080p не знайдено (наприклад, відео має макс. 720p),
+      // плеєр просто використає свою стандартну логіку ABR.
     };
 
     if (Hls.isSupported()) {
-      // ✨ ЗМІНА 1: Створюємо конфігурацію для HLS
-      // Якщо startTime > 0, ми передаємо його в конфігурацію як startPosition.
+      // Конфігурація для HLS
       const hlsConfig = startTime > 0 ? { startPosition: startTime } : {};
 
-      // ✨ ЗМІНА 2: Ініціалізуємо Hls з нашою конфігурацією
       hls = new Hls(hlsConfig);
       hlsRef.current = hls;
 
+      // ✨ ПІДКЛЮЧАЄМО НАШУ ЛОГІКУ
+      // Це спрацює до того, як почнеться завантаження сегментів
       hls.on(Hls.Events.MANIFEST_PARSED, onManifestParsed);
+      
       hls.loadSource(src);
       hls.attachMedia(video);
 
-      // ✨ ЗМІНА 3: Тепер нам не потрібно вручну змінювати currentTime.
-      // Плеєр сам почне з потрібного місця.
       video.addEventListener('canplay', showVideo);
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      // Для нативних плеєрів (Safari) додаємо таймкод прямо до URL
+      // Для нативних плеєрів (Safari)
       video.src = startTime > 0 ? `${src}#t=${startTime}` : src;
       video.addEventListener('canplay', showVideo);
     }
@@ -54,6 +72,7 @@ const HlsVideoPlayer = ({
     return () => {
       video.removeEventListener('canplay', showVideo);
       if (hls) {
+        // ✨ Не забуваємо відписатися від події
         hls.off(Hls.Events.MANIFEST_PARSED, onManifestParsed);
         hls.destroy();
       }

@@ -8,7 +8,7 @@ require('dotenv').config(); // Завантажуємо змінні з .env
 // 2. Налаштування
 const BUCKET_NAME = process.env.GCS_BUCKET_NAME;
 const KEY_BASE64 = process.env.GCS_SERVICE_ACCOUNT_KEY_BASE64;
-const TARGET_FOLDER = 'front-end/07-Tabletop Studio/01-Raphael Hache/VIDEO_PREVIEW/'; // Папка, яку скануємо
+const TARGET_FOLDER = 'front-end/07-Tabletop Studio/01-Raphael Hache/'; // Папка, яку скануємо
 const OUTPUT_FILE = 'gcs_file_list.json'; // Назва файлу з результатом
 
 // 3. Перевірка наявності змінних

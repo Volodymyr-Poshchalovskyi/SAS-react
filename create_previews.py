@@ -8,9 +8,9 @@ from collections import defaultdict
 PROJECT_ID = "new-sas-472103"
 BUCKET_NAME = "new-sas-media-storage"
 # Базова папка, де знаходяться папки ВСІХ режисерів
-BASE_TRANSCODED_DIRECTORY = "front-end/07-Tabletop Studio/01-Raphael Hache/TRANSCODED/"
+BASE_TRANSCODED_DIRECTORY = "front-end/01-Directors/TRANSCODED/"
 # Базова папка, куди будемо складати всі прев'ю
-DESTINATION_BASE_DIRECTORY = "front-end/07-Tabletop Studio/01-Raphael Hache/VIDEO_PREVIEW/"
+DESTINATION_BASE_DIRECTORY = "front-end/01-Directors/VIDEO_PREVIEW"
 # ----------------------------------------------------
 
 # Ініціалізація клієнтів
@@ -34,8 +34,10 @@ def generate_preview_from_video(video_blob, temp_dir_path):
         video_blob.download_to_filename(local_video_path)
 
         vidcap = cv2.VideoCapture(local_video_path)
-        vidcap.set(cv2.CAP_PROP_POS_MSEC, 1000)
+
+        # Не виставляємо час — беремо перший кадр
         success, image = vidcap.read()
+
 
         if not success:
             print("  -> Не вдалося взяти кадр на 1-й секунді, пробую перший кадр...")
@@ -100,7 +102,7 @@ def process_director_folder(source_directory):
 
             target_blob = None
             for blob in blob_list:
-                if '720p' in blob.name.lower():
+                if '1080p' in blob.name.lower():
                     target_blob = blob
                     break
             
