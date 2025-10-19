@@ -1,5 +1,3 @@
-// src/Components/Layout/Footer.jsx
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { FaFacebookF, FaInstagram, FaLinkedinIn } from 'react-icons/fa';
@@ -7,14 +5,20 @@ import certifiedLogo from '../../assets/Logo/certified.jpg';
 
 export default function Footer() {
   return (
-    // ✨ 1. Default text color changed to a lighter gray (text-gray-400)
     <footer className="bg-black text-gray-400 font-sans">
-      <div className="max-w-screen-2xl mx-auto px-16">
-        <div className="relative border-t border-gray-800 py-6 flex justify-between items-center gap-8">
+      {/* ✨ 1. Зменшено горизонтальний padding для мобільних (px-6),
+             повернено px-16 для великих екранів (lg:) */}
+      <div className="max-w-screen-2xl mx-auto px-6 lg:px-16">
+        
+        {/* ✨ 2. Головний контейнер тепер адаптивний:
+               - По дефолту: flex-col (стек), items-center (центрування) і gap-6
+               - На lg: повертається до flex-row та justify-between */}
+        <div className="relative border-t border-gray-800 py-6 flex flex-col lg:flex-row justify-between items-center gap-6 lg:gap-8">
+          
           {/* --- Ліва частина: Іконки соцмереж --- */}
+          {/* На мобільному цей блок буде першим у стеку і відцентрованим */}
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-5 text-lg">
-              {/* ✨ 2. Hover color changed to white */}
               <a
                 href="#"
                 aria-label="Facebook"
@@ -40,8 +44,10 @@ export default function Footer() {
           </div>
 
           {/* --- Центральна частина: Логотип --- */}
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-            {/* ✨ 3. Added a CSS filter to make the JPG logo appear light gray */}
+          {/* ✨ 3. Позиціонування логотипу тепер адаптивне:
+                 - По дефолту: звичайний елемент (другий у стеку)
+                 - На lg: стає absolute (як було), щоб ідеально центруватись */}
+          <div className="lg:absolute lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2">
             <img
               src={certifiedLogo}
               alt="Certified WBENC"
@@ -50,14 +56,16 @@ export default function Footer() {
           </div>
 
           {/* --- Права частина: Копірайт та посилання --- */}
-          {/* ✨ 4. Removed specific gray color to inherit from the parent */}
-          <div className="text-xs uppercase tracking-wider text-center md:text-right">
+          {/* ✨ 4. Блок копірайту тепер також адаптивний:
+                 - По дефолту: flex-col, items-center (текст і посилання одне під одним)
+                 - На lg: повертається до flex-row і text-right */}
+          <div className="text-xs uppercase tracking-wider text-center lg:text-right flex flex-col items-center lg:flex-row gap-2 lg:gap-0">
             <span>© 2025 SINNERS AND SAINTS LLC. ALL RIGHTS RESERVED.</span>
 
-            {/* ✨ 5. Hover color for the link changed to white */}
+            {/* ✨ 5. Відступ ml-6 застосовується тільки на lg екранах */}
             <Link
               to="/privacy-policy"
-              className="ml-6 hover:text-white transition-colors"
+              className="lg:ml-6 hover:text-white transition-colors"
             >
               Privacy Policy
             </Link>
