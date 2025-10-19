@@ -28,6 +28,7 @@ const tabsData = [
   { id: 'contact', label: 'CONTACT', title: 'CONNECT WITH US' },
 ];
 
+// --- TeamMemberModal (ОНОВЛЕНО) ---
 const TeamMemberModal = ({ member, onClose }) => {
   const nameRef = useRef(null);
   const bioRef = useRef(null);
@@ -45,6 +46,7 @@ const TeamMemberModal = ({ member, onClose }) => {
   }, [onClose]);
 
   useLayoutEffect(() => {
+    // Функція для підгонки розміру шрифту імені
     const adjustNameFontSize = () => {
       const element = nameRef.current;
       if (!element) return;
@@ -69,27 +71,6 @@ const TeamMemberModal = ({ member, onClose }) => {
     adjustNameFontSize();
     window.addEventListener('resize', adjustNameFontSize);
     return () => window.removeEventListener('resize', adjustNameFontSize);
-  }, [member]);
-
-  useLayoutEffect(() => {
-    const adjustBioFontSize = () => {
-      const element = bioRef.current;
-      if (!element) return;
-      element.style.fontSize = '';
-      const initialFontSize = parseFloat(window.getComputedStyle(element).fontSize);
-      let currentFontSize = initialFontSize;
-      const minFontSize = 10;
-      while (
-        element.scrollHeight > element.clientHeight &&
-        currentFontSize > minFontSize
-      ) {
-        currentFontSize -= 0.5;
-        element.style.fontSize = `${currentFontSize}px`;
-      }
-    };
-    adjustBioFontSize();
-    window.addEventListener('resize', adjustBioFontSize);
-    return () => window.removeEventListener('resize', adjustBioFontSize);
   }, [member]);
 
   const modalVariants = {
@@ -137,8 +118,9 @@ const TeamMemberModal = ({ member, onClose }) => {
             <X size={32} />
           </button>
         </header>
-
-        <div className="flex-grow flex flex-col px-8 md:px-16 pb-12 overflow-hidden">
+      
+        <div className="flex-grow flex flex-col px-8 md:px-16 pb-[70px] overflow-hidden min-h-0">
+          {' '}
           <h1
             ref={nameRef}
             className="flex-shrink-0 text-center font-chanel font-semibold uppercase mb-9 leading-none"
@@ -146,8 +128,9 @@ const TeamMemberModal = ({ member, onClose }) => {
           >
             {member.firstName} {member.lastName}
           </h1>
-          <div className="flex-grow flex flex-col md:flex-row gap-12 md:gap-16 min-h-0">
-            <div className="w-full md:w-2/5 flex-shrink-0">
+          <div className="flex-grow flex flex-col lg:flex-row gap-12 lg:gap-16 min-h-0">
+            {/* 1. Колонка з фото */}
+            <div className="hidden lg:block w-full lg:w-2/5 flex-shrink-0">
               {member.photoSrc ? (
                 <img
                   src={member.photoSrc}
@@ -158,18 +141,18 @@ const TeamMemberModal = ({ member, onClose }) => {
                 <div className="w-full aspect-square bg-gray-200" />
               )}
             </div>
-            <div className="w-full md:w-3/5 flex flex-col justify-center">
-              <div>
-                <h2 className="text-2xl font-bold uppercase  mb-4 whitespace-nowrap">
-                  {member.role}
-                </h2>
-                <p
-                  ref={bioRef}
-                  className="text-sm leading-relaxed whitespace-pre-line max-h-[40vh] md:max-h-full text-justify"
-                >
-                  {member.bio}
-                </p>
-              </div>
+
+            {/* 2. Колонка з текстом */}
+            <div className="w-full lg:w-3/5 flex flex-col min-h-0">
+              <h2 className="text-xl md:text-2xl font-bold uppercase mb-4 flex-shrink-0">
+                {member.role}
+              </h2>
+              <p
+                ref={bioRef}
+                className="text-sm leading-relaxed whitespace-pre-line text-left lg:text-justify flex-grow overflow-y-auto pb-5"
+              >
+                {member.bio}
+              </p>
             </div>
           </div>
         </div>
@@ -178,9 +161,8 @@ const TeamMemberModal = ({ member, onClose }) => {
   );
 };
 
-
 // ===================================
-// Сітка з учасниками команди
+// Сітка з учасниками команди (ОНОВЛЕНО)
 // ===================================
 const TeamGrid = ({ teamMembers, onSelectMember }) => {
   return (
@@ -197,7 +179,8 @@ const TeamGrid = ({ teamMembers, onSelectMember }) => {
           return (
             <div key={member.id} className="grid grid-cols-1 md:grid-cols-2">
               <div
-                className={`w-full h-[50vw] ${
+                className={`w-full h-[100vw] md:h-[50vw] ${
+                  // --- ЗМІНЕНО ---
                   isReversed ? 'md:order-last' : ''
                 }`}
               >
@@ -232,7 +215,7 @@ const TeamGrid = ({ teamMembers, onSelectMember }) => {
 };
 
 // ===================================
-// Компонент секції контактів
+// Компонент секції контактів (ОНОВЛЕНО)
 // ===================================
 const ContactInfoSection = () => {
   return (
@@ -259,7 +242,9 @@ const ContactInfoSection = () => {
           </div>
         ))}
         <hr className="my-12 border-black w-full mx-auto" />
-        <h2 className="text-4xl font-chanel font-semibold uppercase tracking-[0.15em] mb-12">
+        <h2 className="text-3xl sm:text-4xl font-chanel font-semibold uppercase tracking-[0.15em] mb-12">
+          {' '}
+          {/* --- ЗМІНЕНО --- */}
           SALES
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-y-10 gap-x-8">
@@ -280,7 +265,7 @@ const ContactInfoSection = () => {
 };
 
 // ===================================
-// ГОЛОВНИЙ КОМПОНЕНТ СТОРІНКИ
+// ГОЛОВНИЙ КОМПОНЕНТ СТОРІНКИ (ОНОВЛЕНО)
 // ===================================
 export default function Team() {
   const { isPreloaderActive, setIsPreloaderActive } = useAnimation();
@@ -326,10 +311,7 @@ export default function Team() {
 
       <AnimatePresence>
         {selectedMember && (
-          <TeamMemberModal
-            member={selectedMember}
-            onClose={handleCloseModal}
-          />
+          <TeamMemberModal member={selectedMember} onClose={handleCloseModal} />
         )}
       </AnimatePresence>
 
@@ -339,12 +321,14 @@ export default function Team() {
       >
         <div className="max-w-7xl mx-auto px-4">
           <nav className="flex items-center justify-center">
-            <div className="flex space-x-10 border-b border-gray-300">
+            {/* --- ЗМІНЕНО ---: Додано 'space-x-6 sm:space-x-10' для кращої адаптації */}
+            <div className="flex space-x-6 sm:space-x-10 border-b border-gray-300">
               {tabsData.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`relative w-32 py-4 text-xs font-semibold uppercase tracking-[0.2em] transition-colors duration-300 focus:outline-none ${
+                  // --- ЗМІНЕНО ---: Додано 'w-28 sm:w-32'
+                  className={`relative w-28 sm:w-32 py-4 text-xs font-semibold uppercase tracking-[0.2em] transition-colors duration-300 focus:outline-none ${
                     activeTab === tab.id
                       ? 'text-black'
                       : 'text-gray-500 hover:text-black'

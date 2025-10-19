@@ -1,5 +1,3 @@
-// src/Components/Registration.jsx
-
 import React, { useState } from 'react';
 import ApplicationForm from './ApplicationForm';
 
@@ -12,7 +10,7 @@ const Registration = () => {
         <ApplicationForm />
       ) : (
         <>
-          <div className="mb-10">
+          <div className="mb-8 sm:mb-10">
             <h2 className="text-xl font-semibold text-black mb-2 tracking-wider uppercase">
               HELLO!
             </h2>

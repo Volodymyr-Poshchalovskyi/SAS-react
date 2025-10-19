@@ -1,5 +1,3 @@
-// src/Components/UserLogin.jsx
-
 import React from 'react';
 
 const UserLogin = ({
@@ -13,7 +11,7 @@ const UserLogin = ({
 }) => {
   return (
     <div className="max-w-sm mx-auto text-center animate-fadeIn">
-      <div className="mb-10">
+      <div className="mb-8 sm:mb-10">
         <h2 className="text-xl font-semibold text-black mb-2 tracking-wider uppercase">
           WELCOME BACK.
         </h2>
@@ -62,7 +60,7 @@ const UserLogin = ({
             href="#"
             className="text-xs text-gray-500 uppercase tracking-wider font-semibold hover:text-black transition-colors"
           >
-            FORGOT YOUR PASSWORD? &gt;
+            FORGOT YOUR PASSWORD? 
           </a>
         </div>
         <button

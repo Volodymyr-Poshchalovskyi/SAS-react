@@ -13,7 +13,7 @@ const CustomPhoneNumberInput = forwardRef((props, ref) => {
     <input
       {...props}
       ref={ref}
-      className="w-full bg-transparent text-black focus:outline-none p-0"
+      className="w-full bg-transparent text-black focus:outline-none"
     />
   );
 });

@@ -1,4 +1,3 @@
-// src/pages/Login.jsx
 
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -103,7 +102,7 @@ const Login = () => {
 
   const getTabClass = (tabName) => {
     const baseClasses =
-      'py-4 px-8 text-xs font-semibold uppercase tracking-wider cursor-pointer transition-all duration-300 border-b-2';
+      'py-4 px-4 sm:px-6 md:px-8 text-xs font-semibold uppercase tracking-wider cursor-pointer transition-all duration-300 border-b-2';
     return currentTab === tabName
       ? `${baseClasses} text-black border-black`
       : `${baseClasses} text-gray-400 border-transparent hover:text-black`;
@@ -144,12 +143,12 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex justify-center bg-gray-100 font-sans p-14 mt-24">
-      <div className="w-full max-w-xl text-center mt-16">
-        <h1 className="text-4xl font-semibold text-black mb-8 tracking-wider">
+    <div className="min-h-screen flex justify-center bg-gray-100 font-sans p-4 sm:p-8 lg:p-14 mt-[70px]">
+      <div className="w-full max-w-xl text-center mt-8 sm:mt-11 xl:mt-16">
+        <h1 className="text-3xl md:text-4xl font-semibold text-black mb-8 tracking-wider">
           ACCOUNT
         </h1>
-        <div className="flex justify-center mb-12 border-b border-gray-300">
+        <div className="flex justify-center mb-8 md:mb-12 border-b border-gray-300">
           <div
             className={getTabClass('STAFF')}
             onClick={() => handleTabChange('STAFF')}

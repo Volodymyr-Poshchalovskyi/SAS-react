@@ -1,5 +1,3 @@
-// src/Components/StaffLogin.jsx
-
 import React from 'react';
 
 const GoogleIcon = () => (
@@ -33,7 +31,7 @@ const GoogleIcon = () => (
 const StaffLogin = ({ handleGoogleLogin, loading, error }) => {
   return (
     <div className="max-w-sm mx-auto text-center animate-fadeIn">
-      <div className="mb-10">
+      <div className="mb-8 sm:mb-10">
         <h2 className="text-xl font-semibold text-black mb-2 tracking-wider uppercase">
           WELCOME BACK.
         </h2>
