@@ -508,7 +508,7 @@ const MyAnalytics = () => {
         const user = { id: 'mock-user-id-123' }; 
         if (user) setCurrentUserId(user.id);
 
-        const response = await fetch('${API_BASE_URL}/reels');
+        const response = await fetch(`${API_BASE_URL}/reels`);
         if (!response.ok) throw new Error('Failed to fetch reels data.');
         const data = await response.json();
         setReelsData(data);

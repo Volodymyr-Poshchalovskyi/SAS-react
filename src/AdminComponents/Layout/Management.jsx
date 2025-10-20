@@ -284,7 +284,7 @@ const ManagementPage = () => {
 
   const uploadPhoto = async (file) => {
     if (!file) return null;
-    const response = await fetch('${API_BASE_URL}/generate-upload-url', {
+    const response = await fetch(`${API_BASE_URL}/generate-upload-url`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({

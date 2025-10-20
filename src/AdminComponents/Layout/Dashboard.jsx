@@ -142,7 +142,7 @@ const Dashboard = () => {
         if (topDirectors.length > 0) {
           const directorNames = topDirectors.map((d) => d.name);
           const detailsRes = await fetch(
-            '${API_BASE_URL}/artists/details-by-names',
+            `${API_BASE_URL}/artists/details-by-names`,
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },

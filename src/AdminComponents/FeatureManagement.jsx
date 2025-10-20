@@ -182,13 +182,13 @@ function FeatureManagement() {
         await Promise.all([
           // Fetch PDF
           (async () => {
-            const pdfResponse = await fetch('${API_BASE_URL}/feature-pdf/current');
+            const pdfResponse = await fetch(`${API_BASE_URL}/feature-pdf/current`);
             if (pdfResponse.ok) setCurrentPdf(await pdfResponse.json());
             else throw new Error('Failed to fetch PDF data');
           })(),
           // Fetch Password
           (async () => {
-            const passwordResponse = await fetch('${API_BASE_URL}/feature-pdf-password/current');
+            const passwordResponse = await fetch(`${API_BASE_URL}/feature-pdf-password/current`);
             if (passwordResponse.ok) {
               const passwordData = await passwordResponse.json();
               setCurrentPassword(passwordData.value);
@@ -196,7 +196,7 @@ function FeatureManagement() {
           })(),
           // Fetch History
           (async () => {
-            const historyResponse = await fetch('${API_BASE_URL}/feature-pdf/history-with-stats');
+            const historyResponse = await fetch(`${API_BASE_URL}/feature-pdf/history-with-stats`);
             if (historyResponse.ok) {
               setFileHistory(await historyResponse.json());
             } else throw new Error('Failed to fetch file history');
@@ -237,7 +237,7 @@ function FeatureManagement() {
     setUploadError(null);
 
     try {
-      const signedUrlRes = await fetch('${API_BASE_URL}/generate-upload-url', {
+      const signedUrlRes = await fetch(`${API_BASE_URL}/generate-upload-url`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -264,7 +264,7 @@ function FeatureManagement() {
         xhr.send(pdfToUpload);
       });
 
-      const saveMetaRes = await fetch('${API_BASE_URL}/feature-pdf', {
+      const saveMetaRes = await fetch(`${API_BASE_URL}/feature-pdf`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: pdfToUpload.name, gcs_path: gcsPath }),
@@ -325,7 +325,7 @@ function FeatureManagement() {
   const handleConfirmPasswordChange = async () => {
     if (!newPassword || !confirmPassword) throw new Error('Please fill in both password fields.');
     if (newPassword !== confirmPassword) throw new Error('Passwords do not match. Please try again.');
-    const response = await fetch('${API_BASE_URL}/feature-pdf-password', {
+    const response = await fetch(`${API_BASE_URL}/feature-pdf-password`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value: newPassword }),
     });
     if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.error || 'Failed to update password.'); }
