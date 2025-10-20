@@ -29,10 +29,9 @@ import {
 import { DataRefreshContext } from './AdminLayout';
 
 const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
-// =======================
-// HELPER FUNCTIONS & COMPONENTS (без змін)
-// =======================
+
 const Highlight = ({ text, highlight }) => {
   if (!highlight?.trim() || !text) return <span>{text}</span>;
   const regex = new RegExp(
@@ -262,7 +261,7 @@ const EditReelModal = ({ isOpen, onClose, reel, onSaveSuccess, onCopy }) => {
     setStatus('saving');
     setErrorMessage('');
     try {
-      const response = await fetch(`http://localhost:3001/reels/${reel.id}`, {
+      const response = await fetch(`${API_BASE_URL}/reels/${reel.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -509,7 +508,7 @@ const MyAnalytics = () => {
         const user = { id: 'mock-user-id-123' }; 
         if (user) setCurrentUserId(user.id);
 
-        const response = await fetch('http://localhost:3001/reels');
+        const response = await fetch('${API_BASE_URL}/reels');
         if (!response.ok) throw new Error('Failed to fetch reels data.');
         const data = await response.json();
         setReelsData(data);
@@ -577,7 +576,7 @@ const MyAnalytics = () => {
       )
     );
     try {
-      await fetch(`http://localhost:3001/reels/${id}`, {
+      await fetch(`${API_BASE_URL}/reels/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
@@ -595,7 +594,7 @@ const MyAnalytics = () => {
   const handleConfirmDelete = async () => {
     if (!reelToDelete) return;
     const response = await fetch(
-      `http://localhost:3001/reels/${reelToDelete.id}`,
+      `${API_BASE_URL}/reels/${reelToDelete.id}`,
       { method: 'DELETE' }
     );
     if (!response.ok) {
@@ -611,7 +610,7 @@ const MyAnalytics = () => {
   const handleConfirmMultiDelete = async () => {
     const reelIdsToDelete = Array.from(selectedReels);
     const deletePromises = reelIdsToDelete.map((id) =>
-      fetch(`http://localhost:3001/reels/${id}`, { method: 'DELETE' })
+      fetch(`${API_BASE_URL}/reels/${id}`, { method: 'DELETE' })
     );
 
     const results = await Promise.allSettled(deletePromises);

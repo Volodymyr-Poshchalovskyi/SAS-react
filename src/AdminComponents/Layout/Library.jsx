@@ -22,7 +22,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { DataRefreshContext } from './AdminLayout';
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+  import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'YOUR_SUPABASE_URL';
 const SUPABASE_ANON_KEY =

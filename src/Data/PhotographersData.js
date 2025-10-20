@@ -4,13 +4,13 @@ import gridPreviewPhoto from '../assets/Photos/DirectorPhoto.png';
 
 const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
 
-const section1_title = 'Lorem Ipsum';
-const section1_text =
-  'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua, et quidem faciunt, ut aut reiciendis voluptatibus maiores alias consequatur aut perferendis doloribus asperiores repellat. Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus. Temporibus autem quibusdam et aut officiis debitis aut rerum necessitatibus saepe eveniet ut et voluptates repudiandae sint et molestiae non recusandae.';
+const PLACEHOLDER_SECTION1_TITLE = 'Lorem Ipsum';
+const PLACEHOLDER_SECTION1_TEXT =
+  'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.';
 
-const section2_title = 'Vestibulum Ante';
-const section2_text =
-  'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo. Nemo enim ipsam voluptatem quia voluptas sit asnatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione voluptatem sequi nesciunt. Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit.';
+const PLACEHOLDER_SECTION2_TITLE = 'Vestibulum Ante';
+const PLACEHOLDER_SECTION2_TEXT =
+  'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam, eaque ipsa quae ab illo inventore veritatis et quasi architecto beatae vitae dicta sunt explicabo.';
 
 const placeholderCollagePhotos = Array(14).fill(gridPreviewPhoto);
 const placeholderGalleryPhotos = Array.from({ length: 8 }, (_, i) => ({
@@ -122,7 +122,6 @@ Agius’s work is held in prominent collections, and his exhibitions have spanne
       `${CDN_BASE_URL}/front-end/02-Photographers/01-Lorenzo%20Agius/13i.php-9.jpeg`,
       `${CDN_BASE_URL}/front-end/02-Photographers/01-Lorenzo%20Agius/14i.php-2.jpeg`,
     ],
-    // MODIFICATION: Removed the last 5 photos that are now used in the collage
     photos: [
       {
         id: 'la-s1',
@@ -189,10 +188,10 @@ Agius’s work is held in prominent collections, and his exhibitions have spanne
     coverImage: gridPreviewPhoto,
     profilePhotoSrc: 'front-end/artists/photographers/2-Bud Force.png',
     bio: 'Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
-    section1_title: 'Lorem Ipsum',
-    section1_text,
-    section2_title: 'Vestibulum Ante',
-    section2_text,
+    section1_title: PLACEHOLDER_SECTION1_TITLE,
+    section1_text: PLACEHOLDER_SECTION1_TEXT,
+    section2_title: PLACEHOLDER_SECTION2_TITLE,
+    section2_text: PLACEHOLDER_SECTION2_TEXT,
     collagePhotos: placeholderCollagePhotos,
     photos: placeholderGalleryPhotos,
   },
@@ -226,7 +225,6 @@ Agius’s work is held in prominent collections, and his exhibitions have spanne
       `${CDN_BASE_URL}/front-end/02-Photographers/04-Janelle%20Shirtcliff/13-Screenshot%202024-10-03%20at%2011.28.26%20PM.png`,
       `${CDN_BASE_URL}/front-end/02-Photographers/04-Janelle%20Shirtcliff/14-thehabit022421_1.372.1.jpg`,
     ],
-    // MODIFICATION: Removed the last 5 photos that are now used in the collage
     photos: [
       {
         id: 'js-1',
@@ -270,16 +268,13 @@ Agius’s work is held in prominent collections, and his exhibitions have spanne
     name: 'Janette Beckman',
     slug: 'janette-beckman',
     category: 'Editorial, Youth Campaigns',
-    // NOTE: images for Janette are stored in a nested folder: "05-Janette Beckman/04-Janette Beckman"
-    // Use the HERO image as the cover image
     coverImage: `${CDN_BASE_URL}/front-end/02-Photographers/05-Janette%20Beckman/04-Janette%20Beckman/00-HERO-IMAGE-Screenshot%202024-10-01%20at%204.27.55%20PM.png`,
     profilePhotoSrc: 'front-end/artists/photographers/4-Janette+Beckman.png',
     bio: 'Is a Dominican-American director, producer, and founder of the production company Cinema Giants...',
-    section1_title,
-    section1_text,
-    section2_title,
-    section2_text,
-    // Collage uses photos 1-9 (these are the numbered images)
+    section1_title: PLACEHOLDER_SECTION1_TITLE,
+    section1_text: PLACEHOLDER_SECTION1_TEXT,
+    section2_title: PLACEHOLDER_SECTION2_TITLE,
+    section2_text: PLACEHOLDER_SECTION2_TEXT,
     collagePhotos: [
       `${CDN_BASE_URL}/front-end/02-Photographers/05-Janette%20Beckman/04-Janette%20Beckman/1-Big-Daddy-Kane-1831x1900.jpg`,
       `${CDN_BASE_URL}/front-end/02-Photographers/05-Janette%20Beckman/04-Janette%20Beckman/2-CHAKA-web-2252x1900.jpg`,
@@ -291,7 +286,6 @@ Agius’s work is held in prominent collections, and his exhibitions have spanne
       `${CDN_BASE_URL}/front-end/02-Photographers/05-Janette%20Beckman/04-Janette%20Beckman/8-Mod-twins-London-1979-3-1231x1900.jpg`,
       `${CDN_BASE_URL}/front-end/02-Photographers/05-Janette%20Beckman/04-Janette%20Beckman/9-Pubic-Enemy-Flava-flav--1467x1900.jpg`,
     ],
-    // Remaining images go into the gallery/photos array
     photos: [
       {
         id: 'jb-g1',
@@ -323,10 +317,10 @@ Agius’s work is held in prominent collections, and his exhibitions have spanne
     coverImage: gridPreviewPhoto,
     profilePhotoSrc: 'front-end/artists/photographers/5-Vivienne and Tamas.png',
     bio: 'Is a Dominican-American director, producer, and founder of the production company Cinema Giants...',
-    section1_title,
-    section1_text,
-    section2_title,
-    section2_text,
+    section1_title: PLACEHOLDER_SECTION1_TITLE,
+    section1_text: PLACEHOLDER_SECTION1_TEXT,
+    section2_title: PLACEHOLDER_SECTION2_TITLE,
+    section2_text: PLACEHOLDER_SECTION2_TEXT,
     collagePhotos: placeholderCollagePhotos,
     photos: placeholderGalleryPhotos,
   },

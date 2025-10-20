@@ -41,6 +41,7 @@ const Highlight = ({ text, highlight }) => {
 const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [visibleCount, setVisibleCount] = useState(10); 
+  const API_BASE_URL = import.meta.env.VITE_API_URL;
 
   const filteredData = useMemo(() => {
     if (!searchTerm) return data;
@@ -256,7 +257,7 @@ const ManagementPage = () => {
       if (item.photo_gcs_path) {
         try {
           const response = await fetch(
-            'http://localhost:3001/generate-read-urls',
+            '${API_BASE_URL}/generate-read-urls',
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -283,7 +284,7 @@ const ManagementPage = () => {
 
   const uploadPhoto = async (file) => {
     if (!file) return null;
-    const response = await fetch('http://localhost:3001/generate-upload-url', {
+    const response = await fetch('${API_BASE_URL}/generate-upload-url', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -340,7 +341,7 @@ const ManagementPage = () => {
             photo_gcs_path,
           };
           const response = await fetch(
-            `http://localhost:3001/artists/${currentItem.id}`,
+            `${API_BASE_URL}/artists/${currentItem.id}`,
             {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
@@ -383,7 +384,7 @@ const ManagementPage = () => {
     try {
       if (hasDetails) {
         const response = await fetch(
-          `http://localhost:3001/artists/${currentItem.id}`,
+          `${API_BASE_URL}/artists/${currentItem.id}`,
           { method: 'DELETE' }
         );
         if (!response.ok) throw new Error('Failed to delete artist on server.');

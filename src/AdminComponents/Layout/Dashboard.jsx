@@ -10,6 +10,7 @@ import TrendingDirectors from './TrendingDirectors';
 import { DataRefreshContext } from './AdminLayout'; 
 
 const CDN_BASE_URL = 'http://34.54.191.201';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const cardClasses =
   'bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl';
@@ -109,12 +110,12 @@ const Dashboard = () => {
       try {
         const [chartRes, trendingRes, activityRes] = await Promise.all([
           fetch(
-            `http://localhost:3001/analytics/views-over-time?startDate=${startDateStr}&endDate=${endDateStr}`
+            `${API_BASE_URL}/analytics/views-over-time?startDate=${startDateStr}&endDate=${endDateStr}`
           ),
           fetch(
-            `http://localhost:3001/analytics/trending-media?startDate=${startDateStr}&endDate=${endDateStr}&limit=20`
+            `${API_BASE_URL}/analytics/trending-media?startDate=${startDateStr}&endDate=${endDateStr}&limit=20`
           ),
-          fetch(`http://localhost:3001/analytics/recent-activity?limit=5`),
+          fetch(`${API_BASE_URL}/analytics/recent-activity?limit=5`),
         ]);
 
         const chartData = await chartRes.json();
@@ -141,7 +142,7 @@ const Dashboard = () => {
         if (topDirectors.length > 0) {
           const directorNames = topDirectors.map((d) => d.name);
           const detailsRes = await fetch(
-            'http://localhost:3001/artists/details-by-names',
+            '${API_BASE_URL}/artists/details-by-names',
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },

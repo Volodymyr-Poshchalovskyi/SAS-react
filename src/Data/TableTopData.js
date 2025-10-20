@@ -5,8 +5,8 @@ export const tableTopData = [
     id: 1,
     name: 'JEAN CLAUDE THIBAUT',
     slug: 'jean-claude-thibaut',
-    photoSrc: 'front-end/artists/table-top/1-jean-claude-thibaut.png', // Placeholder path
-    bio: 'Detailed information will be available soon.', // Placeholder bio
+    photoSrc: 'front-end/artists/table-top/1-jean-claude-thibaut.png', 
+    bio: 'Detailed information will be available soon.', 
     videos: [
       {
         client: 'ESTEE LAUDER',

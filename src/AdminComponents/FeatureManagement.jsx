@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 // Переконайтеся, що шлях до AdminLayout правильний
 import { DataRefreshContext } from './Layout/AdminLayout';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 // =======================
 // Helper Components (Modal, FormSection, etc.)
@@ -181,13 +182,13 @@ function FeatureManagement() {
         await Promise.all([
           // Fetch PDF
           (async () => {
-            const pdfResponse = await fetch('http://localhost:3001/feature-pdf/current');
+            const pdfResponse = await fetch('${API_BASE_URL}/feature-pdf/current');
             if (pdfResponse.ok) setCurrentPdf(await pdfResponse.json());
             else throw new Error('Failed to fetch PDF data');
           })(),
           // Fetch Password
           (async () => {
-            const passwordResponse = await fetch('http://localhost:3001/feature-pdf-password/current');
+            const passwordResponse = await fetch('${API_BASE_URL}/feature-pdf-password/current');
             if (passwordResponse.ok) {
               const passwordData = await passwordResponse.json();
               setCurrentPassword(passwordData.value);
@@ -195,7 +196,7 @@ function FeatureManagement() {
           })(),
           // Fetch History
           (async () => {
-            const historyResponse = await fetch('http://localhost:3001/feature-pdf/history-with-stats');
+            const historyResponse = await fetch('${API_BASE_URL}/feature-pdf/history-with-stats');
             if (historyResponse.ok) {
               setFileHistory(await historyResponse.json());
             } else throw new Error('Failed to fetch file history');
@@ -236,7 +237,7 @@ function FeatureManagement() {
     setUploadError(null);
 
     try {
-      const signedUrlRes = await fetch('http://localhost:3001/generate-upload-url', {
+      const signedUrlRes = await fetch('${API_BASE_URL}/generate-upload-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -263,7 +264,7 @@ function FeatureManagement() {
         xhr.send(pdfToUpload);
       });
 
-      const saveMetaRes = await fetch('http://localhost:3001/feature-pdf', {
+      const saveMetaRes = await fetch('${API_BASE_URL}/feature-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: pdfToUpload.name, gcs_path: gcsPath }),
@@ -287,7 +288,7 @@ function FeatureManagement() {
   const handleDownloadPdf = async () => {
     if (!currentPdf?.gcs_path) return;
     try {
-        const response = await fetch(`${'http://localhost:3001'}/generate-read-urls`, {
+        const response = await fetch(`${API_BASE_URL}/generate-read-urls`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ gcsPaths: [currentPdf.gcs_path] }),
@@ -324,7 +325,7 @@ function FeatureManagement() {
   const handleConfirmPasswordChange = async () => {
     if (!newPassword || !confirmPassword) throw new Error('Please fill in both password fields.');
     if (newPassword !== confirmPassword) throw new Error('Passwords do not match. Please try again.');
-    const response = await fetch('http://localhost:3001/feature-pdf-password', {
+    const response = await fetch('${API_BASE_URL}/feature-pdf-password', {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ value: newPassword }),
     });
     if (!response.ok) { const errorData = await response.json(); throw new Error(errorData.error || 'Failed to update password.'); }
