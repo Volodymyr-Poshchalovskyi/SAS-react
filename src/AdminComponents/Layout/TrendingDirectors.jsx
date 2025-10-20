@@ -1,7 +1,7 @@
 import React from 'react';
 
 // ✨ ЗМІНА: Додано базовий URL для CDN
-const CDN_BASE_URL = 'http://34.54.191.201';
+const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
 
 const cardClasses =
   'bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl';

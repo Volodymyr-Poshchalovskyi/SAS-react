@@ -9,7 +9,7 @@ import TrendingDirectors from './TrendingDirectors';
 // Переконайтеся, що шлях до AdminLayout правильний
 import { DataRefreshContext } from './AdminLayout'; 
 
-const CDN_BASE_URL = 'http://34.54.191.201';
+const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 const cardClasses =
