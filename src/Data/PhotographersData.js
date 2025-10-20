@@ -314,14 +314,128 @@ Agius’s work is held in prominent collections, and his exhibitions have spanne
     name: 'Vivienne & Tamas',
     slug: 'vivienne-tamas',
     category: 'Editorial, Youth Campaigns',
-    coverImage: gridPreviewPhoto,
+    coverImage: `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/00-MainImage.png`,
     profilePhotoSrc: 'front-end/artists/photographers/5-Vivienne and Tamas.png',
     bio: 'Is a Dominican-American director, producer, and founder of the production company Cinema Giants...',
     section1_title: PLACEHOLDER_SECTION1_TITLE,
     section1_text: PLACEHOLDER_SECTION1_TEXT,
     section2_title: PLACEHOLDER_SECTION2_TITLE,
     section2_text: PLACEHOLDER_SECTION2_TEXT,
-    collagePhotos: placeholderCollagePhotos,
-    photos: placeholderGalleryPhotos,
+    // Collage: use images numbered 01..09
+    collagePhotos: [
+      `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/01-7-6556Vivien02%2Bcopy.jpg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/02-Chanel_Haya_Jewellery26103.jpg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/03-Chanel_HC_Jewellery2707.jpg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/04-Chanel%2BMan%2Bx%2BElle10677.jpg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/05-KaDeWe0991.jpg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/06-109%2BHB%2B7%2BOktobar%2B2023.jpg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/07-z0D6A6870_1.jpg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/08-z0D6A7131_1.jpg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/09-Turnt_719379.jpg`,
+    ],
+
+    // Gallery carousel: include all remaining 00-* gallery images
+    photos: [
+      {
+        id: 'vt-1',
+        title: 'Gallery Photo 1',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/00-Gallery%20KaDeWe0811.jpg`,
+      },
+      {
+        id: 'vt-2',
+        title: 'Gallery Photo 2',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/00-Gallery%20Turnt_Chapter_Four0372.jpg`,
+      },
+      {
+        id: 'vt-3',
+        title: 'Gallery Photo 3',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/00-Gallery12-6556Vivien01%2Bcopy.jpg`,
+      },
+      {
+        id: 'vt-4',
+        title: 'Gallery Photo 4',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/00-Gallery290421_JLD_VIVIENNETAMAS_0424_Boption.jpg`,
+      },
+      {
+        id: 'vt-5',
+        title: 'Gallery Photo 5',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/00-GalleryChanel%2Bx%2BLaha21959.jpg`,
+      },
+      {
+        id: 'vt-6',
+        title: 'Gallery Photo 6',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/00-galeryChanel%2BMan%2Bx%2BElle10896.jpg`,
+      },
+      {
+        id: 'vt-7',
+        title: 'Gallery Photo 7',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/00-gallery%2001%2BSorbet%2Bx%2BChanel2243.jpg`,
+      },
+      {
+        id: 'vt-8',
+        title: 'Gallery Photo 8',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/00-gallery%20CHANEL_THE_WINGS_SET_0070.jpg`,
+      },
+      {
+        id: 'vt-9',
+        title: 'Gallery Photo 9',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/00-gallery-DSCF1542.jpg`,
+      },
+      {
+        id: 'vt-10',
+        title: 'Gallery Photo 10',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/00-gallery20231010_Douglas_MUP_Neuheiten_Still_Look_02_Megan_575.jpg`,
+      },
+      {
+        id: 'vt-11',
+        title: 'Gallery Photo 11',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/00-gallery20231010_Douglas_MUP_Neuheiten_Still_Look_03_double_803.jpg`,
+      },
+      {
+        id: 'vt-12',
+        title: 'Gallery Photo 12',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/00-gallery20231011_Douglas_MUP_Neuheiten_Still_02_Look_07_Stella_332.jpg`,
+      },
+      {
+        id: 'vt-13',
+        title: 'Gallery Photo 13',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/00-galleryCHANEL_THE_COMET_SET_0282_bw.jpg`,
+      },
+      {
+        id: 'vt-14',
+        title: 'Gallery Photo 14',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/00-galleryCHANEL_THE_LION_SET_0089_bw.jpg`,
+      },
+      {
+        id: 'vt-15',
+        title: 'Gallery Photo 15',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/00-galleryChanel%2Bx%2BLaha22115.jpg`,
+      },
+      {
+        id: 'vt-16',
+        title: 'Gallery Photo 16',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/00-galleryChanel_Hia4472_1.jpg`,
+      },
+      {
+        id: 'vt-17',
+        title: 'Gallery Photo 17',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/00-galleryHarpers_Bazaar_Serbia5367.jpg`,
+      },
+      {
+        id: 'vt-18',
+        title: 'Gallery Photo 18',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/00-galleryHarpers_Bazaar_Serbia5438-3.jpg`,
+      },
+      {
+        id: 'vt-19',
+        title: 'Gallery Photo 19',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/00-galleryTurnt_Chapter_Four0586.jpg`,
+      },
+      {
+        id: 'vt-20',
+        title: 'Gallery Photo 20',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/00-gallryChanel-Haute-Couture--Sorbet-fashion-editorial-VivienneandTamas-12%2Bcopy.jpg`,
+      },
+    ],
   },
 ];
