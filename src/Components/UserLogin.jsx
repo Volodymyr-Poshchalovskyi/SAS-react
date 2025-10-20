@@ -8,6 +8,8 @@ const UserLogin = ({
   handleLogin,
   loading,
   error,
+  successMessage, // Added prop for success message
+  onForgotPasswordClick, // Added prop for handling click
 }) => {
   return (
     <div className="max-w-sm mx-auto text-center animate-fadeIn">
@@ -20,6 +22,7 @@ const UserLogin = ({
         </p>
       </div>
       {error && <p className="text-red-500 text-xs mb-4">{error}</p>}
+      {successMessage && <p className="text-green-600 text-xs mb-4">{successMessage}</p>}
       <form onSubmit={handleLogin} className="text-left space-y-6">
         <div>
           <label
@@ -56,12 +59,13 @@ const UserLogin = ({
           />
         </div>
         <div className="pt-2">
-          <a
-            href="#"
+          <button
+            type="button" // Changed from <a> to <button> for better semantics
+            onClick={onForgotPasswordClick}
             className="text-xs text-gray-500 uppercase tracking-wider font-semibold hover:text-black transition-colors"
           >
-            FORGOT YOUR PASSWORD? 
-          </a>
+            FORGOT YOUR PASSWORD?
+          </button>
         </div>
         <button
           type="submit"

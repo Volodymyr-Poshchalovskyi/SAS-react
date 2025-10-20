@@ -24,6 +24,8 @@ import PublicReelPage from '../Pages/PublicReelPage.jsx';
 import ProjectPage from '../Pages/ProjectPage.jsx';
 import TableTopStudio from '../Pages/TableTopStudio.jsx';
 import PostProduction from '../Pages/PostProduction.jsx';
+import UpdatePassword from '../Pages/UpdatePassword.jsx';
+
 
 // Admin Pages
 import AdminPanel from '../AdminPages/AdminPanel.jsx';
@@ -74,6 +76,7 @@ export default function AppRouter() {
         <Route path="/service" element={<Production />} />
         <Route path="/about" element={<Team />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/update-password" element={<UpdatePassword />} />
         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
         <Route path="/table-top-studio" element={<TableTopStudio />} />
         {/* ✅ ВИПРАВЛЕНО: шлях тепер '/table-top-studio/:directorSlug' */}

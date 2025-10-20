@@ -5,22 +5,28 @@ import StaffLogin from '../Components/StaffLogin';
 import UserLogin from '../Components/UserLogin';
 import Registration from '../Components/Registration';
 import RegistrationForm from '../Components/RegistrationForm';
+import ForgotPassword from '../Components/ForgotPassword';
 import { useAuth } from '../hooks/useAuth';
+
+
 
 const Login = () => {
   const {
     signInWithGoogle,
     signInWithPassword,
+    resetPassword, // Assuming this function exists in your useAuth hook
     user,
     error: authError,
     clearError,
     invitationToken,
   } = useAuth();
 
-  const [currentTab, setCurrentTab] = useState('STAFF');
+  const [currentTab, setCurrentTab] = useState('SIGN_IN');
+  const [isForgotPassword, setIsForgotPassword] = useState(false); // State to toggle password reset view
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [localError, setLocalError] = useState('');
+  const [successMessage, setSuccessMessage] = useState(''); // State for success messages
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
@@ -65,9 +71,14 @@ const Login = () => {
     }
   }, [user, navigate, invitationToken]);
 
-  const handleGoogleLogin = () => {
+  const clearMessages = () => {
     clearError();
     setLocalError('');
+    setSuccessMessage('');
+  };
+
+  const handleGoogleLogin = () => {
+    clearMessages();
     setLoading(true);
     signInWithGoogle().catch((err) => {
       setLocalError(err.message);
@@ -77,13 +88,10 @@ const Login = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    clearError();
-    setLocalError('');
+    clearMessages();
     setLoading(true);
     try {
-
       await signInWithPassword(email, password);
-      
     } catch (err) {
       setLocalError(err.message || 'Incorrect email or password.');
     } finally {
@@ -91,10 +99,37 @@ const Login = () => {
     }
   };
 
+  const handlePasswordReset = async (e) => {
+    e.preventDefault();
+    clearMessages();
+    setLoading(true);
+    try {
+      // ▼▼▼ ВАШ КОД "ОЖИВАЄ" ▼▼▼
+      if (!resetPassword) {
+        throw new Error('Password reset functionality is not implemented.');
+      }
+      await resetPassword(email);
+      setSuccessMessage('Password reset link has been sent to your email.');
+
+      // Повернемо користувача на форму логіна через 3 секунди
+      setTimeout(() => {
+        setIsForgotPassword(false);
+        setSuccessMessage(''); // Очищуємо повідомлення при поверненні
+      }, 3000);
+      // ▲▲▲ КІНЕЦЬ ОНОВЛЕННЯ ▲▲▲
+
+    } catch (err) {
+      setLocalError(err.message || 'Failed to send reset link.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
   const handleTabChange = (tabName) => {
-    clearError();
-    setLocalError('');
+    clearMessages();
     setCurrentTab(tabName);
+    setIsForgotPassword(false); // Reset forgot password view on tab change
     setEmail('');
     setPassword('');
     setLoading(false);
@@ -126,6 +161,19 @@ const Login = () => {
           />
         );
       case 'SIGN_IN':
+        if (isForgotPassword) {
+          return (
+            <ForgotPassword
+                email={email}
+                setEmail={setEmail}
+                handlePasswordReset={handlePasswordReset}
+                loading={loading}
+                error={error}
+                successMessage={successMessage}
+                onBackToLogin={() => setIsForgotPassword(false)}
+            />
+          );
+        }
         return (
           <UserLogin
             email={email}
@@ -135,6 +183,11 @@ const Login = () => {
             handleLogin={handleLogin}
             loading={loading}
             error={error}
+            successMessage={successMessage}
+            onForgotPasswordClick={() => {
+                clearMessages();
+                setIsForgotPassword(true);
+            }}
           />
         );
       default:
@@ -168,7 +221,7 @@ const Login = () => {
             REGISTER
           </div>
         </div>
-        <div className="px-4 py-8" key={currentTab}>
+        <div className="px-4 py-8" key={`${currentTab}-${isForgotPassword}`}>
           {renderFormContent()}
         </div>
       </div>

@@ -127,6 +127,17 @@ const AuthProvider = ({ children }) => {
     setUser(null);
     setSession(null);
   };
+  const resetPassword = async (email) => {
+    // Ми беремо поточний URL (localhost або production) і додаємо шлях
+    const redirectURL = window.location.origin + '/update-password';
+    
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: redirectURL,
+    });
+
+    if (error) throw error;
+    return data;
+  };
 
   const submitApplication = async ({ email, message }) => {
     const { data, error } = await supabase
@@ -307,6 +318,7 @@ const AuthProvider = ({ children }) => {
     getUsers,
     updateUserStatus,
     supabase,
+    resetPassword,
   };
 
   return (
