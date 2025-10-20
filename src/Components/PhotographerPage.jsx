@@ -54,7 +54,7 @@ export default function PhotographerPage() {
   // Дані для другого колажу (зображення 10-14)
   const collageImagesData2 = [
     { width: 500, height: 650, left: 10, top: 150 },
-    { width: 400, height: 500, left: 730, top: -50 },
+    { width: 400, height: 500, left: 730, top: 50 },
     { width: 380, height: 550, left: 1080, top: 400 },
     { width: 600, height: 460, left: 100, top: 950 },
     { width: 480, height: 600, left: 850, top: 1050 },
@@ -114,7 +114,6 @@ export default function PhotographerPage() {
       {/* Секція опису №1 */}
       <section className="bg-white py-20">
         <div className="max-w-2xl mx-auto text-center px-4">
-          <h2 className="text-[20px] font-semibold uppercase mb-4">{photographer.section1_title}</h2>
           <p className="text-[12px] leading-relaxed text-gray-700 text-justify">{photographer.section1_text}</p>
         </div>
       </section>

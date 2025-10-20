@@ -67,7 +67,7 @@ export default function VideoModal({ videos, currentIndex, onClose, onNavigate, 
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-90 z-[9999] flex flex-col justify-center items-center p-4 sm:p-8 md:p-12 box-border"
+      className="fixed inset-0 bg-black z-[9999] flex flex-col justify-center items-center py-4 sm:py-8 md:py-12 px-16 sm:px-20 md:px-24 box-border" // <-- 🔥 ОНОВЛЕНИЙ РЯДОК
       onClick={onClose}
     >
       <button

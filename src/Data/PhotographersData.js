@@ -206,7 +206,7 @@ Agius’s work is held in prominent collections, and his exhibitions have spanne
     section1_title: 'About Janell',
     section1_text:
       'Janell Shirtcliff is a multidisciplinary visual artist whose work lives at the intersection of fashion, film, and pop culture. Known for a bold visual language and instinctive storytelling, she crafts imagery that’s as emotionally resonant as it is visually striking — blending cinematic mood with a modern, irreverent edge. Whether shooting stills or directing moving images, Janell builds worlds that feel at once nostalgic and new, authentic yet dreamlike.Her photography first took shape as part of a creative extension of her vintage shop, quickly gaining attention for its effortless cool and subcultural sensitivity. Today, her images appear in leading publications including Variety, Billboard, Nylon, and Teen Vogue, and often explore themes of identity, intimacy, and transformation.',
-    section2_title: 'Exhibitions & Clients',
+    
     section2_text:
       'As a director, Janell’s storytelling expands into music videos, feature films, and documentaries. She’s created visual narratives for artists like The Band Perry, Bethany Cosentino, Mayer Hawthorne, and Tashaki Miyaki — projects that showcase her gift for translating emotion into unforgettable frames. In 2021, she made her feature debut with Habit, followed by the documentary Mother of the Dawn, and is currently developing the fantasy-horror project Triton.',
     collagePhotos: [

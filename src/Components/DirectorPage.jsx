@@ -5,19 +5,23 @@ import { useParams, Link, useLocation } from 'react-router-dom';
 import { directorsData } from '../Data/DirectorsData';
 import { assignmentData } from '../Data/AssignmentData';
 import { postProductionData } from '../Data/PostProductionData';
-import { tableTopData } from '../Data/TableTopData'; // ✅ 1. Імпортуємо нове джерело даних
+import { tableTopData } from '../Data/TableTopData';
 import HlsVideoPlayer from '../Components/HlsVideoPlayer';
 import VideoModal from '../Components/VideoModal';
 import { useInView } from 'react-intersection-observer';
 
 const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
 
+// ✅ Компонент DirectorVideoBlock переміщено сюди для повноти файлу,
+// оскільки він використовувався тільки тут.
+// Він тепер приймає 'isModalOpen'.
 const DirectorVideoBlock = ({
   video,
   videoSrc,
   previewSrc,
   onExpand,
   index,
+  isModalOpen, // <-- Приймаємо новий prop
 }) => {
   const { ref, inView } = useInView({
     threshold: 0.5,
@@ -28,15 +32,20 @@ const DirectorVideoBlock = ({
       <HlsVideoPlayer
         src={videoSrc}
         previewSrc={previewSrc}
-        shouldPlay={inView}
+        // ✅ Відео грає, тільки якщо воно у полі зору І модалка закрита
+        shouldPlay={inView && !isModalOpen}
         startTime={video.startTime}
       />
       <div className="absolute inset-0 z-10 flex items-end justify-center">
         <div className="flex flex-col items-center text-white pb-24 px-4">
           <div className="mb-6 text-shadow text-center">
-            <p className="text-2xl font-semibold uppercase">{video.title}</p>
+            <p className="font-chanel text-2xl sm:text-4xl text-shadow">
+              {video.title}
+            </p>
             {video.client && (
-              <p className="text-xl font-light mt-1">{video.client}</p>
+              <p className="font-light text-sm tracking-widest uppercase text-shadow mt-2">
+                {video.client}
+              </p>
             )}
           </div>
           <button
@@ -58,7 +67,6 @@ export default function DirectorPage() {
   const { directorSlug } = useParams();
   const location = useLocation();
 
-  // ✅ 2. Додаємо перевірку для маршруту '/table-top-studio'
   const isAssignmentPage = location.pathname.startsWith('/assignment');
   const isProductionPage = location.pathname.startsWith('/post-production');
   const isTableTopPage = location.pathname.startsWith('/table-top-studio');
@@ -66,7 +74,6 @@ export default function DirectorPage() {
   let dataSource;
   let backLink;
 
-  // ✅ 3. Додаємо нову умову для вибору джерела даних та посилання "назад"
   if (isAssignmentPage) {
     dataSource = assignmentData;
     backLink = '/assignment';
@@ -83,6 +90,9 @@ export default function DirectorPage() {
 
   const director = dataSource.find((d) => d.slug === directorSlug);
   const [activeVideoIndex, setActiveVideoIndex] = useState(null);
+
+  // ✅ 1. Визначаємо, чи відкрите модальне вікно
+  const isModalOpen = activeVideoIndex !== null;
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
@@ -140,6 +150,7 @@ export default function DirectorPage() {
               videoSrc={publicVideoUrl}
               previewSrc={publicPreviewUrl}
               onExpand={setActiveVideoIndex}
+              isModalOpen={isModalOpen} // ✅ 2. Передаємо prop
             />
           );
         })}
@@ -176,7 +187,8 @@ export default function DirectorPage() {
         </div>
       </section>
 
-      {activeVideoIndex !== null && (
+      {/* ✅ 3. Рендеримо модалку, тільки якщо isModalOpen === true */}
+      {isModalOpen && (
         <VideoModal
           videos={director.videos}
           currentIndex={activeVideoIndex}
