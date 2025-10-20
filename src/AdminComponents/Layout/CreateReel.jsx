@@ -181,7 +181,7 @@ const ReelPartialForm = ({ reel, onUpdate, onFilesSelected, isEditMode }) => {
             videoElement.addEventListener('loadeddata', onLoadedData);
             videoElement.addEventListener('error', onError);
             videoElement.src = URL.createObjectURL(selectedFile);
-            videoElement.muted = true;
+            videoElement.muted = false;
             videoElement.playsInline = true;
             videoElement.currentTime = 0;
             videoElement.play().catch(onError);
@@ -243,9 +243,9 @@ const ReelPartialForm = ({ reel, onUpdate, onFilesSelected, isEditMode }) => {
         return (
             <div className="flex flex-col items-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
                 {isHlsEditor ? (
-                    <InlineHlsPlayer ref={videoRef} src={editorVideoUrl} controls muted className="w-full h-auto max-h-[400px] rounded-md mb-4 object-contain" />
+                    <InlineHlsPlayer ref={videoRef} src={editorVideoUrl} controls className="w-full h-auto max-h-[400px] rounded-md mb-4 object-contain" />
                 ) : (
-                    <video key={editorVideoUrl} ref={videoRef} src={editorVideoUrl} controls muted className="w-full h-auto max-h-[400px] rounded-md mb-4 object-contain" onLoadedMetadata={() => { const video = videoRef.current; if (video) { video.currentTime = video.duration > 1 ? 1 : 0; } }} />
+                    <video key={editorVideoUrl} ref={videoRef} src={editorVideoUrl} controls className="w-full h-auto max-h-[400px] rounded-md mb-4 object-contain" onLoadedMetadata={() => { const video = videoRef.current; if (video) { video.currentTime = video.duration > 1 ? 1 : 0; } }} />
                 )}
                 <div className="flex items-center space-x-4">
                     <button type="button" onClick={() => setIsEditingPreview(false)} className="px-5 py-2 text-sm font-semibold bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-md hover:bg-slate-300 dark:hover:bg-slate-600">Cancel</button>
