@@ -3,9 +3,153 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { photographersData } from '../Data/PhotographersData';
+import { motion, AnimatePresence } from 'framer-motion'; // <-- ДОДАНО
+import { X } from 'lucide-react'; // <-- ДОДАНО
+import sinnersLogoBlack from '../assets/Logo/Sinners logo black.png'; // <-- ДОДАНО
 
 const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
 
+// ===================================
+// НОВИЙ КОМПОНЕНТ: PhotographerBioModal
+// (Адаптовано з Team/Director)
+// ===================================
+const PhotographerBioModal = ({ photographer, onClose }) => {
+  const nameRef = useRef(null);
+  const bioRef = useRef(null);
+
+  // Конструюємо URL для фото
+  const publicPhotoUrl = photographer.profilePhotoSrc
+    ? `${CDN_BASE_URL}/${photographer.profilePhotoSrc}`
+    : '';
+
+  useEffect(() => {
+    const handleEsc = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleEsc);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', handleEsc);
+      document.body.style.overflow = '';
+    };
+  }, [onClose]);
+
+  useLayoutEffect(() => {
+    // Функція для підгонки розміру шрифту імені
+    const adjustNameFontSize = () => {
+      const element = nameRef.current;
+      if (!element) return;
+      const container = element.parentElement;
+      if (!container) return;
+      const containerStyle = window.getComputedStyle(container);
+      const paddingLeft = parseFloat(containerStyle.paddingLeft);
+      const paddingRight = parseFloat(containerStyle.paddingRight);
+      const availableWidth = container.clientWidth - paddingLeft - paddingRight;
+      const maxFontSize = window.innerWidth < 768 ? 60 : 120;
+      const minFontSize = 24;
+      let currentFontSize = maxFontSize;
+      element.style.fontSize = `${currentFontSize}px`;
+      while (
+        element.scrollWidth > availableWidth &&
+        currentFontSize > minFontSize
+      ) {
+        currentFontSize--;
+        element.style.fontSize = `${currentFontSize}px`;
+      }
+    };
+    adjustNameFontSize();
+    window.addEventListener('resize', adjustNameFontSize);
+    return () => window.removeEventListener('resize', adjustNameFontSize);
+  }, [photographer]);
+
+  const modalVariants = {
+    hidden: { x: '-100%', opacity: 0.8 },
+    visible: {
+      x: '0%',
+      opacity: 1,
+      transition: { duration: 0.5, ease: [0.25, 1, 0.5, 1] },
+    },
+    exit: {
+      x: '-100%',
+      opacity: 0.8,
+      transition: { duration: 0.4, ease: [0.5, 0, 0.75, 0] },
+    },
+  };
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-[9999] flex items-center justify-start bg-black/70"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.div
+        className="w-[90vw] h-full bg-white text-black shadow-2xl flex flex-col"
+        variants={modalVariants}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="flex-shrink-0 p-8 grid grid-cols-3 items-center z-20">
+          <div />
+          <img
+            src={sinnersLogoBlack}
+            alt="Sinners and Saints Logo"
+            className="h-6 justify-self-center"
+          />
+          <button
+            onClick={onClose}
+            className="text-black hover:opacity-70 transition-opacity justify-self-end"
+            aria-label="Close"
+          >
+            <X size={32} />
+          </button>
+        </header>
+
+        <div className="flex-grow flex flex-col px-8 md:px-16 pb-[70px] overflow-hidden min-h-0">
+          {' '}
+          <h1
+            ref={nameRef}
+            className="flex-shrink-0 text-center font-chanel font-semibold uppercase mb-9 leading-none"
+            style={{ whiteSpace: 'nowrap' }}
+          >
+            {photographer.name}
+          </h1>
+          <div className="flex-grow flex flex-col lg:flex-row gap-12 lg:gap-16 min-h-0">
+            {/* 1. Колонка з фото */}
+            <div className="hidden lg:block w-full lg:w-2/5 flex-shrink-0">
+              {publicPhotoUrl ? (
+                <img
+                  src={publicPhotoUrl}
+                  alt={photographer.name}
+                  className="w-full aspect-square object-cover"
+                />
+              ) : (
+                <div className="w-full aspect-square bg-gray-200" />
+              )}
+            </div>
+
+            {/* 2. Колонка з текстом */}
+            <div className="w-full lg:w-3/5 flex flex-col min-h-0">
+              <p
+                ref={bioRef}
+                className="text-sm leading-relaxed whitespace-pre-line text-left lg:text-justify flex-grow overflow-y-auto pb-5"
+              >
+                {photographer.bio}
+              </p>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// ===================================
+// ГОЛОВНИЙ КОМПОНЕНТ СТОРІНКИ (ОНОВЛЕНО)
+// ===================================
 export default function PhotographerPage() {
   const { photographerSlug } = useParams();
 
@@ -18,6 +162,7 @@ export default function PhotographerPage() {
   const collageSectionRef2 = useRef(null);
 
   const [scrollY, setScrollY] = useState(0);
+  const [isBioModalOpen, setIsBioModalOpen] = useState(false); // <-- ДОДАНО СТЕЙТ
 
   useEffect(() => {
     const handleScroll = () => {
@@ -33,6 +178,24 @@ export default function PhotographerPage() {
     window.scrollTo(0, 0);
   }, []);
 
+  // ✅ ДОДАНО: Ефект для попереднього завантаження фото
+  useEffect(() => {
+    // Переконуємося, що дані фотографа завантажені і в нього є фото
+    if (photographer && photographer.profilePhotoSrc) {
+      // Створюємо URL
+      const publicPhotoUrl = `${CDN_BASE_URL}/${photographer.profilePhotoSrc}`;
+      
+      // Створюємо новий об'єкт Image
+      const img = new Image();
+      
+      // Присвоєння 'src' змушує браузер завантажити зображення
+      img.src = publicPhotoUrl;
+    }
+  }, [photographer]); // Запускаємо цей ефект, коли 'photographer' стає доступним
+
+
+  // --- (Дані для колажів і хендлери слайдера залишаються без змін) ---
+
   // Дані для першого колажу (зображення 1-9)
   const collageImagesData = [
     { width: 411, height: 732, left: 120, top: 2256 },
@@ -45,12 +208,10 @@ export default function PhotographerPage() {
     { width: 343, height: 596, left: 551, top: 4570 },
     { width: 462, height: 580, left: 1080, top: 4484 },
   ];
-
   const topOffset = 2150;
   const containerHeight = Math.max(
     ...collageImagesData.map((img) => img.top - topOffset + img.height)
   );
-
   // Дані для другого колажу (зображення 10-14)
   const collageImagesData2 = [
     { width: 500, height: 650, left: 10, top: 150 },
@@ -59,23 +220,22 @@ export default function PhotographerPage() {
     { width: 600, height: 460, left: 100, top: 950 },
     { width: 480, height: 600, left: 850, top: 1050 },
   ];
-
   const topOffset2 = 0;
   const containerHeight2 = Math.max(
     ...collageImagesData2.map((img) => img.top - topOffset2 + img.height)
   );
-
   const handlePrev = () => {
     if (sliderRef.current) {
       sliderRef.current.scrollBy({ left: -400, behavior: 'smooth' });
     }
   };
-
   const handleNext = () => {
     if (sliderRef.current) {
       sliderRef.current.scrollBy({ left: 400, behavior: 'smooth' });
     }
   };
+  // --- (Кінець незміненої частини) ---
+
 
   if (!photographer) {
     return (
@@ -85,13 +245,12 @@ export default function PhotographerPage() {
     );
   }
 
-  const publicPhotoUrl = photographer.profilePhotoSrc
-    ? `${CDN_BASE_URL}/${photographer.profilePhotoSrc}`
-    : '';
+  // --- ВИДАЛЕНО: publicPhotoUrl (тепер він у компоненті модалки) ---
+  // const publicPhotoUrl = photographer.profilePhotoSrc ...
 
   return (
     <div className="bg-white">
-      {/* Секція заголовка */}
+      {/* Секція заголовка (ОНОВЛЕНО) */}
       <section className="bg-white text-black flex items-center justify-center relative h-[100px] mt-[90px] md:mt-[117px]">
         <Link
           to="/photographers"
@@ -101,10 +260,17 @@ export default function PhotographerPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </Link>
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-chanel font-semibold uppercase text-center px-4">
+        {/* --- ОНОВЛЕНО: H1 тепер є кнопкою --- */}
+        <button
+          onClick={() => setIsBioModalOpen(true)}
+          className="text-4xl sm:text-5xl md:text-6xl font-chanel font-semibold uppercase text-center px-4 transition-opacity hover:opacity-70 focus:outline-none"
+          aria-label={`View biography for ${photographer.name}`}
+        >
           {photographer.name}
-        </h1>
+        </button>
       </section>
+
+      {/* --- (Решта секцій залишається без змін) --- */}
 
       {/* Секція великого фото */}
       <section className="w-full h-screen">
@@ -205,13 +371,12 @@ export default function PhotographerPage() {
         </div>
       </section>
 
-      {/* MODIFICATION: Conditional rendering for the second collage section */}
+      {/* Другий колаж */}
       {photographer.collagePhotos && photographer.collagePhotos.length > 9 && (
         <section ref={collageSectionRef2} className="w-full bg-white pt-[50px] pb-[150px] flex justify-center">
           <div className="relative" style={{ width: '1440px', height: `${containerHeight2}px` }}>
             {collageImagesData2.map((img, index) => {
               const imageIndex = index + 9;
-              // Check if the image for this index exists before rendering
               if (photographer.collagePhotos[imageIndex]) {
                 const collageImageSrc = photographer.collagePhotos[imageIndex];
                 
@@ -222,33 +387,27 @@ export default function PhotographerPage() {
                   </div>
                 );
               }
-              return null; // Don't render anything if the image doesn't exist
+              return null; 
             })}
           </div>
         </section>
       )}
 
-      {/* Секція біографії */}
-      <section className="relative w-full bg-black text-white pt-16">
-        <div className="absolute top-0 inset-x-0 h-48 bg-gradient-to-b from-black to-transparent z-10 pointer-events-none" />
-          {publicPhotoUrl && (
-            <div className="flex justify-center px-4">
-              <div className="relative w-full md:w-1/2 lg:w-5/12">
-                <img src={publicPhotoUrl} alt={photographer.name} className="w-full h-auto object-cover"/>
-                <div className="absolute bottom-0 inset-x-0 h-48 bg-gradient-to-t from-black to-transparent pointer-events-none" />
-              </div>
-            </div>
-          )}
-        <div className="w-full bg-black">
-          <div className="container mx-auto px-4 py-20 md:py-32 flex flex-col items-center text-center">
-            
-            <h2 className="font-normal text-[80px] leading-none tracking-[-0.15em] mb-8">{photographer.name}</h2>
-            <p className="w-full max-w-3xl font-semibold text-justify text-xs leading-[36px] tracking-[-0.09em]" style={{ wordSpacing: '0.1em' }}>
-              {photographer.bio}
-            </p>
-          </div>
-        </div>
+      {/* --- Секція біографії (ВИДАЛЕНО) --- */}
+      {/* <section className="relative w-full bg-black text-white pt-16">
+        ... (вся стара секція з фото та біо видалена) ...
       </section>
+      */}
+
+      {/* ✅ ДОДАНО: Рендеримо модалку БІО */}
+      <AnimatePresence>
+        {isBioModalOpen && (
+          <PhotographerBioModal
+            photographer={photographer}
+            onClose={() => setIsBioModalOpen(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

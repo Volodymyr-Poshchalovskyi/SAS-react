@@ -1,6 +1,6 @@
 // src/Pages/DirectorPage.jsx
 
-import React, { useState, useLayoutEffect } from 'react';
+import React, { useState, useLayoutEffect, useEffect, useRef } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
 import { directorsData } from '../Data/DirectorsData';
 import { assignmentData } from '../Data/AssignmentData';
@@ -9,19 +9,20 @@ import { tableTopData } from '../Data/TableTopData';
 import HlsVideoPlayer from '../Components/HlsVideoPlayer';
 import VideoModal from '../Components/VideoModal';
 import { useInView } from 'react-intersection-observer';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X } from 'lucide-react';
+import sinnersLogoBlack from '../assets/Logo/Sinners logo black.png';
 
 const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
 
-// ✅ Компонент DirectorVideoBlock переміщено сюди для повноти файлу,
-// оскільки він використовувався тільки тут.
-// Він тепер приймає 'isModalOpen'.
+// --- Компонент DirectorVideoBlock (без змін) ---
 const DirectorVideoBlock = ({
   video,
   videoSrc,
   previewSrc,
   onExpand,
   index,
-  isModalOpen, // <-- Приймаємо новий prop
+  isModalOpen,
 }) => {
   const { ref, inView } = useInView({
     threshold: 0.5,
@@ -32,7 +33,6 @@ const DirectorVideoBlock = ({
       <HlsVideoPlayer
         src={videoSrc}
         previewSrc={previewSrc}
-        // ✅ Відео грає, тільки якщо воно у полі зору І модалка закрита
         shouldPlay={inView && !isModalOpen}
         startTime={video.startTime}
       />
@@ -63,6 +63,139 @@ const DirectorVideoBlock = ({
   );
 };
 
+// --- Компонент DirectorBioModal (без змін) ---
+const DirectorBioModal = ({ director, onClose }) => {
+  const nameRef = useRef(null);
+  const bioRef = useRef(null);
+
+  const publicPhotoUrl = director.photoSrc
+    ? `${CDN_BASE_URL}/${director.photoSrc}`
+    : '';
+
+  useEffect(() => {
+    const handleEsc = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleEsc);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', handleEsc);
+      document.body.style.overflow = '';
+    };
+  }, [onClose]);
+
+  useLayoutEffect(() => {
+    const adjustNameFontSize = () => {
+      const element = nameRef.current;
+      if (!element) return;
+      const container = element.parentElement;
+      if (!container) return;
+      const containerStyle = window.getComputedStyle(container);
+      const paddingLeft = parseFloat(containerStyle.paddingLeft);
+      const paddingRight = parseFloat(containerStyle.paddingRight);
+      const availableWidth = container.clientWidth - paddingLeft - paddingRight;
+      const maxFontSize = window.innerWidth < 768 ? 60 : 120;
+      const minFontSize = 24;
+      let currentFontSize = maxFontSize;
+      element.style.fontSize = `${currentFontSize}px`;
+      while (
+        element.scrollWidth > availableWidth &&
+        currentFontSize > minFontSize
+      ) {
+        currentFontSize--;
+        element.style.fontSize = `${currentFontSize}px`;
+      }
+    };
+    adjustNameFontSize();
+    window.addEventListener('resize', adjustNameFontSize);
+    return () => window.removeEventListener('resize', adjustNameFontSize);
+  }, [director]);
+
+  const modalVariants = {
+    hidden: { x: '-100%', opacity: 0.8 },
+    visible: {
+      x: '0%',
+      opacity: 1,
+      transition: { duration: 0.5, ease: [0.25, 1, 0.5, 1] },
+    },
+    exit: {
+      x: '-100%',
+      opacity: 0.8,
+      transition: { duration: 0.4, ease: [0.5, 0, 0.75, 0] },
+    },
+  };
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-[9999] flex items-center justify-start bg-black/70"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.div
+        className="w-[90vw] h-full bg-white text-black shadow-2xl flex flex-col"
+        variants={modalVariants}
+        initial="hidden"
+        animate="visible"
+        exit="exit"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <header className="flex-shrink-0 p-8 grid grid-cols-3 items-center z-20">
+          <div />
+          <img
+            src={sinnersLogoBlack}
+            alt="Sinners and Saints Logo"
+            className="h-6 justify-self-center"
+          />
+          <button
+            onClick={onClose}
+            className="text-black hover:opacity-70 transition-opacity justify-self-end"
+            aria-label="Close"
+          >
+            <X size={32} />
+          </button>
+        </header>
+
+        <div className="flex-grow flex flex-col px-8 md:px-16 pb-[70px] overflow-hidden min-h-0">
+          {' '}
+          <h1
+            ref={nameRef}
+            className="flex-shrink-0 text-center font-chanel font-semibold uppercase mb-9 leading-none"
+            style={{ whiteSpace: 'nowrap' }}
+          >
+            {director.name}
+          </h1>
+          <div className="flex-grow flex flex-col lg:flex-row gap-12 lg:gap-16 min-h-0">
+            <div className="hidden lg:block w-full lg:w-2/5 flex-shrink-0">
+              {publicPhotoUrl ? (
+                <img
+                  src={publicPhotoUrl}
+                  alt={director.name}
+                  className="w-full aspect-square object-cover"
+                />
+              ) : (
+                <div className="w-full aspect-square bg-gray-200" />
+              )}
+            </div>
+            <div className="w-full lg:w-3/5 flex flex-col min-h-0">
+              <p
+                ref={bioRef}
+                className="text-sm leading-relaxed whitespace-pre-line text-left lg:text-justify flex-grow overflow-y-auto pb-5"
+              >
+                {director.bio}
+              </p>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// ===================================
+// ГОЛОВНИЙ КОМПОНЕНТ СТОРІNКИ (ОНОВЛЕНО)
+// ===================================
 export default function DirectorPage() {
   const { directorSlug } = useParams();
   const location = useLocation();
@@ -89,14 +222,30 @@ export default function DirectorPage() {
   }
 
   const director = dataSource.find((d) => d.slug === directorSlug);
-  const [activeVideoIndex, setActiveVideoIndex] = useState(null);
 
-  // ✅ 1. Визначаємо, чи відкрите модальне вікно
-  const isModalOpen = activeVideoIndex !== null;
+  const [activeVideoIndex, setActiveVideoIndex] = useState(null);
+  const [isBioModalOpen, setIsBioModalOpen] = useState(false);
+
+  const isAnyModalOpen = activeVideoIndex !== null || isBioModalOpen;
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
   }, []);
+
+  // ✅ ДОДАНО: Ефект для попереднього завантаження фото
+  useEffect(() => {
+    // Переконуємося, що дані режисера завантажені і в нього є фото
+    if (director && director.photoSrc) {
+      // Створюємо URL
+      const publicPhotoUrl = `${CDN_BASE_URL}/${director.photoSrc}`;
+      
+      // Створюємо новий об'єкт Image
+      const img = new Image();
+      
+      // Присвоєння 'src' змушує браузер завантажити зображення
+      img.src = publicPhotoUrl;
+    }
+  }, [director]); // Запускаємо цей ефект, коли 'director' стає доступним
 
   if (!director) {
     return (
@@ -105,10 +254,6 @@ export default function DirectorPage() {
       </div>
     );
   }
-
-  const publicPhotoUrl = director.photoSrc
-    ? `${CDN_BASE_URL}/${director.photoSrc}`
-    : '';
 
   return (
     <div className="bg-white">
@@ -131,9 +276,13 @@ export default function DirectorPage() {
             />
           </svg>
         </Link>
-        <h1 className="text-4xl sm:text-5xl md:text-6xl font-chanel font-semibold uppercase text-center px-4">
+        <button
+          onClick={() => setIsBioModalOpen(true)}
+          className="text-4xl sm:text-5xl md:text-6xl font-chanel font-semibold uppercase text-center px-4 transition-opacity hover:opacity-70 focus:outline-none"
+          aria-label={`View biography for ${director.name}`}
+        >
           {director.name}
-        </h1>
+        </button>
       </section>
 
       <div className="bg-black">
@@ -150,45 +299,14 @@ export default function DirectorPage() {
               videoSrc={publicVideoUrl}
               previewSrc={publicPreviewUrl}
               onExpand={setActiveVideoIndex}
-              isModalOpen={isModalOpen} // ✅ 2. Передаємо prop
+              isModalOpen={isAnyModalOpen}
             />
           );
         })}
       </div>
 
-      <section className="relative w-full bg-black text-white pt-16">
-        <div className="absolute top-0 inset-x-0 h-48 bg-gradient-to-b from-black to-transparent z-10 pointer-events-none" />
-
-        {publicPhotoUrl && (
-          <div className="flex justify-center px-4">
-            <div className="relative w-full md:w-1/2 lg:w-5/12">
-              <img
-                src={publicPhotoUrl}
-                alt={director.name}
-                className="w-full h-auto object-cover"
-              />
-              <div className="absolute bottom-0 inset-x-0 h-48 bg-gradient-to-t from-black to-transparent pointer-events-none" />
-            </div>
-          </div>
-        )}
-
-        <div className="w-full bg-black">
-          <div className="container mx-auto px-4 py-20 md:py-32 flex flex-col items-center text-center">
-            <h2 className="font-normal text-[80px] leading-none tracking-[-0.15em] mb-8">
-              {director.name}
-            </h2>
-            <p
-              className="w-full max-w-3xl font-semibold text-justify text-xs leading-[36px] tracking-[-0.09em]"
-              style={{ wordSpacing: '0.1em' }}
-            >
-              {director.bio}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ✅ 3. Рендеримо модалку, тільки якщо isModalOpen === true */}
-      {isModalOpen && (
+      {/* Рендеримо модалку ВІДЕО */}
+      {activeVideoIndex !== null && (
         <VideoModal
           videos={director.videos}
           currentIndex={activeVideoIndex}
@@ -197,6 +315,16 @@ export default function DirectorPage() {
           cdnBaseUrl={CDN_BASE_URL}
         />
       )}
+
+      {/* Рендеримо модалку БІО */}
+      <AnimatePresence>
+        {isBioModalOpen && (
+          <DirectorBioModal
+            director={director}
+            onClose={() => setIsBioModalOpen(false)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
