@@ -11,6 +11,7 @@ import Hls from 'hls.js';
 import sinnersLogoBlack from '../assets/Logo/Sinners logo black.png';
 
 const CDN_BASE_URL = 'http://34.54.191.201';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 // --- Компонент HLS Player (з фолбеком) ---
 // ✨ 1. Оновлюємо плеєр, щоб він підтримував і MP4, і HLS
@@ -383,7 +384,7 @@ export default function PublicReelPage() {
         media_item_id: mediaItemId ?? currentMediaItem?.id,
         duration_seconds: duration,
       };
-      fetch('http://localhost:3001/reels/log-event', {
+      fetch(`${API_BASE_URL}/reels/log-event`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -492,7 +493,7 @@ export default function PublicReelPage() {
       setError(null);
       try {
         const response = await fetch(
-          `http://localhost:3001/reels/public/${reelId}`
+          `${API_BASE_URL}/reels/public/${reelId}`
         );
         if (!response.ok) {
           const errData = await response.json();
@@ -545,7 +546,7 @@ useEffect(() => {
             
             // Використовуємо navigator.sendBeacon
             navigator.sendBeacon(
-              'http://localhost:3001/reels/log-event',
+              `${API_BASE_URL}/reels/log-event`,
               JSON.stringify(payload)
             );
           }
