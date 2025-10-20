@@ -162,7 +162,7 @@ export default function PhotographerPage() {
             }
             return (
               <div key={index} style={{ position: 'absolute', width: `${img.width}px`, height: `${img.height}px`, left: `${img.left}px`, top: `${img.top - topOffset}px`, zIndex: index === 7 ? 1 : 0 }}>
-                <img src={collageImageSrc} alt={`Collage view ${index + 1}`} className="w-full h-full object-cover"/>
+                <img src={collageImageSrc} alt={`Collage view ${index + 1}`} className="w-full h-full object-contain"/>
                 <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white text-5xl font-bold bg-black bg-opacity-50 p-4 rounded-full">{index + 1}</span>
               </div>
             );
