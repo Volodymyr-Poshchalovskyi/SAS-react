@@ -185,15 +185,54 @@ Agius’s work is held in prominent collections, and his exhibitions have spanne
     name: 'Bud Force',
     slug: 'bud-force',
     category: 'Celebrity, Portraiture',
-    coverImage: gridPreviewPhoto,
+    coverImage: `${CDN_BASE_URL}/front-end/02-Photographers/03-Bud%20Force/00-MainCavenders1-119.jpg`,
     profilePhotoSrc: 'front-end/artists/photographers/2-Bud Force.png',
     bio: 'Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
     section1_title: PLACEHOLDER_SECTION1_TITLE,
     section1_text: PLACEHOLDER_SECTION1_TEXT,
     section2_title: PLACEHOLDER_SECTION2_TITLE,
     section2_text: PLACEHOLDER_SECTION2_TEXT,
-    collagePhotos: placeholderCollagePhotos,
-    photos: placeholderGalleryPhotos,
+    // Collage: use numbered images (01..09)
+    collagePhotos: [
+      `${CDN_BASE_URL}/front-end/02-Photographers/03-Bud%20Force/01-6666%20Steak%20Wagon%20BW%20RFW-003.jpg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/03-Bud%20Force/02-AmericanHat_BW_Manufacturing-133.jpg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/03-Bud%20Force/03-AmericanHat_BW_Manufacturing-063.jpg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/03-Bud%20Force/04-6666%20Steak%20Wagon%20BW%20RFW-009.jpg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/03-Bud%20Force/05-AmericanHat_Utah-122.jpg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/03-Bud%20Force/06-GusSmith_BW-032.jpg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/03-Bud%20Force/07-Babbitts_Selects_0717-8.jpg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/03-Bud%20Force/08-TRR_1121_56.jpg`,
+      `${CDN_BASE_URL}/front-end/02-Photographers/03-Bud%20Force/09-Untitled-1.png`,
+    ],
+
+    // Gallery carousel: include all provided 00-* gallery images
+    photos: [
+      {
+        id: 'bf-1',
+        title: 'GalleryAmericanHatFashionEditedRFW-208',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/03-Bud%20Force/00-GalleryAmericanHatFashionEditedRFW-208.jpg`,
+      },
+      {
+        id: 'bf-3',
+        title: 'galleryAmericanHatFashionEditedRFW-247',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/03-Bud%20Force/00-galleryAmericanHatFashionEditedRFW-247.jpg`,
+      },
+      {
+        id: 'bf-4',
+        title: 'galleryIMG_8224',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/03-Bud%20Force/00-galleryIMG_8224.JPG`,
+      },
+      {
+        id: 'bf-5',
+        title: 'galleryLast RFW-831',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/03-Bud%20Force/00-galleryLast%20RFW-831.jpg`,
+      },
+      {
+        id: 'bf-6',
+        title: 'galleryWasabi_Training_1-10',
+        src: `${CDN_BASE_URL}/front-end/02-Photographers/03-Bud%20Force/00-galleryWasabi_Training_1-10.jpg`,
+      },
+    ],
   },
   {
     id: 3,
@@ -206,7 +245,7 @@ Agius’s work is held in prominent collections, and his exhibitions have spanne
     section1_title: 'About Janell',
     section1_text:
       'Janell Shirtcliff is a multidisciplinary visual artist whose work lives at the intersection of fashion, film, and pop culture. Known for a bold visual language and instinctive storytelling, she crafts imagery that’s as emotionally resonant as it is visually striking — blending cinematic mood with a modern, irreverent edge. Whether shooting stills or directing moving images, Janell builds worlds that feel at once nostalgic and new, authentic yet dreamlike.Her photography first took shape as part of a creative extension of her vintage shop, quickly gaining attention for its effortless cool and subcultural sensitivity. Today, her images appear in leading publications including Variety, Billboard, Nylon, and Teen Vogue, and often explore themes of identity, intimacy, and transformation.',
-    
+
     section2_text:
       'As a director, Janell’s storytelling expands into music videos, feature films, and documentaries. She’s created visual narratives for artists like The Band Perry, Bethany Cosentino, Mayer Hawthorne, and Tashaki Miyaki — projects that showcase her gift for translating emotion into unforgettable frames. In 2021, she made her feature debut with Habit, followed by the documentary Mother of the Dawn, and is currently developing the fantasy-horror project Triton.',
     collagePhotos: [
