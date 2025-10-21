@@ -44,6 +44,7 @@ const InlineHlsPlayer = React.forwardRef(({ src, ...props }, ref) => {
     };
   }, [src, videoRef]);
 
+  // ✨ ЗМІНА: autoPlay тепер передається через ...props
   return <video ref={videoRef} {...props} />;
 });
 
@@ -312,6 +313,7 @@ const ReelVideoModal = ({
   cdnBaseUrl,
   logEvent,
   sessionCompletedMediaKey,
+  totalMediaCount,
 }) => {
   const videoRef = useRef(null);
   const currentVideo = videos[currentIndex];
@@ -331,7 +333,7 @@ const ReelVideoModal = ({
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [onClose, currentIndex]);
+  }, [onClose, currentIndex]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Логіка HLS-плеєра
   useEffect(() => {
@@ -367,7 +369,12 @@ const ReelVideoModal = ({
 
   // Ефект для гібридної аналітики
   useEffect(() => {
-    if (!videoRef.current || !logEvent || !sessionCompletedMediaKey || !currentVideo) {
+    if (
+      !videoRef.current ||
+      !logEvent ||
+      !sessionCompletedMediaKey ||
+      !currentVideo
+    ) {
       return;
     }
 
@@ -385,6 +392,10 @@ const ReelVideoModal = ({
           sessionCompletedMediaKey,
           JSON.stringify(completed)
         );
+
+        if (totalMediaCount && completed.length === totalMediaCount) {
+          logEvent('completion');
+        }
       }
     };
 
@@ -416,6 +427,7 @@ const ReelVideoModal = ({
     currentVideo,
     logEvent,
     sessionCompletedMediaKey,
+    totalMediaCount,
   ]);
 
   // Навігація
@@ -452,11 +464,8 @@ const ReelVideoModal = ({
           className="h-5 md:h-6"
         />
 
-        {/* --- ✨ ЗМІНА 1: Поміняв місцями currentVideo.title та currentVideo.client --- */}
         <div className="text-center font-montserrat text-xs md:text-sm uppercase tracking-wider text-white/90 px-4 truncate">
-          {/* Спочатку title (який, ймовірно, є клієнтом у ваших даних) */}
           <span>{currentVideo.title}</span>
-          {/* Потім client (який, ймовірно, є назвою медіа) */}
           {currentVideo.client && <span> - {currentVideo.client}</span>}
           {artistNames && <span> - {artistNames}</span>}
         </div>
@@ -668,24 +677,28 @@ export default function PublicReelPage() {
     }
   }, [activeModalSlide, isVideo, isReadyToPlay]);
 
+  // Цей ефект відповідає за запуск відео при зміні слайду
   useEffect(() => {
     setIsFullImageLoaded(false);
     const video = videoRef.current;
     if (isVideo && video && isReadyToPlay && activeModalSlide === null) {
       const savedTime = sessionStorage.getItem(`reel_${reelId}_time`);
       const savedSlide = sessionStorage.getItem(`reel_${reelId}_slide`);
+      
       if (savedTime && String(currentSlide) === savedSlide) {
         video.currentTime = parseFloat(savedTime);
         sessionStorage.removeItem(`reel_${reelId}_time`);
       } else {
         video.currentTime = 0;
       }
+      // autoPlay={true} на компоненті має впоратись, 
+      // але цей .play() служить підстраховкою, особливо після seek
       video.play().catch((e) => console.error('Playback prevented:', e));
     }
   }, [
     isReadyToPlay,
     isVideo,
-    currentMediaItem,
+    currentMediaItem, // Зміна currentMediaItem запустить цей ефект
     reelId,
     currentSlide,
     activeModalSlide,
@@ -703,6 +716,7 @@ export default function PublicReelPage() {
     };
   }, [currentMediaItem, isInitialPlay]);
 
+  // Цей ефект відповідає за аналітику та авто-перехід на наступний слайд
   useEffect(() => {
     if (!isReadyToPlay || !data || !currentMediaItem) return;
 
@@ -746,14 +760,18 @@ export default function PublicReelPage() {
           videoElement.removeEventListener('timeupdate', handleTimeUpdate);
         }
       };
+      
       const handleEnded = () => {
         markMediaCompleted(
           currentMediaItem.id,
           videoElement?.duration || null
         );
-        // ✨ Не переходимо на наступний слайд, якщо відео не зациклене
-        // nextSlideHandler();
+        // ✨ ЗМІНА: Переходимо на наступний слайд, якщо є куди
+        if (hasMultipleSlides) {
+          nextSlideHandler();
+        }
       };
+      
       if (videoElement) {
         videoElement.addEventListener('timeupdate', handleTimeUpdate);
         videoElement.addEventListener('ended', handleEnded);
@@ -763,6 +781,7 @@ export default function PublicReelPage() {
         };
       }
     } else {
+      // Для зображень, як і раніше, переходимо через 7 секунд
       markMediaCompleted(currentMediaItem.id, 7);
       const imageTimer = setTimeout(nextSlideHandler, 7000);
       return () => clearTimeout(imageTimer);
@@ -935,6 +954,7 @@ export default function PublicReelPage() {
               cdnBaseUrl={CDN_BASE_URL}
               logEvent={logEvent}
               sessionCompletedMediaKey={completedMediaKey}
+              totalMediaCount={data?.mediaItems?.length}
             />
           </motion.div>
         )}
@@ -968,13 +988,13 @@ export default function PublicReelPage() {
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.5 }}
                   >
-                    {/* --- ✨ ЗМІНА 2: Додано loop={false} --- */}
                     <InlineHlsPlayer
                       ref={videoRef}
                       src={playbackUrl}
                       muted
                       playsInline
-                      loop={false} // <-- ВІДЕО БІЛЬШЕ НЕ ЗАЦИКЛЕНЕ
+                      loop={false} // ✨ ЗМІНА: Відео більше не зациклене
+                      autoPlay     // ✨ ЗМІНА: Додано авто-відтворення
                       className="w-full h-full object-cover"
                     />
                   </motion.div>
@@ -1111,7 +1131,8 @@ export default function PublicReelPage() {
                     src={artistPhotoUrl}
                     alt={data.mediaItems[0].artists[0].name}
                     className="w-full h-auto object-cover"
-                  /> {/* <-- Я прибрав зайву дужку '}' звідси */}
+                  
+                />
                 </div>
                 <div className="md:col-span-3 flex flex-col">
                   <h2 className="text-3xl md:text-4xl font-bold uppercase mb-6 font-montserrat">

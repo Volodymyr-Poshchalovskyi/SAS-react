@@ -87,9 +87,14 @@ def generate_video_preview(event, context):
             print(f"Завантаження першого сегмента: gs://{bucket_name}/{ts_gcs_path}...")
             ts_blob.download_to_filename(local_ts_path)
             
-            command = ['ffmpeg', '-i', local_ts_path, '-vframes', '1', '-q:v', '2', '-y', local_preview_path]
+            # ---
+            # --- ✨ ОСЬ ЦЯ СТРОКА ЗМІНЕНА ✨ ---
+            # ---
+            # Додано '-ss', '00:00:01' для перемотки на 1 секунду вперед
+            command = ['ffmpeg', '-ss', '00:00:01', '-i', local_ts_path, '-vframes', '1', '-q:v', '2', '-y', local_preview_path]
+            
             subprocess.run(command, check=True, capture_output=True, text=True)
-            print("FFmpeg: Кадр успішно вилучено.")
+            print("FFmpeg: Кадр успішно вилучено з 1-ї секунди.") # Оновлене повідомлення
             destination_blob.upload_from_filename(local_preview_path, content_type='image/jpeg')
             print("Завантаження прев'ю завершено.")
         except Exception as e:

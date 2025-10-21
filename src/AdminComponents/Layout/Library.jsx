@@ -16,6 +16,7 @@ import {
   CheckCircle,
   Copy,
   Pin,
+  Info, // Додано іконку Info
 } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -298,7 +299,6 @@ const ReelCreatorSidebar = ({
       if (activeTab === 'existing' && existingReels.length === 0) {
         setIsLoadingReels(true);
         try {
-          // ✨ ЗМІНА: Замінено localhost на змінну
           const response = await fetch(`${API_BASE_URL}/reels`);
           if (!response.ok) throw new Error('Failed to fetch reels');
           const data = await response.json();
@@ -383,7 +383,6 @@ const ReelCreatorSidebar = ({
 
     try {
       if (isEditing) {
-        // ✨ ЗМІНА: Замінено localhost на змінну
         const res = await fetch(`${API_BASE_URL}/reels/${editingReel.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -406,7 +405,6 @@ const ReelCreatorSidebar = ({
           data: { user },
         } = await supabase.auth.getUser();
         if (!user) throw new Error('User not authenticated.');
-        // ✨ ЗМІНА: Замінено localhost на змінну
         const res = await fetch(`${API_BASE_URL}/reels`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -663,7 +661,7 @@ const LibraryConfirmationModal = ({
     </>
   ) : (
     <>
-      Are you sure you want to delete{' '}
+      Are you sure you want toM-^A delete{' '}
       <strong className="text-slate-700 dark:text-slate-200">
         {itemTitle}
       </strong>
@@ -826,12 +824,14 @@ const Library = () => {
   const [editingReel, setEditingReel] = useState(null);
   const { refreshKey } = useContext(DataRefreshContext);
 
-
+  // Додано новий стан для попередження
+  const [showProcessingWarning, setShowProcessingWarning] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       setError(null);
+      setShowProcessingWarning(false); // Скидаємо попередження
       try {
         const {
           data: { user },
@@ -846,7 +846,33 @@ const Library = () => {
           )
           .order('created_at', { ascending: false });
         if (error) throw error;
-        setItems(data || []);
+
+        const fetchedItems = data || [];
+        setItems(fetchedItems);
+
+        // --- ✨ ЗМІНА: Логіка перевірки наявності нещодавніх відео ---
+        // Встановлюємо часовий поріг у 4 хвилини
+        const fourMinutesAgo = new Date(Date.now() - 4 * 60 * 1000);
+        
+        // Шукаємо "нещодавні" відео
+        const recentVideos = fetchedItems.filter(item => {
+          const createdAt = new Date(item.created_at);
+          
+          // 1. Перевіряємо, чи це взагалі відео (має video_gcs_path)
+          const isVideo = !!item.video_gcs_path; 
+          
+          // 2. Перевіряємо, чи воно завантажене нещодавно (протягом 4 хв)
+          const isRecent = createdAt > fourMinutesAgo;
+          
+          // Попередження показуємо, якщо є БУДЬ-ЯКЕ ВІДЕО, завантажене нещодавно
+          return isVideo && isRecent;
+        });
+
+        // Якщо знайдено хоча б одне таке відео, показуємо попередження
+        if (recentVideos.length > 0) {
+          setShowProcessingWarning(true);
+        }
+        // --- ✨ ЗМІНА КІНЕЦЬ ---
 
         const storedPinsRaw = localStorage.getItem('userPinnedItems');
         if (storedPinsRaw) {
@@ -865,7 +891,6 @@ const Library = () => {
   }, [refreshKey]);
 
   useEffect(() => {
-    // ✨ ЗМІНА: Додано перевірку, щоб не зберігати дані, поки йде початкове завантаження
     if (isInitialMount.current || loading) {
       if (isInitialMount.current) {
         isInitialMount.current = false;
@@ -879,7 +904,7 @@ const Library = () => {
       allUsersPins[currentUserId] = Array.from(pinnedItemIds);
       localStorage.setItem('userPinnedItems', JSON.stringify(allUsersPins));
     }
-  }, [pinnedItemIds, currentUserId, loading]); // ✨ ЗМІНА: Додано `loading` в масив залежностей
+  }, [pinnedItemIds, currentUserId, loading]);
 
   useEffect(() => {
     const reelToCopy = location.state?.reelToCopy;
@@ -1053,7 +1078,6 @@ const Library = () => {
 
   const handleConfirmDelete = async () => {
     if (!itemToDelete) return;
-    // ✨ ЗМІНА: Замінено localhost на змінну
     const res = await fetch(`${API_BASE_URL}/media-items/${itemToDelete.id}`, {
       method: 'DELETE',
     });
@@ -1065,7 +1089,6 @@ const Library = () => {
   const handleConfirmMultiDelete = async () => {
     const itemIdsToDelete = Array.from(selectedItems);
     const deletePromises = itemIdsToDelete.map((id) =>
-      // ✨ ЗМІНА: Замінено localhost на змінну
       fetch(`${API_BASE_URL}/media-items/${id}`, { method: 'DELETE' })
     );
 
@@ -1160,6 +1183,17 @@ const Library = () => {
               />
             </div>
           </div>
+
+          {/* Додано банер з попередженням */}
+          {showProcessingWarning && (
+            <div className="mb-4 flex items-start sm:items-center gap-3 p-4 rounded-lg bg-blue-50 border border-blue-200 dark:bg-blue-900/30 dark:border-blue-700" role="alert">
+              <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5 sm:mt-0" />
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                <strong>Heads up:</strong> Recently uploaded videos need a few minutes to finish processing. They will become available for preview and use shortly.
+              </p>
+            </div>
+          )}
+
           <div className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full table-fixed">
