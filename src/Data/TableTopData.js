@@ -5,7 +5,7 @@ export const tableTopData = [
     id: 1,
     name: 'JEAN CLAUDE THIBAUT',
     slug: 'jean-claude-thibaut',
-    photoSrc: 'front-end/artists/table-top/1-jean-claude-thibaut.png',
+    photoSrc: 'front-end/artists/table-top/1-JEAN CLAUDE THIBAUT-PORTRAIT.png',
     bio: `Jean-Claude Thibaut is a French filmmaker and producer, known for his bold and dark stylish films. Thibaut, as a filmmaker, explores and defines his particular fascination with men and women, but also examines his wider response to people, places, history and situations. His style combines chic seduction with sexual shock-tactics, embracing twists on traditional glamour frequently portrayed in his portraits of beautiful, talented and notorious public figures. Jean-Claude Thibaut has directed Jon Hamm, Catherine Zeta-Jones, Sophie Marceau and Naomi Campbell among others. Thibaut collaborates with Estée Lauder, Chanel, Dior and Louis Vuitton. Thibaut received the 2004 Philip Morris award for his short film Lethal Wings, underlined by one of the earliest Alexandre Desplat soundtracks, which in turn also received the Audience Award in Beauvais and participated in more than 70 festivals around the world including Los Angeles Film Festival and the Chicago International Film Festival. In 2012 The Peninsula Hotels campaign "Peninsula Moments", written by Thibaut received the 2012 Bronze Excellence in Branded Content Award. In 2011 Thibaut co-produced For Lovers Only, rated top romance indie film in the US in 2012, directed by Michael Polish with Stana Katic Castle(TV series)`,
     videos: [
       {
@@ -56,7 +56,7 @@ export const tableTopData = [
     id: 2,
     name: 'TYLER BOWDITCH',
     slug: 'tyler-bowditch',
-    photoSrc: 'front-end/artists/table-top/2-tyler-bowditch.png', // Placeholder path
+    photoSrc: 'front-end/artists/table-top/Tyler-Bowditch3-1024x1021-2-2.png', // Placeholder path
     bio: `Tyler Bowditch is a Toronto-based commercial director and photographer whose work brings food, liquids, and products to life with bold, tactile precision. Blending his background in fabrication and culinary arts with cinematic technique, he creates visuals that feel both hyper-real and artfully composed — transforming everyday textures into immersive, sensory experiences.
 
 Specializing in high-speed liquid motion, lighting, and tabletop cinematography, Tyler’s work bridges traditional craftsmanship and cutting-edge production. His shoots often explore the intersection of taste and design, turning beverages, ingredients, and materials into characters within the frame.
@@ -111,7 +111,7 @@ With a growing roster of global brands including Nespresso and Pepsi, Tyler has 
     id: 3,
     name: 'JONNIE MALACHI',
     slug: 'jonnie-malachi',
-    photoSrc: 'front-end/artists/table-top/3-jonnie-malachi.png', // Placeholder path
+    photoSrc: 'front-end/artists/table-top/Malachi.png', // Placeholder path
     bio: `Jonnie Malachi is a dynamic commercial and music-video director known for his cinematic visuals, bold comedic sensibility, and high-energy presence on set. With roots in photography and a background spanning over 40 music videos amassing more than 70 million views, he has built a reputation for pairing stylish imagery with performance-driven storytelling that captures both humor and emotion.
 
 His feature-writing and directorial debut, Breakdown (2016), marked a significant milestone in his career and showcased his ability to balance high-octane action with sharp, character-led narratives. In the commercial space, Jonnie has directed global campaigns for brands including Pizza Hut, Hotels.com, Xbox, and EA Sports, earning recognition for his visually distinctive and entertaining approach.

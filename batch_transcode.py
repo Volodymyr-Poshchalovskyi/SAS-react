@@ -10,9 +10,9 @@ PROJECT_ID = "new-sas-472103"
 LOCATION = "us-central1"
 BUCKET_NAME = "new-sas-media-storage"
 # <--- ЗМІНА 1: Нова папка з вихідними відео ---
-SOURCE_DIRECTORY = "front-end/07-Tabletop Studio/01-Raphael Hache"
+SOURCE_DIRECTORY = "front-end/05-Feature film packaging/01-lana del rey - ride"
 # <--- ЗМІНА 2: Нова папка для результатів ---
-DESTINATION_DIRECTORY = "front-end/07-Tabletop Studio/01-Raphael Hache/TRANSCODED"
+DESTINATION_DIRECTORY = "front-end/05-Feature film packaging/01-lana del rey - ride/TRANSCODED"
 # ----------------------------------------------------
 
 storage_client = storage.Client()
@@ -22,13 +22,14 @@ def create_adaptive_bitrate_job(input_uri, output_uri):
     """
     Створює завдання на транскодування з трьома потоками: 720p, 1080p та 1440p (2K),
     ЗБЕРІГАЮЧИ вихідне співвідношення сторін.
+    !!! ОНОВЛЕНО: БЕЗ АУДІО !!!
     """
     parent = f"projects/{PROJECT_ID}/locations/{LOCATION}"
     job = transcoder_v1.types.Job()
     job.input_uri = input_uri
     job.output_uri = output_uri
 
-    # --- ОНОВЛЕНА КОНФІГУРАЦІЯ ---
+    # --- ОНОВЛЕНА КОНФІГУРАЦІЯ (БЕЗ АУДІО) ---
     config = transcoder_v1.types.JobConfig(
         elementary_streams=[
             {
@@ -64,18 +65,13 @@ def create_adaptive_bitrate_job(input_uri, output_uri):
                     }
                 }
             },
-            {
-                "key": "audio-stream-stereo",
-                "audio_stream": {
-                    "codec": "aac",
-                    "bitrate_bps": 128000
-                }
-            },
+            # <--- ЗМІНА: Блок "audio-stream-stereo" повністю видалено
         ],
         mux_streams=[
-            {"key": "hls-720p", "container": "ts", "elementary_streams": ["video-stream-720p", "audio-stream-stereo"], "segment_settings": {"segment_duration": "3s"}},
-            {"key": "hls-1080p", "container": "ts", "elementary_streams": ["video-stream-1080p", "audio-stream-stereo"], "segment_settings": {"segment_duration": "3s"}},
-            {"key": "hls-1440p", "container": "ts", "elementary_streams": ["video-stream-1440p", "audio-stream-stereo"], "segment_settings": {"segment_duration": "3s"}},
+            # <--- ЗМІНА: 'audio-stream-stereo' видалено з кожного elementary_streams
+            {"key": "hls-720p", "container": "ts", "elementary_streams": ["video-stream-720p"], "segment_settings": {"segment_duration": "3s"}},
+            {"key": "hls-1080p", "container": "ts", "elementary_streams": ["video-stream-1080p"], "segment_settings": {"segment_duration": "3s"}},
+            {"key": "hls-1440p", "container": "ts", "elementary_streams": ["video-stream-1440p"], "segment_settings": {"segment_duration": "3s"}},
         ],
         manifests=[{"file_name": "master.m3u8", "type_": "HLS", "mux_streams": ["hls-720p", "hls-1080p", "hls-1440p"]}]
     )
@@ -98,7 +94,6 @@ def create_adaptive_bitrate_job(input_uri, output_uri):
         except Exception as e:
             print(f"  -> Критична помилка створення завдання: {e}")
             break
-
 def main():
     """
     Головна функція: сканує бакет та запускає транскодування.

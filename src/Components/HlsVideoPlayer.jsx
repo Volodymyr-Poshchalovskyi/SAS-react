@@ -6,9 +6,10 @@ import Hls from 'hls.js';
 const HlsVideoPlayer = ({
   src,
   shouldPlay,
-  isMuted = true,
+  isMuted = true, // За замовчуванням Mute
   previewSrc,
   startTime = 0,
+  volume = 1, // ✨ ЗМІНА 1: Додаємо проп volume (за замовчуванням 100%)
   ...props
 }) => {
   const videoRef = useRef(null);
@@ -25,46 +26,25 @@ const HlsVideoPlayer = ({
       setIsVideoVisible(true);
     };
 
-    // ✨ НОВА ЛОГІКА: Керування якістю
     const onManifestParsed = (event, data) => {
-      // data.levels — це масив усіх доступних якостей
-      // Зазвичай вони відсортовані від найнижчої до найвищої
-      
-      // 1. Знаходимо індекс для якості 1080p
-      const level_1080p_index = data.levels.findIndex(({ height }) => height === 1080);
-      
-      // 2. Якщо такий рівень (1080p) знайдено:
+      const level_1080p_index = data.levels.findIndex(
+        ({ height }) => height === 1080
+      );
       if (level_1080p_index !== -1) {
-        
-        // Встановлюємо 1080p як СТАРТОВИЙ рівень
         hls.startLevel = level_1080p_index;
-        
-        // Встановлюємо 1080p як МІНІМАЛЬНИЙ рівень для авто-якості
-        // Це заборонить плеєру опускатися до 720p
         hls.minAutoLevel = level_1080p_index;
       }
-      
-      // Якщо рівень 1080p не знайдено (наприклад, відео має макс. 720p),
-      // плеєр просто використає свою стандартну логіку ABR.
     };
 
     if (Hls.isSupported()) {
-      // Конфігурація для HLS
       const hlsConfig = startTime > 0 ? { startPosition: startTime } : {};
-
       hls = new Hls(hlsConfig);
       hlsRef.current = hls;
-
-      // ✨ ПІДКЛЮЧАЄМО НАШУ ЛОГІКУ
-      // Це спрацює до того, як почнеться завантаження сегментів
       hls.on(Hls.Events.MANIFEST_PARSED, onManifestParsed);
-      
       hls.loadSource(src);
       hls.attachMedia(video);
-
       video.addEventListener('canplay', showVideo);
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      // Для нативних плеєрів (Safari)
       video.src = startTime > 0 ? `${src}#t=${startTime}` : src;
       video.addEventListener('canplay', showVideo);
     }
@@ -72,12 +52,11 @@ const HlsVideoPlayer = ({
     return () => {
       video.removeEventListener('canplay', showVideo);
       if (hls) {
-        // ✨ Не забуваємо відписатися від події
         hls.off(Hls.Events.MANIFEST_PARSED, onManifestParsed);
         hls.destroy();
       }
     };
-  }, [src, startTime]); // Залежність від startTime важлива
+  }, [src, startTime]);
 
   useEffect(() => {
     if (!videoRef.current) return;
@@ -91,6 +70,14 @@ const HlsVideoPlayer = ({
       video.pause();
     }
   }, [shouldPlay, isVideoVisible]);
+
+  // ✨ ЗМІНА 2: Додаємо ефект для керування гучністю
+  useEffect(() => {
+    if (videoRef.current) {
+      // Встановлюємо гучність, передану через пропс
+      videoRef.current.volume = volume;
+    }
+  }, [volume]); // Цей ефект спрацює, коли зміниться проп volume
 
   return (
     <div className="absolute inset-0 w-full h-full overflow-hidden">
@@ -115,7 +102,7 @@ const HlsVideoPlayer = ({
         }`}
         playsInline
         loop
-        muted={isMuted}
+        muted={isMuted} // ✨ ЗМІНА 3: `muted` тепер контролюється пропсом `isMuted`
         {...props}
       />
     </div>
