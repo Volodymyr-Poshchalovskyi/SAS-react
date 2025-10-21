@@ -275,7 +275,7 @@ const ReelPartialForm = ({ reel, onUpdate, onFilesSelected, isEditMode }) => {
                         <button type="button" onClick={handleRemoveFile} className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors" aria-label="Remove file"><X size={16} /></button>
                     </div>)}
                 </div>
-                <input id={`dropzone-file-${id}`} type="file" className="hidden" ref={fileInputRef} onChange={handleFileInputChange} accept="image/*,video/*" multiple />
+                <input id={`dropzone-file-${id}`} type="file" className="hidden" ref={fileInputRef} onChange={handleFileInputChange} accept="image/*,video/*,video/quicktime,.mov" multiple />
             </FormSection>
             <FormSection title="Preview" hasSeparator={false}>
                 { !isEditMode && isVideo && selectedFile ? (
