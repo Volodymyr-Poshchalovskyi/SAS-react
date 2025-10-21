@@ -4,6 +4,7 @@ import React, { useLayoutEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { productionData } from '../Data/ProductionData';
 import { tableTopData } from '../Data/TableTopData';
+import { featureProjectData } from '../Data/FeatureProjectData'; // <--- ДОДАНО
 import HlsVideoPlayer from '../Components/HlsVideoPlayer';
 
 const shuffleArray = (array) => {
@@ -23,6 +24,7 @@ export default function ProjectPage() {
   const [hoveredIndex, setHoveredIndex] = useState(null);
 
   const projectData = useMemo(() => {
+    // 1. Пошук в Production
     const productionProject = productionData.find(
       (p) => p.projectSlug === projectSlug
     );
@@ -41,12 +43,12 @@ export default function ProjectPage() {
             subtitle: 'Service',
             videoSrc: p.src,
             previewSrc: p.preview_src,
-            // Не передаємо startTime, щоб воно було 0 за замовчуванням
           })),
         type: 'production',
       };
     }
 
+    // 2. Пошук в TableTop
     const tableTopProject = tableTopData.find(
       (p) => p.projectSlug === projectSlug
     );
@@ -65,11 +67,27 @@ export default function ProjectPage() {
             subtitle: 'Table Top',
             videoSrc: p.src,
             previewSrc: p.preview_src,
-            // Не передаємо startTime, щоб воно було 0 за замовчуванням
           })),
         type: 'table-top',
       };
     }
+
+    // ▼▼▼ ДОДАНО: 3. Пошук в FeatureProject ▼▼▼
+    const featureProject =
+      featureProjectData.projectSlug === projectSlug
+        ? featureProjectData
+        : null;
+
+    if (featureProject) {
+      return {
+        ...featureProject,
+        videoSrc: featureProject.src,         // Використовуємо основне відео
+        preview_src: featureProject.preview_src, // Використовуємо основне прев'ю
+        relatedProjects: [], // <--- ВАЖЛИВО: Порожній масив, щоб не рендерити секцію
+        type: 'feature',
+      };
+    }
+    // ▲▲▲ КІНЕЦЬ ДОДАНОЇ ЛОГІКИ ▲▲▲
 
     return null;
   }, [projectSlug]);
@@ -101,9 +119,9 @@ export default function ProjectPage() {
                 : ''
             }
             shouldPlay={true}
-            startTime={0} // ✨ ЗМІНА 1: Завжди починаємо з 0
-            isMuted={false} // ✨ ЗМІНА 2: Вмикаємо аудіо
-            volume={0.5} // ✨ ЗМІНА 3: Гучність 50%
+            startTime={0}     // Завжди з 0
+            isMuted={false}   // Зі звуком
+            volume={0.5}      // Гучність 50%
           />
         )}
       </section>
@@ -134,6 +152,7 @@ export default function ProjectPage() {
           </div>
           {/* ... (кінець коду опису) */}
 
+          {/* ▼▼▼ ЦЕЙ БЛОК ТЕПЕР НЕ БУДЕ РЕНДЕРИТИСЬ ДЛЯ 'feature' ПРОЕКТУ ▼▼▼ */}
           {projectData.relatedProjects &&
             projectData.relatedProjects.length > 0 && (
               <div className="mt-16 md:mt-24">
@@ -161,7 +180,7 @@ export default function ProjectPage() {
                             shouldPlay={hoveredIndex === index}
                             isMuted={true}
                             isLooped={true}
-                            startTime={0} // ✨ ЗМІНА 4: Пов'язані відео теж починаємо з 0
+                            startTime={0} 
                             className="w-full h-full object-cover transition-transform duration-500 ease-in-out group-hover:scale-110"
                           />
                         ) : (

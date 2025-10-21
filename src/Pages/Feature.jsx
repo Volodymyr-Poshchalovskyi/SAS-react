@@ -1,3 +1,5 @@
+// src/Pages/Feature.jsx
+
 import React, {
   useLayoutEffect,
   useEffect,
@@ -5,22 +7,31 @@ import React, {
   useRef,
   useCallback,
 } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import PreloaderBanner from '../Components/PreloaderBanner';
+import HlsVideoPlayer from '../Components/HlsVideoPlayer';
 import { useAnimation } from '../context/AnimationContext';
 import { Document, Page, pdfjs } from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 import workerSrc from 'pdfjs-dist/build/pdf.worker.mjs?url';
 import { Loader2, AlertTriangle, Expand, Minimize } from 'lucide-react';
+import { featureProjectData } from '../Data/FeatureProjectData';
 
 // Налаштування для react-pdf
 pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
 
-// Анімації та компонент форми (без змін)
+const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
+
+// Анімації
 const nameAnimation = {
   hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: 'easeOut' } },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.8, ease: 'easeOut' },
+  },
 };
 const sliderVariants = {
   enter: (d) => ({ x: d > 0 ? '100%' : '-100%', opacity: 0 }),
@@ -31,6 +42,8 @@ const sliderVariants = {
     transition: { duration: 0.4, ease: 'easeIn' },
   }),
 };
+
+// ▼▼▼ КОМПОНЕНТ ФОРМИ ПАРОЛЮ (ВИЗНАЧЕНИЙ ТУТ) ▼▼▼
 const PasswordPrompt = ({
   password,
   setPassword,
@@ -71,7 +84,6 @@ const PasswordPrompt = ({
           required
           placeholder="Enter password"
           className="w-full bg-transparent border-b border-gray-300 focus:outline-none focus:border-black py-2 text-sm text-black placeholder:text-gray-400"
-          autoFocus
         />{' '}
       </div>{' '}
       <button
@@ -85,6 +97,32 @@ const PasswordPrompt = ({
     </form>{' '}
   </div>
 );
+
+// Компонент оверлею
+const VideoTitleOverlay = ({ title, client, projectSlug, isPreloaderActive }) => {
+  return (
+    <div className="absolute inset-0 z-10 flex items-end justify-center text-center p-8 pb-24 text-white pointer-events-none">
+      <motion.div
+        className="flex flex-col items-center gap-4"
+        variants={nameAnimation}
+        initial="hidden"
+        animate={!isPreloaderActive ? 'visible' : 'hidden'}
+        viewport={{ once: true, amount: 0.5 }}
+      >
+        <p className="font-chanel text-2xl sm:text-4xl text-shadow">{title}</p>
+        <p className="font-light text-sm tracking-widest uppercase text-shadow">
+          {client}
+        </p>
+        <Link
+          to={`/projects/${projectSlug}`}
+          className="py-3 px-8 text-xs font-normal bg-white text-black border-2 border-white hover:bg-transparent hover:text-white transition-colors duration-300 pointer-events-auto"
+        >
+          See Project
+        </Link>
+      </motion.div>
+    </div>
+  );
+};
 
 // Головний компонент сторінки
 export default function Feature() {
@@ -111,12 +149,11 @@ export default function Feature() {
   const minSwipeDistance = 50;
   const touchStartRef = useRef(null);
 
-  // Ключ для зберігання статистики в sessionStorage
   const sessionStatsKey = pdfFile ? `pdf_stats_${pdfFile.id}` : null;
 
   // --- Ефекти життєвого циклу ---
 
-  // 1. Перевірка сесії при першому завантаженні
+  // 1. Перевірка сесії
   useEffect(() => {
     const verifySession = async () => {
       const authDataString = localStorage.getItem('featureAuth');
@@ -190,7 +227,7 @@ export default function Feature() {
     fetchLatestPdf();
   }, [isAuthenticated]);
 
-  // 3. ✨ НАДІЙНА ВІДПРАВКА СТАТИСТИКИ ПЕРЕД ЗАКРИТТЯМ СТОРІНКИ ✨
+  // 3. Відправка статистики
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (sessionStatsKey && numPages) {
@@ -204,7 +241,7 @@ export default function Feature() {
           };
           const logUrl = 'http://localhost:3001/feature-pdf/log-view';
           navigator.sendBeacon(logUrl, JSON.stringify(payload));
-          sessionStorage.removeItem(sessionStatsKey); // Очищуємо для наступного візиту
+          sessionStorage.removeItem(sessionStatsKey);
         }
       }
     };
@@ -220,7 +257,6 @@ export default function Feature() {
   const onDocumentLoadSuccess = useCallback(
     ({ numPages: nextNumPages }) => {
       setNumPages(nextNumPages);
-      // ✨ ІНІЦІАЛІЗАЦІЯ СТАТИСТИКИ ТІЛЬКИ ПІСЛЯ ЗАВАНТАЖЕННЯ PDF ✨
       if (sessionStatsKey) {
         let stats = {
           maxPageReached: 1,
@@ -228,7 +264,6 @@ export default function Feature() {
         };
         const existingStatsRaw = sessionStorage.getItem(sessionStatsKey);
         if (existingStatsRaw) {
-          // Якщо користувач оновив сторінку, відновлюємо прогрес
           const existingStats = JSON.parse(existingStatsRaw);
           stats.maxPageReached = existingStats.maxPageReached || 1;
           stats.currentPage = existingStats.currentPage || 1;
@@ -248,7 +283,6 @@ export default function Feature() {
 
       setCurrentPage([newPage, newDirection]);
 
-      // ✨ ОНОВЛЕННЯ СТАТИСТИКИ В sessionStorage ✨
       if (sessionStatsKey) {
         const statsRaw = sessionStorage.getItem(sessionStatsKey);
         if (statsRaw) {
@@ -264,6 +298,7 @@ export default function Feature() {
     [currentPage, numPages, isFullscreen, sessionStatsKey]
   );
 
+  // Обробник пароля
   const handlePasswordSubmit = async (e) => {
     e.preventDefault();
     setIsVerifying(true);
@@ -293,7 +328,7 @@ export default function Feature() {
     }
   };
 
-  // --- Допоміжні ефекти для UI (без змін) ---
+  // --- Допоміжні ефекти для UI ---
   const resetControlsTimeout = useCallback(() => {
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
     controlsTimeoutRef.current = setTimeout(
@@ -367,9 +402,17 @@ export default function Feature() {
       container.removeEventListener('touchend', handleTouchEnd);
     };
   }, [paginate, isAuthenticated]);
+  
+  // Ефект для скролу вгору
+  useLayoutEffect(() => {
+    if (!isPreloaderActive) {
+      window.scrollTo(0, 0);
+    }
+  }, [isPreloaderActive]);
+
+  // Ефект для ширини PDF
   useLayoutEffect(() => {
     if (!isAuthenticated) return;
-    window.scrollTo(0, 0);
     const updateWidth = () => {
       if (pdfContainerRef.current)
         setPdfWidth(pdfContainerRef.current.clientWidth);
@@ -377,19 +420,27 @@ export default function Feature() {
     updateWidth();
     window.addEventListener('resize', updateWidth);
     return () => window.removeEventListener('resize', updateWidth);
-  }, [isPreloaderActive, isFullscreen, isAuthenticated]);
+  }, [isFullscreen, isAuthenticated]);
+  
+  // Ефект для overflow та scroll-snap
   useEffect(() => {
     document.body.style.overflow = isPreloaderActive ? 'hidden' : '';
+    const htmlElement = document.documentElement;
+    htmlElement.classList.add('scroll-snap-enabled');
     return () => {
       document.body.style.overflow = '';
+      htmlElement.classList.remove('scroll-snap-enabled');
     };
   }, [isPreloaderActive]);
 
   // --- Рендеринг ---
+  
+  // ▼▼▼ ЗМІНА: Текст для банера тепер статичний ▼▼▼
   const bannerTitle = 'From Script to Screen.';
   const bannerDescription =
     'Our feature film division specializes in packaging commercially viable projects with top-tier talent, financing strategies, and distribution plans. Whether building a festival hit or a streamer-ready series, we develop narratives with lasting impact.';
-  const featureTitle = 'FEATURE FILMS & DOCUMENTARIES';
+  // ▲▲▲ КІНЕЦЬ ЗМІНИ ▲▲▲
+
   const PaginationControls = ({ className = '' }) => (
     <div className={`flex items-center justify-center gap-4 ${className}`}>
       {' '}
@@ -511,7 +562,7 @@ export default function Feature() {
   );
 
   return (
-    <div className="bg-gray-100">
+    <div className="bg-black">
       {' '}
       <AnimatePresence>
         {isPreloaderActive && (
@@ -522,33 +573,57 @@ export default function Feature() {
           />
         )}
       </AnimatePresence>{' '}
-      <div className="w-full min-h-screen flex flex-col items-center justify-center pt-[140px] px-4 pb-12">
-        {' '}
-       {' '}
-        <motion.div
-          className="w-full max-w-4xl"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: !isPreloaderActive ? 1 : 0 }}
-          transition={{ delay: 0.5, duration: 0.8 }}
-        >
+      {/* --- СЕКЦІЯ 1: ВІДЕО --- */}
+      <div className="relative w-full h-screen snap-start">
+        <HlsVideoPlayer
+          src={`${CDN_BASE_URL}/${featureProjectData.previewVideo.src}`}
+          previewSrc={
+            featureProjectData.previewVideo.preview_src
+              ? `${CDN_BASE_URL}/${featureProjectData.previewVideo.preview_src}`
+              : ''
+          }
+          shouldPlay={!isPreloaderActive}
+          isMuted={true}
+          isLooped={true} 
+          startTime={featureProjectData.startTime}
+        />
+        {/* Оверлей на відео бере дані з featureProjectData */}
+        <VideoTitleOverlay
+          title={featureProjectData.title}
+          client={featureProjectData.client}
+          projectSlug={featureProjectData.projectSlug}
+          isPreloaderActive={isPreloaderActive}
+        />
+      </div>
+      {/* --- СЕКЦІЯ 2: PDF КОНТЕНТ --- */}
+      <div className="relative w-full min-h-screen snap-start bg-gray-100">
+        <div className="w-full min-h-screen flex flex-col items-center justify-center pt-[140px] px-4 pb-12">
           {' '}
-          {isSessionChecking ? (
-            <div className="flex items-center justify-center h-40 text-slate-500">
-              <Loader2 className="w-8 h-8 animate-spin" />
-            </div>
-          ) : !isAuthenticated ? (
-            <PasswordPrompt
-              password={passwordInput}
-              setPassword={setPasswordInput}
-              handleSubmit={handlePasswordSubmit}
-              loading={isVerifying}
-              error={authError}
-            />
-          ) : (
-            renderPdfContent()
-          )}{' '}
-        </motion.div>{' '}
-      </div>{' '}
+          <motion.div
+            className="w-full max-w-4xl"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: !isPreloaderActive ? 1 : 0 }}
+            transition={{ delay: 0.5, duration: 0.8 }}
+          >
+            {' '}
+            {isSessionChecking ? (
+              <div className="flex items-center justify-center h-40 text-slate-500">
+                <Loader2 className="w-8 h-8 animate-spin" />
+              </div>
+            ) : !isAuthenticated ? (
+              <PasswordPrompt
+                password={passwordInput}
+                setPassword={setPasswordInput}
+                handleSubmit={handlePasswordSubmit}
+                loading={isVerifying}
+                error={authError}
+              />
+            ) : (
+              renderPdfContent()
+            )}{' '}
+          </motion.div>{' '}
+        </div>{' '}
+      </div>
     </div>
   );
 }

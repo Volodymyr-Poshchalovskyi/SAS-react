@@ -6,11 +6,12 @@ import Hls from 'hls.js';
 const HlsVideoPlayer = ({
   src,
   shouldPlay,
-  isMuted = true, // За замовчуванням Mute
+  isMuted = true,
   previewSrc,
   startTime = 0,
-  volume = 1, // ✨ ЗМІНА 1: Додаємо проп volume (за замовчуванням 100%)
-  ...props
+  volume = 1,
+  isLooped = true, // ✨ ЗМІНА 1: Витягуємо isLooped тут, за замовчуванням true
+  ...props // Решта пропсів
 }) => {
   const videoRef = useRef(null);
   const hlsRef = useRef(null);
@@ -71,13 +72,11 @@ const HlsVideoPlayer = ({
     }
   }, [shouldPlay, isVideoVisible]);
 
-  // ✨ ЗМІНА 2: Додаємо ефект для керування гучністю
   useEffect(() => {
     if (videoRef.current) {
-      // Встановлюємо гучність, передану через пропс
       videoRef.current.volume = volume;
     }
-  }, [volume]); // Цей ефект спрацює, коли зміниться проп volume
+  }, [volume]);
 
   return (
     <div className="absolute inset-0 w-full h-full overflow-hidden">
@@ -101,9 +100,9 @@ const HlsVideoPlayer = ({
           isVideoVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'
         }`}
         playsInline
-        loop
-        muted={isMuted} // ✨ ЗМІНА 3: `muted` тепер контролюється пропсом `isMuted`
-        {...props}
+        loop={isLooped} // ✨ ЗМІНА 2: Використовуємо 'loop' атрибут з пропсу isLooped
+        muted={isMuted}
+        {...props} // ✨ ЗМІНА 3: isLooped більше не потрапить сюди
       />
     </div>
   );
