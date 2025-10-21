@@ -9,7 +9,7 @@ export const useUpload = () => {
     return useContext(UploadContext);
 };
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 // We need to pass the refs to this function so it can store the active XHR
 const uploadFileToGCS = async (file, role, onProgress, activeXHRsRef) => {
