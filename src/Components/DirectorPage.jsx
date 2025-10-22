@@ -167,17 +167,23 @@ const DirectorBioModal = ({ director, onClose }) => {
             {director.name}
           </h1>
           <div className="flex-grow flex flex-col lg:flex-row gap-12 lg:gap-16 min-h-0">
-            <div className="hidden lg:block w-full lg:w-2/5 flex-shrink-0">
+            {/* ✅ ОНОВЛЕНИЙ БЛОК: */}
+            <div
+              className={`hidden lg:block w-full lg:w-2/5 flex-shrink-0 ${
+                director.photoBg === 'black' ? 'bg-black' : ''
+              }`}
+            >
               {publicPhotoUrl ? (
                 <img
                   src={publicPhotoUrl}
                   alt={director.name}
-                  className="w-full aspect-square object-cover"
+                  className="w-full aspect-square object-contain" // <-- Змінено на object-contain
                 />
               ) : (
                 <div className="w-full aspect-square bg-gray-200" />
               )}
             </div>
+            {/* ✅ КІНЕЦЬ ОНОВЛЕНОГО БЛОКУ */}
             <div className="w-full lg:w-3/5 flex flex-col min-h-0">
               <p
                 ref={bioRef}
