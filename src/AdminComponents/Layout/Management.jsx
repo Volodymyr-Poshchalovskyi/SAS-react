@@ -141,6 +141,7 @@ const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
 
 // --- Main Page Component ---
 const ManagementPage = () => {
+  const API_BASE_URL = import.meta.env.VITE_API_URL;
   const [artists, setArtists] = useState([]);
   const [clients, setClients] = useState([]);
   const [celebrities, setCelebrities] = useState([]);
@@ -257,7 +258,7 @@ const ManagementPage = () => {
       if (item.photo_gcs_path) {
         try {
           const response = await fetch(
-            '${API_BASE_URL}/generate-read-urls',
+            `${API_BASE_URL}/generate-read-urls`,
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
