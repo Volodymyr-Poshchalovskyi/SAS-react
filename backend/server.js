@@ -946,18 +946,39 @@ app.delete('/media-items/:id', async (req, res) => {
     }
     // ✨ КІНЕЦЬ НОВОЇ ЛОГІКИ ✨
 
+    // ✨ ПОЧАТОК ЗМІНИ: Використовуємо Promise.allSettled для надійного видалення
     if (deletePromises.length > 0) {
-      console.log(`Attempting to delete ${deletePromises.length} GCS operations for item ${id}.`);
-      try {
-        await Promise.all(deletePromises);
-        console.log('Successfully deleted all associated files from GCS.');
-      } catch (gcsError) {
-        // Якщо помилка під час видалення з GCS, зупиняємось і повертаємо помилку
-        console.error(`CRITICAL: Failed to delete one or more files from GCS for item ${id}.`, gcsError);
-        throw new Error(`Failed to delete files from storage. Database record was NOT deleted. Details: ${gcsError.message}`);
+      console.log(`Attempting ${deletePromises.length} GCS deletion operations for item ${id}.`);
+      
+      // Використовуємо allSettled замість all.
+      // Це гарантує, що ми спробуємо видалити всі файли,
+      // і код не зупиниться, якщо якийсь файл не знайдено (404).
+      const results = await Promise.allSettled(deletePromises);
+
+      let allSucceeded = true;
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          allSucceeded = false;
+          const error = result.reason;
+          // Логуємо помилки, які НЕ є "Not Found"
+          if (error.code !== 404) {
+             console.error(`Failed to delete a GCS file (continuing anyway):`, error.message);
+          } else {
+             // Це очікувана "помилка", якщо прев'ю чи відео не існує
+             console.warn(`GCS file not found during deletion (skipping): ${error.message}`);
+          }
+        }
+      });
+
+      if (allSucceeded) {
+        console.log('Successfully deleted all associated files/prefixes from GCS.');
+      } else {
+        console.warn('One or more GCS deletion tasks failed (e.g., file not found). Continuing with DB deletion as requested.');
       }
     }
-
+    // ✨ КІНЕЦЬ ЗМІНИ: Критична помилка більше не кидається.
+    // Виконання коду продовжиться до Кроку 3 (видалення з БД)
+    // незалежно від того, чи були файли в GCS.
     // Крок 3: Видаляємо всі пов'язані записи (з `reel_media_items`).
     const { data: affectedReelLinks, error: linksError } = await supabase
       .from('reel_media_items')
