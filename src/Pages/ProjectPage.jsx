@@ -40,7 +40,9 @@ export default function ProjectPage() {
           .map((p) => ({
             slug: p.projectSlug,
             title: p.title,
-            subtitle: 'Service',
+            // ▼▼▼ ЗМІНА: Передаємо 'client' замість 'subtitle' ▼▼▼
+            client: p.client,
+            // ▲▲▲ КІНЕЦЬ ЗМІНИ ▲▲▲
             videoSrc: p.src,
             previewSrc: p.preview_src,
           })),
@@ -64,7 +66,9 @@ export default function ProjectPage() {
           .map((p) => ({
             slug: p.projectSlug,
             title: p.title,
-            subtitle: 'Table Top',
+            // ▼▼▼ ЗМІНА: Передаємо 'client' замість 'subtitle' ▼▼▼
+            client: p.client, // Припускаємо, що tableTopData теж має 'client'
+            // ▲▲▲ КІНЕЦЬ ЗМІНИ ▲▲▲
             videoSrc: p.src,
             previewSrc: p.preview_src,
           })),
@@ -85,6 +89,8 @@ export default function ProjectPage() {
         preview_src: featureProject.preview_src,
         relatedProjects: [],
         type: 'feature',
+        description:
+          'Ride (2012) is an American short music film directed by Anthony Mandler and written by Lana Del Rey. Starring Del Rey as Artist, the story follows a woman who leaves behind her privileged life to join a biker gang, seeking freedom, identity, and a sense of belonging. Blending cinematic storytelling with the visual language of music videos, the film serves as a companion piece to Del Rey’s song of the same name from her Paradise EP. Through evocative imagery and intimate voiceovers, Ride explores themes of desire, rebellion, and self-discovery.\n\nPremiering at the Aero Theater in Santa Monica, California on October 10, 2012, and released globally on VEVO two days later, Ride was distributed by Black Hand Cinema. The film earned mixed-to-positive reviews—praised for Del Rey’s haunting performance, poetic narration, and visual ambition—while also sparking controversy for its portrayal of prostitution, adultery, gun violence, and cultural appropriation.',
       };
     }
 
@@ -132,15 +138,12 @@ export default function ProjectPage() {
               {projectData.title}
             </h1>
             <div className="font-helvetica text-sm uppercase tracking-wider space-y-2 mb-8">
-              
-              {/* ▼▼▼ ДОДАНО: Відображення клієнта (якщо він є) ▼▼▼ */}
               {projectData.client && (
                 <p>
                   <span className="font-semibold">CLIENT:</span>{' '}
                   {projectData.client}
                 </p>
               )}
-              {/* ▲▲▲ КІНЕЦЬ ЗМІНИ ▲▲▲ */}
 
               <p>
                 <span className="font-semibold">FEATURING:</span>{' '}
@@ -150,18 +153,28 @@ export default function ProjectPage() {
                 <span className="font-semibold">DIRECTOR:</span>{' '}
                 {projectData.director}
               </p>
+
               <p>
-                <span className="font-semibold">EXECUTIVE PRODUCERS:</span>{' '}
+                <span className="font-semibold">
+                  {projectData.type === 'feature'
+                    ? 'PRODUCER:'
+                    : 'EXECUTIVE PRODUCER:'}
+                </span>{' '}
                 {projectData.executiveProducers}
               </p>
             </div>
-            <p className="font-helvetica text-base leading-relaxed">
-              {projectData.description}
-            </p>
+
+            <div className="font-helvetica text-base leading-relaxed space-y-4">
+              {projectData.description
+                .split('\n\n')
+                .map((paragraph, idx) => (
+                  <p key={idx}>{paragraph}</p>
+                ))}
+            </div>
           </div>
           {/* ... (кінець коду опису) */}
 
-          {/* ... (код "Related Projects" без змін) */}
+          {/* ... (код "Related Projects") */}
           {projectData.relatedProjects &&
             projectData.relatedProjects.length > 0 && (
               <div className="mt-16 md:mt-24">
@@ -200,9 +213,11 @@ export default function ProjectPage() {
                           <p className="font-chanel text-sm uppercase">
                             {related.title}
                           </p>
+                          {/* ▼▼▼ ЗМІНА: Відображаємо 'client' ▼▼▼ */}
                           <p className="font-helvetica text-xs uppercase">
-                            {related.subtitle}
+                            {related.client}
                           </p>
+                          {/* ▲▲▲ КІНЕЦЬ ЗМІНИ ▲▲▲ */}
                         </div>
                       </div>
                     </Link>

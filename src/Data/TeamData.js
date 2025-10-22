@@ -1,11 +1,11 @@
 // src/Data/TeamData.js
 
 
-import heatherPhoto from '../assets/Photos/Heather.jpg';
-import tommyPhoto from '../assets/Photos/Tommy.jpg';
-import candicePhoto from '../assets/Photos/Candice.png';
-import rostPhoto from '../assets/Photos/Rost.jpg';
-import dalePhoto from '../assets/Photos/Dale.jpg';
+import heatherPhoto from '../assets/Photos/front-end_08-about_01-New Team Photos_Heather2.png';
+import tommyPhoto from '../assets/Photos/front-end_08-about_01-New Team Photos_Tommy.png';
+import candicePhoto from '../assets/Photos/front-end_08-about_01-New Team Photos_Candice.png';
+import rostPhoto from '../assets/Photos/front-end_08-about_01-New Team Photos_Rost.png';
+import dalePhoto from '../assets/Photos/front-end_08-about_01-New Team Photos_Dale.png';
 
 export const teamData = [
   {

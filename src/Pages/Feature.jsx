@@ -588,12 +588,14 @@ export default function Feature() {
           startTime={featureProjectData.startTime}
         />
         {/* Оверлей на відео бере дані з featureProjectData */}
+        {/* ▼▼▼ ЗМІНА: Додано " - SHORT FILM" до назви ▼▼▼ */}
         <VideoTitleOverlay
-          title={featureProjectData.title}
+          title={`${featureProjectData.title} - SHORT FILM`}
           client={featureProjectData.client}
           projectSlug={featureProjectData.projectSlug}
           isPreloaderActive={isPreloaderActive}
         />
+        {/* ▲▲▲ КІНЕЦЬ ЗМІНИ ▲▲▲ */}
       </div>
       {/* --- СЕКЦІЯ 2: PDF КОНТЕНТ --- */}
       <div className="relative w-full min-h-screen snap-start bg-gray-100">

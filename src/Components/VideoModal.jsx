@@ -18,7 +18,7 @@ export default function VideoModal({ videos, currentIndex, onClose, onNavigate, 
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [onClose, currentIndex]);
+  }, [onClose, currentIndex]); // Додав currentIndex до залежностей
 
   useEffect(() => {
     if (!videoSrc || !videoRef.current) return;
@@ -26,9 +26,7 @@ export default function VideoModal({ videos, currentIndex, onClose, onNavigate, 
     const videoElement = videoRef.current;
     let hls;
 
-    // ✨ ЗМІНА 1: Оголошуємо функцію-обробник тут, щоб її можна було видалити при очищенні
     const onManifestParsed = (event, data) => {
-      // Примусово встановлюємо найвищий рівень якості
       if (hls) {
         hls.currentLevel = data.levels.length - 1;
       }
@@ -36,7 +34,6 @@ export default function VideoModal({ videos, currentIndex, onClose, onNavigate, 
 
     if (Hls.isSupported()) {
       hls = new Hls();
-      // ✨ ЗМІНА 2: Додаємо слухача події, який спрацює, коли плеєр отримає список якостей
       hls.on(Hls.Events.MANIFEST_PARSED, onManifestParsed);
       hls.loadSource(videoSrc);
       hls.attachMedia(videoElement);
@@ -46,7 +43,6 @@ export default function VideoModal({ videos, currentIndex, onClose, onNavigate, 
 
     return () => {
       if (hls) {
-        // ✨ ЗМІНА 3: Прибираємо слухача події, щоб уникнути витоків пам'яті
         hls.off(Hls.Events.MANIFEST_PARSED, onManifestParsed);
         hls.destroy();
       }
@@ -67,7 +63,7 @@ export default function VideoModal({ videos, currentIndex, onClose, onNavigate, 
 
   return (
     <div
-      className="fixed inset-0 bg-black z-[9999] flex flex-col justify-center items-center py-4 sm:py-8 md:py-12 px-16 sm:px-20 md:px-24 box-border" // <-- 🔥 ОНОВЛЕНИЙ РЯДОК
+      className="fixed inset-0 bg-black z-[9999] flex flex-col justify-center items-center py-4 sm:py-8 md:py-12 px-16 sm:px-20 md:px-24 box-border"
       onClick={onClose}
     >
       <button
@@ -121,9 +117,16 @@ export default function VideoModal({ videos, currentIndex, onClose, onNavigate, 
             autoPlay
           />
         </div>
-        <p className="text-white text-center pt-4 text-xl flex-shrink-0">
-          {currentVideo.title}
-        </p>
+        {/* 🔥 ОСЬ ТУТ ЗМІНИ */}
+        <div className="text-white text-center pt-4 flex-shrink-0">
+          <p className="text-xl">{currentVideo.title}</p>
+          {currentVideo.client && (
+            <p className="font-light text-sm tracking-widest uppercase mt-1">
+              {currentVideo.client}
+            </p>
+          )}
+        </div>
+        {/* 🔥 КІНЕЦЬ ЗМІН */}
       </div>
     </div>
   );
