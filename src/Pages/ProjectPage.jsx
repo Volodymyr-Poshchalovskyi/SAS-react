@@ -4,7 +4,7 @@ import React, { useLayoutEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { productionData } from '../Data/ProductionData';
 import { tableTopData } from '../Data/TableTopData';
-import { featureProjectData } from '../Data/FeatureProjectData'; // <--- ДОДАНО
+import { featureProjectData } from '../Data/FeatureProjectData';
 import HlsVideoPlayer from '../Components/HlsVideoPlayer';
 
 const shuffleArray = (array) => {
@@ -72,7 +72,7 @@ export default function ProjectPage() {
       };
     }
 
-    // ▼▼▼ ДОДАНО: 3. Пошук в FeatureProject ▼▼▼
+    // 3. Пошук в FeatureProject
     const featureProject =
       featureProjectData.projectSlug === projectSlug
         ? featureProjectData
@@ -81,13 +81,12 @@ export default function ProjectPage() {
     if (featureProject) {
       return {
         ...featureProject,
-        videoSrc: featureProject.src,         // Використовуємо основне відео
-        preview_src: featureProject.preview_src, // Використовуємо основне прев'ю
-        relatedProjects: [], // <--- ВАЖЛИВО: Порожній масив, щоб не рендерити секцію
+        videoSrc: featureProject.src,
+        preview_src: featureProject.preview_src,
+        relatedProjects: [],
         type: 'feature',
       };
     }
-    // ▲▲▲ КІНЕЦЬ ДОДАНОЇ ЛОГІКИ ▲▲▲
 
     return null;
   }, [projectSlug]);
@@ -119,20 +118,30 @@ export default function ProjectPage() {
                 : ''
             }
             shouldPlay={true}
-            startTime={0}     // Завжди з 0
-            isMuted={false}   // Зі звуком
-            volume={0.5}      // Гучність 50%
+            startTime={0}
+            isMuted={false}
+            volume={0.5}
           />
         )}
       </section>
       <section className="w-full px-8 py-16 md:py-24">
         <div>
-          {/* ... (код опису проекту без змін) */}
+          {/* ... (код опису проекту) */}
           <div>
             <h1 className="text-4xl sm:text-5xl font-chanel uppercase tracking-tight mb-8">
               {projectData.title}
             </h1>
             <div className="font-helvetica text-sm uppercase tracking-wider space-y-2 mb-8">
+              
+              {/* ▼▼▼ ДОДАНО: Відображення клієнта (якщо він є) ▼▼▼ */}
+              {projectData.client && (
+                <p>
+                  <span className="font-semibold">CLIENT:</span>{' '}
+                  {projectData.client}
+                </p>
+              )}
+              {/* ▲▲▲ КІНЕЦЬ ЗМІНИ ▲▲▲ */}
+
               <p>
                 <span className="font-semibold">FEATURING:</span>{' '}
                 {projectData.featuring}
@@ -152,7 +161,7 @@ export default function ProjectPage() {
           </div>
           {/* ... (кінець коду опису) */}
 
-          {/* ▼▼▼ ЦЕЙ БЛОК ТЕПЕР НЕ БУДЕ РЕНДЕРИТИСЬ ДЛЯ 'feature' ПРОЕКТУ ▼▼▼ */}
+          {/* ... (код "Related Projects" без змін) */}
           {projectData.relatedProjects &&
             projectData.relatedProjects.length > 0 && (
               <div className="mt-16 md:mt-24">
@@ -180,13 +189,12 @@ export default function ProjectPage() {
                             shouldPlay={hoveredIndex === index}
                             isMuted={true}
                             isLooped={true}
-                            startTime={0} 
+                            startTime={0}
                             className="w-full h-full object-cover transition-transform duration-500 ease-in-out group-hover:scale-110"
                           />
                         ) : (
                           <div className="w-full h-full bg-gray-200 animate-pulse"></div>
                         )}
-                        {/* ... (код оверлею картки без змін) */}
                         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
                         <div className="absolute bottom-0 left-0 p-4 text-white">
                           <p className="font-chanel text-sm uppercase">
