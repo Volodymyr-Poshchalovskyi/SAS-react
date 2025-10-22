@@ -703,6 +703,7 @@ const ReelPartialForm = ({ reel, onUpdate, onFilesSelected, isEditMode }) => {
             ref={videoRef}
             src={editorVideoUrl}
             controls
+            crossOrigin="anonymous"
             className="w-full h-auto max-h-[400px] rounded-md mb-4 object-contain"
           />
         ) : (
@@ -711,6 +712,7 @@ const ReelPartialForm = ({ reel, onUpdate, onFilesSelected, isEditMode }) => {
             ref={videoRef}
             src={editorVideoUrl}
             controls
+            crossOrigin="anonymous"
             className="w-full h-auto max-h-[400px] rounded-md mb-4 object-contain"
             onLoadedMetadata={() => {
               const video = videoRef.current;
