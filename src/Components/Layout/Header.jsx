@@ -158,7 +158,7 @@ const Header = forwardRef(function Header(props, ref) {
           animate="visible"
         >
           <div
-            className="w-full relative px-4 sm:px-8 grid grid-cols-3 items-center h-16 z-20" // 🔄 ЗМІНЕНО: px-8 на px-4 sm:px-8
+            className="w-full relative px-4 sm:px-8 grid grid-cols-3 items-center h-16 z-20"
             style={{
               backgroundColor: shouldHaveBackground
                 ? 'rgba(255, 255, 255, 1)'
@@ -196,7 +196,7 @@ const Header = forwardRef(function Header(props, ref) {
                     shouldHaveBackground ? sinnersLogoBlack : sinnersLogoWhite
                   }
                   alt="Sinners Logo"
-                  className="w-24 sm:w-32 h-auto" // 🔄 ЗМІНЕНО
+                  className="w-24 sm:w-32 h-auto"
                 />
               </Link>
             </div>
@@ -271,15 +271,13 @@ const Header = forwardRef(function Header(props, ref) {
       <AnimatePresence>
         {isMobileMenuOpen && (
           <motion.div
-            className="fixed inset-0 bg-white z-[1001] flex flex-col overflow-hidden" // 🔄 ЗМІНЕНО: додано overflow-hidden
+            className="fixed inset-0 bg-white z-[1001] flex flex-col overflow-hidden"
             variants={mobileMenuVariants}
             initial="hidden"
             animate="visible"
             exit="hidden"
           >
             <div className="grid grid-cols-3 items-center h-16 px-4 sm:px-8 flex-shrink-0">
-              {' '}
-              {/* 🔄 ЗМІНЕНО: px-8 на px-4 sm:px-8 */}
               <div className="flex justify-start"></div>
               <div className="flex justify-center">
                 <Link to="/" onClick={() => setIsMobileMenuOpen(false)}>
@@ -287,8 +285,7 @@ const Header = forwardRef(function Header(props, ref) {
                     src={sinnersLogoBlack}
                     alt="Sinners Logo"
                     className="w-24 sm:w-32 h-auto"
-                  />{' '}
-                  {/* 🔄 ЗМІНЕНО */}
+                  />
                 </Link>
               </div>
               <div className="flex justify-end">
@@ -311,28 +308,43 @@ const Header = forwardRef(function Header(props, ref) {
                 </button>
               </div>
             </div>
+            
             <motion.nav
               className="flex-grow flex flex-col items-center justify-center text-center"
               variants={mobileNavLinksContainerVariants}
               initial="hidden"
               animate="visible"
             >
-              {navLinks.map((link) => (
-                <motion.div
-                  key={link.path}
-                  variants={mobileNavLinkItemVariants}
-                  className="w-full px-4" // 🔄 ЗМІНЕНО: додано w-full та px-4
-                >
-                  <Link
-                    to={link.path}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="block py-3 sm:py-4 text-xl sm:text-2xl font-semibold uppercase tracking-wide sm:tracking-widest text-black"
+              {navLinks.map((link) => {
+                // Визначаємо, чи активне посилання.
+                // Для головної сторінки ('/') потрібна точна відповідність.
+                // Для інших - перевіряємо, чи поточний шлях починається зі шляху посилання.
+                const isActive =
+                  link.path === '/'
+                    ? location.pathname === '/'
+                    : location.pathname.startsWith(link.path);
+
+                return (
+                  <motion.div
+                    key={link.path}
+                    variants={mobileNavLinkItemVariants}
+                    className="w-full px-4"
                   >
-                    {link.label}
-                  </Link>
-                </motion.div>
-              ))}
+                    <Link
+                      to={link.path}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className={`
+                        block py-3 sm:py-4 text-xl sm:text-2xl font-semibold uppercase tracking-wide sm:tracking-widest 
+                        ${isActive ? 'text-gray-400' : 'text-black'}  
+                      `}
+                    >
+                      {link.label}
+                    </Link>
+                  </motion.div>
+                );
+              })}
             </motion.nav>
+            
           </motion.div>
         )}
       </AnimatePresence>
