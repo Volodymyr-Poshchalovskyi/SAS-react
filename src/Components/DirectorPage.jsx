@@ -226,26 +226,59 @@ export default function DirectorPage() {
   const [activeVideoIndex, setActiveVideoIndex] = useState(null);
   const [isBioModalOpen, setIsBioModalOpen] = useState(false);
 
+  // ✅ ДОДАНО: Стан для перевірки, чи бачив юзер біо ВЗАГАЛІ
+  // Ми ліниво ініціалізуємо стан, зчитуючи з localStorage
+  // 'typeof window' потрібен, щоб уникнути помилок при Server-Side Rendering
+  const [hasEverViewedBio, setHasEverViewedBio] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('hasViewedBio') === 'true';
+    }
+    return false;
+  });
+
+  const { ref: nameButtonRef, inView: isNameButtonInView } = useInView({
+    triggerOnce: true,
+    threshold: 0.5,
+  });
+
+  const nameAnimationVariants = {
+    hidden: { color: '#000000' },
+    visible: {
+      color: ['#000000', '#6b7280', '#000000'],
+      transition: {
+        duration: 2,
+        repeat: 5,
+        repeatType: 'loop',
+        ease: 'easeInOut',
+      },
+    },
+  };
+
+  // ✅ ДОДАНО: Функція-обгортка для відкриття модалки
+  const openBioModal = () => {
+    // Якщо юзер ніколи не бачив біо,
+    // записуємо в localStorage і оновлюємо стан
+    if (!hasEverViewedBio) {
+      localStorage.setItem('hasViewedBio', 'true');
+      setHasEverViewedBio(true);
+    }
+    // Відкриваємо модалку
+    setIsBioModalOpen(true);
+  };
+
   const isAnyModalOpen = activeVideoIndex !== null || isBioModalOpen;
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  // ✅ ДОДАНО: Ефект для попереднього завантаження фото
   useEffect(() => {
-    // Переконуємося, що дані режисера завантажені і в нього є фото
     if (director && director.photoSrc) {
-      // Створюємо URL
       const publicPhotoUrl = `${CDN_BASE_URL}/${director.photoSrc}`;
-      
-      // Створюємо новий об'єкт Image
       const img = new Image();
-      
-      // Присвоєння 'src' змушує браузер завантажити зображення
       img.src = publicPhotoUrl;
     }
-  }, [director]); // Запускаємо цей ефект, коли 'director' стає доступним
+  }, [director]);
 
   if (!director) {
     return (
@@ -276,13 +309,21 @@ export default function DirectorPage() {
             />
           </svg>
         </Link>
-        <button
-          onClick={() => setIsBioModalOpen(true)}
+
+        <motion.button
+          ref={nameButtonRef}
+          onClick={openBioModal} // ✅ ОНОВЛЕНО: Використовуємо нову функцію
           className="text-4xl sm:text-5xl md:text-6xl font-chanel font-semibold uppercase text-center px-4 transition-opacity hover:opacity-70 focus:outline-none"
           aria-label={`View biography for ${director.name}`}
+          variants={nameAnimationVariants}
+          initial="hidden"
+          // ✅ ОНОВЛЕНО: Анімуємо, ТІЛЬКИ якщо (в полі зору І юзер ще не бачив біо)
+          animate={
+            isNameButtonInView && !hasEverViewedBio ? 'visible' : 'hidden'
+          }
         >
           {director.name}
-        </button>
+        </motion.button>
       </section>
 
       <div className="bg-black">
