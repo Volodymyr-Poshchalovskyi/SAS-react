@@ -86,6 +86,42 @@ app.use(express.json());
 // ! SECTION 3: UTILITY FUNCTIONS
 // ========================================================================== //
 
+const requireAuth = async (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  if (!authHeader) {
+    return res.status(401).json({ error: 'Access Denied: No token provided' });
+  }
+
+  const token = authHeader.split(' ')[1];
+  if (!token) {
+    return res
+      .status(401)
+      .json({ error: 'Access Denied: Invalid token format' });
+  }
+
+  try {
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser(token);
+
+    if (error) {
+      console.warn('Token validation error:', error.message);
+      return res.status(401).json({ error: `Access Denied: ${error.message}` });
+    }
+
+    if (!user) {
+      return res.status(401).json({ error: 'Access Denied: Invalid token' });
+    }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    console.error('Critical error in requireAuth:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 /**
  * Generates a short random ID.
  * @param {number} length - The desired length of the ID.
@@ -109,7 +145,7 @@ function generateShortId(length = 5) {
  * Generates a v4 signed URL for uploading a file to GCS.
  * * Dynamically sets the destination folder based on `destination` and `role` params.
  */
-app.post('/generate-upload-url', async (req, res) => {
+app.post('/generate-upload-url', requireAuth, async (req, res) => {
   try {
     const { fileName, fileType, destination, role } = req.body;
     if (!fileName || !fileType)
@@ -158,7 +194,7 @@ app.post('/generate-upload-url', async (req, res) => {
  * Generates v4 signed URLs for reading multiple files from GCS.
  * * Accepts an array of GCS paths and returns a map of { path: url }.
  */
-app.post('/generate-read-urls', async (req, res) => {
+  app.post('/generate-read-urls', async (req, res) =>{
   try {
     const { gcsPaths } = req.body;
     if (!gcsPaths || !Array.isArray(gcsPaths) || gcsPaths.length === 0)
@@ -209,7 +245,7 @@ app.post('/generate-read-urls', async (req, res) => {
 /**
  * Fetches artist details (photo path) by an array of names.
  */
-app.post('/artists/details-by-names', async (req, res) => {
+app.post('/artists/details-by-names', requireAuth, async (req, res) => {
   const { names } = req.body;
   if (!names || !Array.isArray(names) || names.length === 0) {
     return res.status(400).json({ error: 'An array of names is required.' });
@@ -236,7 +272,7 @@ app.post('/artists/details-by-names', async (req, res) => {
  * Updates an artist's details.
  * * Also deletes the old GCS photo if a new one is provided.
  */
-app.put('/artists/:id', async (req, res) => {
+app.put('/artists/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
   const { name, description, photo_gcs_path } = req.body;
 
@@ -288,7 +324,7 @@ app.put('/artists/:id', async (req, res) => {
  * Deletes an artist.
  * * Also deletes the associated photo from GCS.
  */
-app.delete('/artists/:id', async (req, res) => {
+app.delete('/artists/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
   try {
     // * Step 1: Get the GCS path *before* deleting the record
@@ -381,7 +417,7 @@ app.post('/reels/log-event', async (req, res) => {
  * Fetches daily view counts (media_completion) for a date range.
  * * Fills in missing days with 0 views, which is required for charting.
  */
-app.get('/analytics/views-over-time', async (req, res) => {
+app.get('/analytics/views-over-time', requireAuth, async (req, res) => {
   const { startDate, endDate } = req.query;
   if (!startDate || !endDate) {
     return res
@@ -424,8 +460,7 @@ app.get('/analytics/views-over-time', async (req, res) => {
     }
 
     res.status(200).json(result);
-  } catch (error)
-  {
+  } catch (error) {
     console.error('Error fetching views over time:', error);
     res.status(500).json({
       error: 'Failed to fetch daily view counts.',
@@ -438,7 +473,7 @@ app.get('/analytics/views-over-time', async (req, res) => {
  * Fetches the top N trending media items based on 'completion' events.
  * * This uses an "aggregate, then fetch" pattern for efficiency.
  */
-app.get('/analytics/trending-media', async (req, res) => {
+app.get('/analytics/trending-media', requireAuth, async (req, res) => {
   const { startDate, endDate, limit = 4 } = req.query;
   if (!startDate || !endDate) {
     return res
@@ -512,7 +547,7 @@ app.get('/analytics/trending-media', async (req, res) => {
  * Fetches recently created reels and enriches them with data (client, preview)
  * from their *first* media item.
  */
-app.get('/analytics/recent-activity', async (req, res) => {
+app.get('/analytics/recent-activity', requireAuth, async (req, res) => {
   const { limit = 5 } = req.query;
   try {
     // * Step 1: Get recent reels
@@ -563,8 +598,9 @@ app.get('/analytics/recent-activity', async (req, res) => {
  * * Generates a unique `short_link` for the reel.
  * * Inserts associated media items into the `reel_media_items` join table.
  */
-app.post('/reels', async (req, res) => {
-  const { title, media_item_ids, user_id } = req.body;
+app.post('/reels', requireAuth, async (req, res) => {
+  const { title, media_item_ids } = req.body;
+  const user_id = req.user.id;
   if (!title || !media_item_ids || !user_id || media_item_ids.length === 0)
     return res.status(400).json({
       error: 'Title, user_id, and at least one media_item_id are required.',
@@ -621,7 +657,7 @@ app.post('/reels', async (req, res) => {
  * Fetches all reels with calculated analytics.
  * ! This uses an efficient "fetch all, join in app" strategy to avoid N+1 queries.
  */
-app.get('/reels', async (req, res) => {
+app.get('/reels', requireAuth, async (req, res) => {
   try {
     // * Step 1: Fetch all primary reel data
     const { data: reels, error: reelsError } = await supabase
@@ -730,7 +766,7 @@ app.get('/reels', async (req, res) => {
  * * Updates reel metadata (title, status, etc.).
  * * Replaces the `reel_media_items` using a "delete all, insert new" strategy.
  */
-app.put('/reels/:id', async (req, res) => {
+app.put('/reels/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
   const { title, artists, status, media_item_ids } = req.body;
 
@@ -817,7 +853,7 @@ app.put('/reels/:id', async (req, res) => {
 /**
  * Deletes a reel and all its associated data (links, analytics).
  */
-app.delete('/reels/:id', async (req, res) => {
+app.delete('/reels/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
   try {
     // * Manually cascade deletes (Supabase doesn't do this by default on links/views)
@@ -943,7 +979,7 @@ app.get('/reels/public/:short_link', async (req, res) => {
 /**
  * Fetches a single media item by its ID.
  */
-app.get('/media-items/:id', async (req, res) => {
+app.get('/media-items/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
   try {
     const { data, error } = await supabase
@@ -966,7 +1002,7 @@ app.get('/media-items/:id', async (req, res) => {
  * Fetches multiple media items by an array of IDs.
  * * Used by the reel editor to get item details.
  */
-app.get('/media-items', async (req, res) => {
+app.get('/media-items', requireAuth, async (req, res) => {
   const ids = req.query.id;
   if (!ids || !Array.isArray(ids) || ids.length === 0) {
     return res
@@ -993,7 +1029,7 @@ app.get('/media-items', async (req, res) => {
  * Updates a media item.
  * * Also cleans up old GCS files (video, preview) if they are replaced.
  */
-app.put('/media-items/:id', async (req, res) => {
+app.put('/media-items/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
   const updatedData = req.body;
   try {
@@ -1055,7 +1091,7 @@ app.put('/media-items/:id', async (req, res) => {
  * * 4. Deletes any `reels` that become empty as a result.
  * * 5. Deletes the `media_items` record itself.
  */
-app.delete('/media-items/:id', async (req, res) => {
+app.delete('/media-items/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -1072,7 +1108,9 @@ app.delete('/media-items/:id', async (req, res) => {
         .json({ message: 'Item not found, assumed already deleted.' });
     }
     if (fetchError) {
-      throw new Error(`Could not fetch media item to delete: ${fetchError.message}`);
+      throw new Error(
+        `Could not fetch media item to delete: ${fetchError.message}`
+      );
     }
     if (!item) {
       return res
@@ -1132,9 +1170,7 @@ app.delete('/media-items/:id', async (req, res) => {
           }
         }
       });
-      console.log(
-        'GCS cleanup tasks finished. Continuing with DB deletion.'
-      );
+      console.log('GCS cleanup tasks finished. Continuing with DB deletion.');
     }
 
     // * Step 3: Clean up database links (find affected reels)
@@ -1154,7 +1190,7 @@ app.delete('/media-items/:id', async (req, res) => {
     // * Step 4: Check for and delete "orphan" reels
     if (affectedReelLinks && affectedReelLinks.length > 0) {
       const affectedReelIds = affectedReelLinks.map((link) => link.reel_id);
-      
+
       // * Check which of the affected reels *still* have items
       const { data: remainingLinks, error: checkError } = await supabase
         .from('reel_media_items')
@@ -1165,7 +1201,7 @@ app.delete('/media-items/:id', async (req, res) => {
       const reelsThatStillHaveItems = new Set(
         (remainingLinks || []).map((link) => link.reel_id)
       );
-      
+
       // * Find reels that are now empty
       const reelsToDeleteIds = affectedReelIds.filter(
         (reelId) => !reelsThatStillHaveItems.has(reelId)
@@ -1190,7 +1226,8 @@ app.delete('/media-items/:id', async (req, res) => {
 
     // * Step 6: Success
     res.status(200).json({
-      message: 'Media item and all associated files/reels deleted successfully.',
+      message:
+        'Media item and all associated files/reels deleted successfully.',
     });
   } catch (error) {
     // * General error handler
@@ -1212,7 +1249,7 @@ app.delete('/media-items/:id', async (req, res) => {
 /**
  * Gets the *current* (most recent) PDF password.
  */
-app.get('/feature-pdf-password/current', async (req, res) => {
+app.get('/feature-pdf-password/current', requireAuth, async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('feature_pdf_password')
@@ -1236,12 +1273,14 @@ app.get('/feature-pdf-password/current', async (req, res) => {
 /**
  * Sets a *new* PDF password (creates a new row).
  */
-app.post('/feature-pdf-password', async (req, res) => {
+app.post('/feature-pdf-password', requireAuth, async (req, res) => {
   const { value } = req.body;
   if (!value || typeof value !== 'string' || value.trim() === '') {
     return res
       .status(400)
-      .json({ error: 'Password value is required and must be a non-empty string.' });
+      .json({
+        error: 'Password value is required and must be a non-empty string.',
+      });
   }
 
   try {
@@ -1251,8 +1290,12 @@ app.post('/feature-pdf-password', async (req, res) => {
       .select()
       .single();
     if (error) throw error;
-    res.status(201)
-      .json({ message: 'Password updated successfully.', newValue: data.value });
+    res
+      .status(201)
+      .json({
+        message: 'Password updated successfully.',
+        newValue: data.value,
+      });
   } catch (error) {
     console.error('Error setting new PDF password:', error);
     res
@@ -1267,7 +1310,9 @@ app.post('/feature-pdf-password', async (req, res) => {
 app.post('/feature-pdf-password/verify', async (req, res) => {
   const { password } = req.body;
   if (!password) {
-    return res.status(400).json({ success: false, error: 'Password is required.' });
+    return res
+      .status(400)
+      .json({ success: false, error: 'Password is required.' });
   }
 
   try {
@@ -1282,14 +1327,19 @@ app.post('/feature-pdf-password/verify', async (req, res) => {
 
     if (correctPasswordRecord && correctPasswordRecord.value === password) {
       // * Return success and the `created_at` timestamp as a "version"
-      return res.status(200)
+      return res
+        .status(200)
         .json({ success: true, version: correctPasswordRecord.created_at });
     } else {
-      return res.status(401).json({ success: false, error: 'Invalid password.' });
+      return res
+        .status(401)
+        .json({ success: false, error: 'Invalid password.' });
     }
   } catch (error) {
     console.error('Error verifying PDF password:', error);
-    res.status(500).json({ success: false, error: 'An internal error occurred.' });
+    res
+      .status(500)
+      .json({ success: false, error: 'An internal error occurred.' });
   }
 });
 
@@ -1321,8 +1371,7 @@ app.get('/feature-pdf-password/version', async (req, res) => {
 /**
  * Gets the *current* (most recent) PDF file record.
  */
-app.get('/feature-pdf/current', async (req, res) => {
-  try {
+app.get('/feature-pdf/current', async (req, res) => {  try {
     const { data, error } = await supabase
       .from('feature_pdf_file')
       .select('*')
@@ -1338,7 +1387,10 @@ app.get('/feature-pdf/current', async (req, res) => {
     console.error('Error fetching current PDF file:', error);
     res
       .status(500)
-      .json({ error: 'Failed to fetch PDF file info.', details: error.message });
+      .json({
+        error: 'Failed to fetch PDF file info.',
+        details: error.message,
+      });
   }
 });
 
@@ -1346,7 +1398,7 @@ app.get('/feature-pdf/current', async (req, res) => {
  * Sets a *new* PDF file.
  * * This creates a new DB row and deletes the *old* file from GCS.
  */
-app.post('/feature-pdf', async (req, res) => {
+app.post('/feature-pdf', requireAuth, async (req, res) => {
   const { title, gcs_path } = req.body;
   if (!title || !gcs_path) {
     return res.status(400).json({ error: 'Title and gcs_path are required.' });
@@ -1374,12 +1426,20 @@ app.post('/feature-pdf', async (req, res) => {
 
     // * Step 3: Delete the old file from GCS
     if (currentFile && currentFile.gcs_path) {
-      await bucket.file(currentFile.gcs_path).delete().catch(err => {
-        console.warn(`Could not delete old PDF file from GCS: ${currentFile.gcs_path}`, err.message);
-      });
+      await bucket
+        .file(currentFile.gcs_path)
+        .delete()
+        .catch((err) => {
+          console.warn(
+            `Could not delete old PDF file from GCS: ${currentFile.gcs_path}`,
+            err.message
+          );
+        });
     }
 
-    res.status(201).json({ message: 'PDF file updated successfully.', newFile });
+    res
+      .status(201)
+      .json({ message: 'PDF file updated successfully.', newFile });
   } catch (error) {
     console.error('Error setting new PDF file:', error);
     res
@@ -1396,7 +1456,7 @@ app.post('/feature-pdf', async (req, res) => {
  * Gets the history of PDF files along with their aggregated stats.
  * * This calls a Supabase RPC function (Database Function) for efficiency.
  */
-app.get('/feature-pdf/history-with-stats', async (req, res) => {
+app.get('/feature-pdf/history-with-stats', requireAuth, async (req, res) => {
   try {
     const { data, error } = await supabase.rpc('get_pdf_history_with_stats');
     if (error) {
@@ -1407,7 +1467,7 @@ app.get('/feature-pdf/history-with-stats', async (req, res) => {
     console.error('Error fetching PDF history with stats:', error);
     res.status(500).json({
       error: 'Failed to fetch PDF history.',
-      details: error.message
+      details: error.message,
     });
   }
 });
@@ -1423,15 +1483,15 @@ app.post('/feature-pdf/log-view', async (req, res) => {
     const { pdf_file_id, completion_percentage } = body;
 
     if (pdf_file_id == null || completion_percentage == null) {
-      return res.status(400).json({ error: 'pdf_file_id and completion_percentage are required.' });
+      return res
+        .status(400)
+        .json({ error: 'pdf_file_id and completion_percentage are required.' });
     }
 
-    const { error } = await supabase
-      .from('pdf_file_stats')
-      .insert({
-        pdf_file_id: Number(pdf_file_id),
-        completion_percentage: Number(completion_percentage),
-      });
+    const { error } = await supabase.from('pdf_file_stats').insert({
+      pdf_file_id: Number(pdf_file_id),
+      completion_percentage: Number(completion_percentage),
+    });
     if (error) {
       throw error;
     }
@@ -1441,11 +1501,10 @@ app.post('/feature-pdf/log-view', async (req, res) => {
     console.error('Error logging PDF view:', error);
     res.status(500).json({
       error: 'Failed to log view.',
-      details: error.message
+      details: error.message,
     });
   }
 });
-
 
 // ========================================================================== //
 // ! SECTION 14: START SERVER

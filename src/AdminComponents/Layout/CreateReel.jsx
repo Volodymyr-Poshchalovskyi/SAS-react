@@ -12,6 +12,7 @@ import Hls from 'hls.js';
 
 // ! Local Imports (Context & API)
 import { useUpload } from '../../context/UploadContext';
+import { useAuth } from '../../hooks/useAuth'; // Імпортуємо хук useAuth
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 // ========================================================================== //
@@ -60,6 +61,7 @@ const InlineHlsPlayer = forwardRef(({ src, ...props }, ref) => {
     />
   );
 });
+InlineHlsPlayer.displayName = 'InlineHlsPlayer';
 
 /**
  * ? compressImage
@@ -1015,6 +1017,7 @@ const CreateReel = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isEditMode = !!itemId;
+  const { session } = useAuth(); // Отримуємо сесію
 
   // ! State
   const createNewReelState = () => ({
@@ -1138,9 +1141,20 @@ const CreateReel = () => {
     if (isEditMode) {
       const fetchItemData = async () => {
         setIsLoadingOptions(true);
+
+        const token = session?.access_token;
+        if (!token) {
+          setIsLoadingOptions(false);
+          showToast('Authentication error. Please log in again.');
+          // Redirect to login or show appropriate message
+          return;
+        }
+
         try {
           // * Step 1: Fetch the media item's metadata
-          const response = await fetch(`${API_BASE_URL}/media-items/${itemId}`);
+          const response = await fetch(`${API_BASE_URL}/media-items/${itemId}`, {
+            headers: { Authorization: `Bearer ${token}` }, // Додаємо токен
+          });
           if (!response.ok) throw new Error('Failed to fetch media item data.');
           const item = await response.json();
 
@@ -1157,7 +1171,10 @@ const CreateReel = () => {
               `${API_BASE_URL}/generate-read-urls`,
               {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${token}`, // Додаємо токен
+                },
                 body: JSON.stringify({ gcsPaths: pathsToSign }),
               }
             );
@@ -1220,7 +1237,7 @@ const CreateReel = () => {
       };
       fetchItemData();
     }
-  }, [itemId, isEditMode, navigate]);
+  }, [itemId, isEditMode, navigate, session]); // Додаємо session як залежність
 
   // ! Handlers
 

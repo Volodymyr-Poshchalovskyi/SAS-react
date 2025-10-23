@@ -1,7 +1,14 @@
 // src/AdminComponents/Layout/Management.jsx
 
 // ! React & Core Hooks
-import React, { useState, useMemo, useEffect, useRef, useContext } from 'react';
+import React,
+{
+  useState,
+  useMemo,
+  useEffect,
+  useRef,
+  useContext
+} from 'react';
 
 // ! Lucide Icons
 import {
@@ -18,6 +25,7 @@ import {
 // ! Local Imports (Supabase & Context)
 import { supabase } from '../../lib/supabaseClient';
 import { DataRefreshContext } from './AdminLayout';
+import { useAuth } from '../../hooks/useAuth'; // Import useAuth hook
 
 // ========================================================================== //
 // ! HELPER COMPONENT: Highlight
@@ -195,6 +203,7 @@ const ManagementPage = () => {
   // ! Refs & Context
   const fileInputRef = useRef(null);
   const { refreshKey } = useContext(DataRefreshContext); // * Get refresh trigger
+  const { session } = useAuth(); // Get session from context
   const API_BASE_URL = import.meta.env.VITE_API_URL;
 
   // * A map to easily access state and table info by name
@@ -292,24 +301,34 @@ const ManagementPage = () => {
   const openEditModal = async (table, mode, item = null) => {
     setCurrentTable(table);
     setModalMode(mode);
+    const token = session?.access_token; // Get token
+
     if (mode === 'edit' && item) {
       setCurrentItem(item);
       setFormData({ name: item.name, description: item.description || '' });
       // * If item has a photo, fetch a signed URL to display it
       if (item.photo_gcs_path) {
-        try {
-          const response = await fetch(`${API_BASE_URL}/generate-read-urls`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ gcsPaths: [item.photo_gcs_path] }),
-          });
-          if (!response.ok) throw new Error('Could not get photo preview.');
-          const urlMap = await response.json();
-          setPhotoPreview(urlMap[item.photo_gcs_path]);
-        } catch (e) {
-          console.error('Failed to get signed URL for preview:', e);
-          setPhotoPreview(null);
-        }
+          if (!token) {
+              console.error("Cannot fetch photo preview: User not authenticated.");
+              setPhotoPreview(null); // Or show a placeholder/error
+          } else {
+              try {
+                  const response = await fetch(`${API_BASE_URL}/generate-read-urls`, {
+                      method: 'POST',
+                      headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${token}` // Add auth header
+                      },
+                      body: JSON.stringify({ gcsPaths: [item.photo_gcs_path] }),
+                  });
+                  if (!response.ok) throw new Error('Could not get photo preview.');
+                  const urlMap = await response.json();
+                  setPhotoPreview(urlMap[item.photo_gcs_path]);
+              } catch (e) {
+                  console.error('Failed to get signed URL for preview:', e);
+                  setPhotoPreview(null);
+              }
+          }
       }
     }
     setIsEditModalOpen(true);
@@ -331,10 +350,18 @@ const ManagementPage = () => {
    */
   const uploadPhoto = async (file) => {
     if (!file) return null;
+    const token = session?.access_token; // Get token
+    if (!token) {
+        throw new Error("Authentication required to upload photo.");
+    }
+
     // * 1. Get a signed URL from the backend
     const response = await fetch(`${API_BASE_URL}/generate-upload-url`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` // Add auth header
+      },
       body: JSON.stringify({
         fileName: file.name,
         fileType: file.type,
@@ -361,12 +388,28 @@ const ManagementPage = () => {
     if (!formData.name.trim() || !currentTable) return;
     setIsSubmitting(true);
     setErrorMsg('');
-    const { setData, tableName, hasDetails } = dataMap[currentTable];
+    
+    // *** ЗМІНА: Отримуємо 'data' і перейменовуємо на 'currentData' ***
+    const { data: currentData, setData, tableName, hasDetails } = dataMap[currentTable];
+    const token = session?.access_token;
+    const trimmedName = formData.name.trim(); // *** ЗМІНА: Використовуємо trimmedName ***
 
     try {
       if (modalMode === 'add') {
+        // * --- START: DUPLICATE CHECK (ADD) ---
+        // *** ЗМІНА: Перевіряємо, чи існує елемент з такою ж назвою (без урахування регістру) ***
+        const existingItem = currentData.find(
+          (item) => item.name.toLowerCase() === trimmedName.toLowerCase()
+        );
+        if (existingItem) {
+          setErrorMsg(`An item named "${trimmedName}" already exists.`);
+          setIsSubmitting(false);
+          return; // Зупиняємо виконання
+        }
+        // * --- END: DUPLICATE CHECK ---
+
         // * --- ADD LOGIC ---
-        let payload = { name: formData.name.trim() };
+        let payload = { name: trimmedName }; // *** ЗМІНА: Використовуємо trimmedName ***
         if (hasDetails) {
           const photo_gcs_path = await uploadPhoto(photoFile);
           payload = {
@@ -375,6 +418,7 @@ const ManagementPage = () => {
             photo_gcs_path,
           };
         }
+        // Supabase client uses service key, no need for user token here for insert
         const { data, error } = await supabase
           .from(tableName)
           .insert(payload)
@@ -383,9 +427,25 @@ const ManagementPage = () => {
         if (error) throw error;
         setData((prev) => [data, ...prev]); // * Add to top of list
       } else if (modalMode === 'edit' && currentItem) {
+        
+        // * --- START: DUPLICATE CHECK (EDIT) ---
+        // *** ЗМІНА: Перевіряємо, чи існує ІНШИЙ елемент з такою ж назвою ***
+        const existingItem = currentData.find(
+          (item) =>
+            item.name.toLowerCase() === trimmedName.toLowerCase() &&
+            item.id !== currentItem.id // <-- Важливо: виключаємо поточний елемент
+        );
+        if (existingItem) {
+          setErrorMsg(`Another item named "${trimmedName}" already exists.`);
+          setIsSubmitting(false);
+          return; // Зупиняємо виконання
+        }
+        // * --- END: DUPLICATE CHECK ---
+
         // * --- EDIT LOGIC ---
-        let payload = { name: formData.name.trim() };
+        let payload = { name: trimmedName }; // *** ЗМІНА: Використовуємо trimmedName ***
         if (hasDetails) {
+            if (!token) throw new Error("Authentication required for editing.");
           // * Artists table uses a special backend PUT route for file cleanup
           let photo_gcs_path = currentItem.photo_gcs_path;
           if (photoFile) {
@@ -401,7 +461,10 @@ const ManagementPage = () => {
             `${API_BASE_URL}/artists/${currentItem.id}`,
             {
               method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}` // Add auth header
+              },
               body: JSON.stringify(payload),
             }
           );
@@ -413,9 +476,10 @@ const ManagementPage = () => {
           );
         } else {
           // * Other tables (Clients, Celebrities) use a simple Supabase update
+          // Supabase client uses service key, no need for user token here for update
           const { data, error } = await supabase
             .from(tableName)
-            .update(payload)
+            .update(payload) // *** ЗМІНА: payload вже містить trimmedName ***
             .eq('id', currentItem.id)
             .select()
             .single();
@@ -428,7 +492,12 @@ const ManagementPage = () => {
       resetModalState();
     } catch (error) {
       console.error('Error saving item:', error);
-      setErrorMsg(`Error: ${error.message}`);
+      // *** ЗМІНА: Обробка помилки унікальності з бази даних ***
+      if (error.code === '23505') { // 23505 - код помилки унікальності Postgres
+         setErrorMsg(`An item named "${trimmedName}" already exists (database error).`);
+      } else {
+         setErrorMsg(`Error: ${error.message}`);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -441,17 +510,23 @@ const ManagementPage = () => {
     if (!currentItem || !currentTable) return;
     setIsSubmitting(true);
     const { setData, tableName, hasDetails } = dataMap[currentTable];
+    const token = session?.access_token; // Get token
 
     try {
       if (hasDetails) {
+        if (!token) throw new Error("Authentication required for deleting.");
         // * Artists use a special backend DELETE route for file cleanup
         const response = await fetch(
           `${API_BASE_URL}/artists/${currentItem.id}`,
-          { method: 'DELETE' }
+          {
+              method: 'DELETE',
+              headers: { 'Authorization': `Bearer ${token}` } // Add auth header
+          }
         );
         if (!response.ok) throw new Error('Failed to delete artist on server.');
       } else {
         // * Other tables use a simple Supabase delete
+        // Supabase client uses service key, no need for user token here for delete
         const { error } = await supabase
           .from(tableName)
           .delete()
@@ -467,6 +542,13 @@ const ManagementPage = () => {
       console.error('Error deleting item:', error);
       setIsSubmitting(false);
       // * (Note: error message isn't shown here, modal just stays open)
+      // * Optionally set an error message in the modal state if needed
+       setErrorMsg(`Error: ${error.message}`); // Show error in modal instead of just console
+    } finally {
+      // Ensure submitting state is reset even if error occurs,
+      // unless we want the modal to stay stuck on error.
+      // Resetting allows user to retry or cancel.
+       if(!isDeleteModalOpen) setIsSubmitting(false); // Only reset if modal is intended to close
     }
   };
 
@@ -711,6 +793,8 @@ const ManagementPage = () => {
                   </div>
                 </div>
               </div>
+               {/* Display error message if delete failed */}
+               {errorMsg && <p className="text-sm text-red-500 mt-4 text-center">{errorMsg}</p>}
               <div className="mt-6 flex justify-end gap-3">
                 <button
                   onClick={resetModalState}

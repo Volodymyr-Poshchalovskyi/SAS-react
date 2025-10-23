@@ -29,6 +29,7 @@ import {
 
 // ! Local Context
 import { DataRefreshContext } from './AdminLayout';
+import { useAuth } from '../../hooks/useAuth'; // Імпортуємо useAuth
 
 // ========================================================================== //
 // ! CONSTANTS & API CLIENTS
@@ -337,6 +338,7 @@ const ReelCreatorSidebar = ({
   setReelTitle,
   editingReel,
   onUpdateSuccess,
+  session, // Додаємо session як проп
 }) => {
   // ! State
   const [isDraggingOver, setIsDraggingOver] = useState(false);
@@ -359,8 +361,19 @@ const ReelCreatorSidebar = ({
     const fetchExistingReels = async () => {
       if (activeTab === 'existing' && existingReels.length === 0) {
         setIsLoadingReels(true);
+
+        const token = session?.access_token; // Отримуємо токен
+        if (!token) {
+          console.error('No auth token for fetching existing reels');
+          setIsLoadingReels(false);
+          // TODO: Show error to user?
+          return;
+        }
+
         try {
-          const response = await fetch(`${API_BASE_URL}/reels`);
+          const response = await fetch(`${API_BASE_URL}/reels`, {
+            headers: { Authorization: `Bearer ${token}` }, // Додаємо заголовок
+          });
           if (!response.ok) throw new Error('Failed to fetch reels');
           const data = await response.json();
           setExistingReels(data);
@@ -372,7 +385,7 @@ const ReelCreatorSidebar = ({
       }
     };
     fetchExistingReels();
-  }, [activeTab, existingReels.length]);
+  }, [activeTab, existingReels.length, session]); // Додаємо session у залежності
 
   // ! Handlers: Drag-and-Drop (Container)
   // * These handle dragging items from the main library *into* the sidebar
@@ -443,12 +456,26 @@ const ReelCreatorSidebar = ({
     const status = isEditing ? 'updating' : 'creating';
     setModalState({ isOpen: true, status });
 
+    const token = session?.access_token; // Отримуємо токен
+    if (!token) {
+      setModalState({
+        isOpen: true,
+        status: 'error',
+        title: 'Authentication Error',
+        message: 'Please log in again to perform this action.',
+      });
+      return;
+    }
+
     try {
       if (isEditing) {
         // * --- UPDATE (PUT) ---
         const res = await fetch(`${API_BASE_URL}/reels/${editingReel.id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`, // Додаємо заголовок
+          },
           body: JSON.stringify({
             title: reelTitle,
             media_item_ids: reelItems.map((i) => i.id),
@@ -467,15 +494,18 @@ const ReelCreatorSidebar = ({
         // * --- CREATE (POST) ---
         const {
           data: { user },
-        } = await supabase.auth.getUser();
+        } = await supabase.auth.getUser(token); // Передаємо токен для getUser
         if (!user) throw new Error('User not authenticated.');
         const res = await fetch(`${API_BASE_URL}/reels`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`, // Додаємо заголовок
+          },
           body: JSON.stringify({
             title: reelTitle,
             media_item_ids: reelItems.map((i) => i.id),
-            user_id: user.id,
+            // user_id тепер буде отриманий з токена на бекенді
           }),
         });
         if (!res.ok) throw new Error(await res.text());
@@ -938,6 +968,7 @@ const Library = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { refreshKey } = useContext(DataRefreshContext); // * For manual refresh
+  const { session } = useAuth(); // Отримуємо сесію
   const itemsPerPage = 10;
 
   // ! Effect: Main Data Fetch
@@ -947,27 +978,37 @@ const Library = () => {
       setLoading(true);
       setError(null);
       setShowProcessingWarning(false); // * Reset warning on each fetch
+
+      const token = session?.access_token; // Отримуємо токен
+      if (!token) {
+        setError('User not authenticated.');
+        setLoading(false);
+        return;
+      }
+      const headers = { Authorization: `Bearer ${token}` }; // Створюємо заголовок
+
       try {
-        // * Get current user
+        // * Get current user (using token)
         const {
           data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) throw new Error('User not authenticated.');
+          error: userError,
+        } = await supabase.auth.getUser(token);
+        if (userError || !user) throw userError || new Error('User not found.');
         setCurrentUserId(user.id);
 
-        // * Fetch all media items
-        const { data, error } = await supabase
+        // * Fetch all media items (using Supabase client - already uses service key)
+        const { data, error: itemsError } = await supabase
           .from('media_items')
           .select(
             `*, user_profiles:public_user_profiles(first_name, last_name)`
           )
           .order('created_at', { ascending: false });
-        if (error) throw error;
+        if (itemsError) throw itemsError;
 
         const fetchedItems = data || [];
         setItems(fetchedItems);
 
-        // * Get signed URLs for all previews
+        // * Get signed URLs for all previews (using custom backend)
         if (fetchedItems.length > 0) {
           const gcsPaths = fetchedItems
             .map((item) => item.preview_gcs_path)
@@ -976,11 +1017,17 @@ const Library = () => {
           if (gcsPaths.length > 0) {
             const response = await fetch(`${API_BASE_URL}/generate-read-urls`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                ...headers, // Додаємо заголовок авторизації
+              },
               body: JSON.stringify({ gcsPaths }),
             });
             if (!response.ok) {
-              throw new Error('Failed to fetch signed URLs for previews');
+              const errorData = await response.json().catch(() => ({}));
+              throw new Error(
+                errorData.error || 'Failed to fetch signed URLs for previews'
+              );
             }
             const signedUrlsMap = await response.json();
             setPreviewUrls(signedUrlsMap); // * Store the path-to-URL map
@@ -1016,7 +1063,7 @@ const Library = () => {
       }
     };
     fetchData();
-  }, [refreshKey]); // * Re-fetches on manual refresh
+  }, [refreshKey, session]); // Додаємо session у залежності
 
   // ! Effect: Sync Pinned Items to LocalStorage
   useEffect(() => {
@@ -1214,7 +1261,7 @@ const Library = () => {
     let assetType = item.type;
     if (!assetType) {
       const extension = fullResolutionAssetPath.split('.').pop().toLowerCase();
-      if (['mp4', 'mov', 'webm', 'avi'].includes(extension))
+      if (['mp4', 'mov', 'webm', 'avi', 'm3u8'].includes(extension)) // Додано m3u8
         assetType = 'video';
       else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension))
         assetType = 'image';
@@ -1225,11 +1272,22 @@ const Library = () => {
 
   const handleConfirmDelete = async () => {
     if (!itemToDelete) return;
+
+    const token = session?.access_token; // Отримуємо токен
+    if (!token) {
+       console.error("No auth token for delete");
+       throw new Error("Authentication Error"); // Повертаємо помилку для модалки
+    }
+
     // * API call to delete a single item
     const res = await fetch(`${API_BASE_URL}/media-items/${itemToDelete.id}`, {
       method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` } // Додаємо заголовок
     });
-    if (!res.ok) throw new Error(await res.text());
+    if (!res.ok) {
+       const errorData = await res.json().catch(() => ({}));
+       throw new Error(errorData.error || 'Failed to delete item.'); // Повертаємо помилку
+    }
     // * Remove from local state
     setItems((prev) => prev.filter((item) => item.id !== itemToDelete.id));
     setItemToDelete(null);
@@ -1237,20 +1295,32 @@ const Library = () => {
 
   const handleConfirmMultiDelete = async () => {
     const itemIdsToDelete = Array.from(selectedItems);
+
+    const token = session?.access_token; // Отримуємо токен
+    if (!token) {
+       console.error("No auth token for multi-delete");
+       throw new Error("Authentication Error"); // Повертаємо помилку
+    }
+
     // * Send all delete requests in parallel
     const deletePromises = itemIdsToDelete.map((id) =>
-      fetch(`${API_BASE_URL}/media-items/${id}`, { method: 'DELETE' })
+      fetch(`${API_BASE_URL}/media-items/${id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` } // Додаємо заголовок
+      })
     );
     const results = await Promise.allSettled(deletePromises);
 
     const successfullyDeletedIds = [];
+    let hasErrors = false;
     results.forEach((result, index) => {
       if (result.status === 'fulfilled' && result.value.ok) {
         successfullyDeletedIds.push(itemIdsToDelete[index]);
       } else {
+        hasErrors = true; // Відзначаємо, що були помилки
         console.error(
           `Failed to delete item ID: ${itemIdsToDelete[index]}`,
-          result.reason
+          result.reason || result.value?.statusText
         );
       }
     });
@@ -1263,6 +1333,11 @@ const Library = () => {
     }
     setSelectedItems(new Set());
     setIsMultiDeleteModalOpen(false);
+
+    // * Якщо були помилки, викидаємо помилку, щоб модальне вікно показало статус помилки
+    if(hasErrors) {
+        throw new Error("Some items failed to delete. Check console for details.");
+    }
   };
 
   const handleUpdateSuccess = (updatedReel) => {
@@ -1595,6 +1670,7 @@ const Library = () => {
           setReelTitle={setReelTitle}
           editingReel={editingReel}
           onUpdateSuccess={handleUpdateSuccess}
+          session={session} // Передаємо сесію в сайдбар
         />
       </div>
     </>

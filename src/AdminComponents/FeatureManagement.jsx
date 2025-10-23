@@ -12,6 +12,7 @@ import {
 
 // ! Local Imports (Context & Config)
 import { DataRefreshContext } from './Layout/AdminLayout'; // Context for manual refresh
+import { useAuth } from '../hooks/useAuth'; // Import useAuth hook
 const API_BASE_URL = import.meta.env.VITE_API_URL; // Backend API URL
 
 // ========================================================================== //
@@ -264,6 +265,7 @@ function FeatureManagement() {
   // ! Refs & Context
   const fileInputRef = useRef(null); // Ref for hidden file input
   const { refreshKey } = useContext(DataRefreshContext); // For triggering manual refresh
+  const { session } = useAuth(); // Get session from context
 
   // ! Effect: Initial Data Fetch
   // * Fetches current PDF, password, and history on mount and manual refresh
@@ -275,26 +277,36 @@ function FeatureManagement() {
       setIsHistoryLoading(true);
       setHistoryError(null);
 
+      const token = session?.access_token; // Get token from session
+      if (!token) {
+        setHistoryError("Authentication required to load data.");
+        setIsPdfLoading(false);
+        setIsPasswordLoading(false);
+        setIsHistoryLoading(false);
+        return;
+      }
+      const headers = { Authorization: `Bearer ${token}` }; // Create auth headers
+
       try {
         // * Fetch all data concurrently
         await Promise.all([
           // Fetch Current PDF
           (async () => {
-            const pdfResponse = await fetch(`${API_BASE_URL}/feature-pdf/current`);
+            const pdfResponse = await fetch(`${API_BASE_URL}/feature-pdf/current`, { headers });
             if (!pdfResponse.ok) throw new Error(`PDF Fetch Error: ${pdfResponse.statusText}`);
             const pdfData = await pdfResponse.json();
             setCurrentPdf(pdfData); // * Can be null if no PDF exists
           })(),
           // Fetch Current Password
           (async () => {
-            const passwordResponse = await fetch(`${API_BASE_URL}/feature-pdf-password/current`);
+            const passwordResponse = await fetch(`${API_BASE_URL}/feature-pdf-password/current`, { headers });
              if (!passwordResponse.ok) throw new Error(`Password Fetch Error: ${passwordResponse.statusText}`);
             const passwordData = await passwordResponse.json();
             setCurrentPassword(passwordData.value); // * Can be null if no password exists
           })(),
           // Fetch PDF History with Stats
           (async () => {
-            const historyResponse = await fetch(`${API_BASE_URL}/feature-pdf/history-with-stats`);
+            const historyResponse = await fetch(`${API_BASE_URL}/feature-pdf/history-with-stats`, { headers });
             if (!historyResponse.ok) throw new Error(`History Fetch Error: ${historyResponse.statusText}`);
             setFileHistory(await historyResponse.json());
           })()
@@ -310,8 +322,16 @@ function FeatureManagement() {
       }
     };
 
-    fetchInitialData();
-  }, [refreshKey]); // * Re-run effect when refreshKey changes
+    if (session) { // Only fetch if session exists
+        fetchInitialData();
+    } else {
+        // Handle case where session is not available yet or user is logged out
+        setHistoryError("User not authenticated.");
+        setIsPdfLoading(false);
+        setIsPasswordLoading(false);
+        setIsHistoryLoading(false);
+    }
+  }, [refreshKey, session]); // * Re-run effect when refreshKey or session changes
 
   // ! PDF Handlers
   /**
@@ -339,10 +359,21 @@ function FeatureManagement() {
     setUploadProgress(0);
     setUploadError(null);
 
+    const token = session?.access_token;
+    if (!token) {
+        setUploadError("Authentication required for upload.");
+        setIsUploading(false);
+        return;
+    }
+    const headers = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    };
+
     try {
       // * 1. Get Signed URL from backend
       const signedUrlRes = await fetch(`${API_BASE_URL}/generate-upload-url`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: headers,
         body: JSON.stringify({
           fileName: pdfToUpload.name, fileType: pdfToUpload.type, destination: 'feature_pdf',
         }),
@@ -373,7 +404,7 @@ function FeatureManagement() {
 
       // * 3. Save metadata (title, GCS path) to backend database
       const saveMetaRes = await fetch(`${API_BASE_URL}/feature-pdf`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: headers,
         body: JSON.stringify({ title: pdfToUpload.name, gcs_path: gcsPath }),
       });
        if (!saveMetaRes.ok) {
@@ -405,10 +436,20 @@ function FeatureManagement() {
    */
   const handleDownloadPdf = async () => {
     if (!currentPdf?.gcs_path) return;
+
+    const token = session?.access_token;
+    if (!token) {
+        alert("Authentication required to download.");
+        return;
+    }
+
     try {
         // * 1. Get signed read URL from backend
         const response = await fetch(`${API_BASE_URL}/generate-read-urls`, {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            method: 'POST', headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`
+            },
             body: JSON.stringify({ gcsPaths: [currentPdf.gcs_path] }),
         });
         if (!response.ok) throw new Error('Failed to get download link');
@@ -478,9 +519,17 @@ function FeatureManagement() {
     if (newPassword.length < 5) throw new Error('Password must be at least 5 characters long.'); // * Example validation
     if (newPassword !== confirmPassword) throw new Error('Passwords do not match. Please try again.');
 
+    const token = session?.access_token;
+    if (!token) {
+        throw new Error("Authentication required to change password.");
+    }
+
     // * API Call
     const response = await fetch(`${API_BASE_URL}/feature-pdf-password`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+        },
         body: JSON.stringify({ value: newPassword }),
     });
     if (!response.ok) {

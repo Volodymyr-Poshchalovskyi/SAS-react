@@ -47,13 +47,24 @@ const Modal = ({
   const [actionStatus, setActionStatus] = useState('idle');
   const [errorMessage, setErrorMessage] = useState('');
 
+ // Ефект 1: Скидає стан модалки, коли вона ВІДКРИВАЄТЬСЯ
   useEffect(() => {
-    const handleEscape = (event) => {
-      if (event.key === 'Escape' && actionStatus === 'idle') onClose();
-    };
     if (isOpen) {
       setActionStatus('idle');
       setErrorMessage('');
+    }
+  }, [isOpen]); // * Залежить ТІЛЬКИ від isOpen
+
+  // Ефект 2: Керує слухачем клавіші 'Escape'
+  useEffect(() => {
+    const handleEscape = (event) => {
+      // * Дозволяє закрити лише якщо стан 'idle'
+      if (event.key === 'Escape' && actionStatus === 'idle') {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
       document.addEventListener('keydown', handleEscape);
       return () => document.removeEventListener('keydown', handleEscape);
     }
@@ -314,7 +325,8 @@ const UserManagement = () => {
 
   // ! Context & Hooks
   const { refreshKey } = useContext(DataRefreshContext); // * Manual refresh trigger
-  const { getUsers, updateUserStatus } = useAuth(); // * Auth hook for API calls
+  // * Auth hook for API calls (getUsers and updateUserStatus already handle auth implicitly via Supabase client / Edge Function context)
+  const { getUsers, updateUserStatus } = useAuth();
 
   // ! Data Fetching
   // * Stable fetch function using useCallback
@@ -322,7 +334,8 @@ const UserManagement = () => {
     try {
       setError('');
       setLoading(true);
-      const data = await getUsers(); // * Call API function from useAuth
+      // * Call API function from useAuth - authentication is handled within useAuth/Supabase client
+      const data = await getUsers();
       // * Format data slightly for consistency within this component
       const formattedData = data.map((user) => ({
         ...user,
@@ -410,7 +423,7 @@ const UserManagement = () => {
 
     // * Confirmation function passed to the modal
     const performUpdate = async () => {
-      // * API call via useAuth hook
+      // * API call via useAuth hook (already handles authentication)
       await updateUserStatus(id, newStatus);
       // * Update local state after successful API call (handled by Modal)
       setUsers((currentUsers) =>
@@ -627,6 +640,7 @@ const UserManagement = () => {
                     {/* Actions (Activate/Deactivate) */}
                     <td className="p-4 text-center">
                       {user.state === 'active' ? (
+                        // --- Стан Active: Можна деактивувати ---
                         <button
                           onClick={() =>
                             handleUpdateStatus(user.id, 'deactivated')
@@ -636,8 +650,8 @@ const UserManagement = () => {
                         >
                           Deactivate
                         </button>
-                      ) : user.state === 'deactivated' ||
-                        user.state === 'pending' ? ( // * Allow activation from pending too
+                      ) : user.state === 'deactivated' ? (
+                        // --- Стан Deactivated: Можна активувати ---
                         <button
                           onClick={() => handleUpdateStatus(user.id, 'active')}
                           className={`${baseButtonClasses} ${activateButtonClasses}`}
@@ -645,8 +659,12 @@ const UserManagement = () => {
                         >
                           Activate
                         </button>
+                      ) : user.state === 'pending' ? (
+                        // --- Стан Pending: Адмін не може нічого зробити ---
+                        <span className="text-xs text-slate-500 dark:text-slate-400 italic px-3">
+                          Awaiting User
+                        </span>
                       ) : null}
-                      {/* // * Add other actions like 'Delete' if needed */}
                     </td>
                   </tr>
                 ))}

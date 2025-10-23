@@ -59,7 +59,6 @@ const AuthProvider = ({ children }) => {
 
         console.log("Auth event:", event, session); // * Debugging log
 
-        // * Specific handling for Google Sign-In (Staff Check)
         if (event === 'SIGNED_IN' && session?.user.app_metadata.provider === 'google') {
           const userEmail = session.user.email;
           // * Enforce staff domain restriction
@@ -71,16 +70,34 @@ const AuthProvider = ({ children }) => {
             setSession(null);
           } else {
             // * Staff Google login successful
+            console.log("Staff member logged in. Updating profile status...");
+
+            // ▼▼▼ ПОЧАТОК ВИПРАВЛЕННЯ ▼▼▼
+            try {
+              // Оновлюємо статус профілю на 'active' і гарантуємо роль 'staff'
+              const { error: profileError } = await supabase
+                .from('user_profiles')
+                .update({ 
+                    status: 'active',
+                    role: 'staff' // На про всяк випадок, якщо тригер не спрацював
+                })
+                .eq('id', session.user.id);
+              
+              if (profileError) {
+                 console.error("Error updating staff profile to active:", profileError.message);
+                 // Не блокуємо вхід, але логуємо помилку
+              } else {
+                 console.log("Staff profile status successfully set to active.");
+              }
+            } catch (err) {
+                console.error("Exception during staff profile update:", err.message);
+            }
+            // ▲▲▲ КІНЕЦЬ ВИПРАВЛЕННЯ ▲▲▲
+
             setSession(session);
             setUser(session.user);
             setError(null); // * Clear any previous errors
           }
-        }
-        // * Handle other events (SIGNED_OUT, PASSWORD_RECOVERY, etc.) or standard sign-ins
-        else if (event === 'SIGNED_OUT') {
-           setUser(null);
-           setSession(null);
-           setError(null);
         }
         // * General update for other sign-ins or session refreshes
         else {

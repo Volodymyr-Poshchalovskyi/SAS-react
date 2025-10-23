@@ -59,7 +59,7 @@ const ApplicationForm = () => {
         {' '}
         {/* // ? Consider defining 'animate-fadeIn' if not globally available */}
         <h3 className="text-lg font-semibold text-green-600 mb-2">
-          Thank you! 🙏
+          Thank you! 
         </h3>
         <p className="text-xs text-gray-500 tracking-wider uppercase">
           Your application has been sent. We will review it shortly.

@@ -15,6 +15,7 @@ import { formatDistanceToNow } from 'date-fns';
 // ! Context
 // * Import the context to listen for manual refresh triggers
 import { DataRefreshContext } from './AdminLayout';
+import { useAuth } from '../../hooks/useAuth'; // Імпортуємо useAuth
 
 // ! Constants
 const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
@@ -114,10 +115,12 @@ const Dashboard = () => {
   const [trendingDirectors, setTrendingDirectors] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null); // Додаємо стан помилки
 
   // ! Context
   // * Get the manual refresh trigger from the parent layout
   const { refreshKey } = useContext(DataRefreshContext);
+  const { session } = useAuth(); // Отримуємо сесію
 
   /**
    * Navigates to the main analytics page and passes state to open
@@ -134,8 +137,18 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       setIsLoading(true);
+      setFetchError(null); // Скидаємо помилку перед новим запитом
       setTrendingDirectors([]); // * Clear directors on new fetch
       if (!dateRange.from || !dateRange.to) return;
+
+      const token = session?.access_token;
+      if (!token) {
+        setFetchError('Authentication token not found. Please log in again.');
+        setIsLoading(false);
+        return;
+      }
+
+      const headers = { Authorization: `Bearer ${token}` };
 
       const startDateStr = toYYYYMMDD(dateRange.from);
       const endDateStr = toYYYYMMDD(dateRange.to);
@@ -144,13 +157,38 @@ const Dashboard = () => {
         // * Step 1: Fetch all primary analytics data in parallel
         const [chartRes, trendingRes, activityRes] = await Promise.all([
           fetch(
-            `${API_BASE_URL}/analytics/views-over-time?startDate=${startDateStr}&endDate=${endDateStr}`
+            `${API_BASE_URL}/analytics/views-over-time?startDate=${startDateStr}&endDate=${endDateStr}`,
+            { headers }
           ),
           fetch(
-            `${API_BASE_URL}/analytics/trending-media?startDate=${startDateStr}&endDate=${endDateStr}&limit=20`
+            `${API_BASE_URL}/analytics/trending-media?startDate=${startDateStr}&endDate=${endDateStr}&limit=20`,
+            { headers }
           ),
-          fetch(`${API_BASE_URL}/analytics/recent-activity?limit=5`),
+          fetch(`${API_BASE_URL}/analytics/recent-activity?limit=5`, {
+            headers,
+          }),
         ]);
+
+        // Перевіряємо статус відповідей
+        if (!chartRes.ok || !trendingRes.ok || !activityRes.ok) {
+          // Спробуємо отримати текст помилки з першого невдалого запиту
+          let errorDetails = `HTTP error! Status: ${
+            (!chartRes.ok && chartRes.status) ||
+            (!trendingRes.ok && trendingRes.status) ||
+            (!activityRes.ok && activityRes.status)
+          }`;
+          try {
+            const errorJson = await (!chartRes.ok
+              ? chartRes.json()
+              : !trendingRes.ok
+              ? trendingRes.json()
+              : activityRes.json());
+            errorDetails = errorJson.error || errorDetails;
+          } catch (e) {
+            // Ігноруємо помилки парсингу JSON
+          }
+          throw new Error(`Failed to fetch dashboard data. ${errorDetails}`);
+        }
 
         const chartData = await chartRes.json();
         const trendingData = await trendingRes.json();
@@ -182,11 +220,19 @@ const Dashboard = () => {
             `${API_BASE_URL}/artists/details-by-names`,
             {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`, // Додаємо токен і сюди
+              },
               body: JSON.stringify({ names: directorNames }),
             }
           );
-          const directorDetails = await detailsRes.json();
+          if (!detailsRes.ok) {
+             console.error("Failed to fetch director details, using defaults.");
+             // Не кидаємо помилку, просто використовуємо дефолтні фото
+          }
+          
+          const directorDetails = detailsRes.ok ? await detailsRes.json() : [];
 
           const defaultDirectorImagePath = 'back-end/artists/director.jpg';
 
@@ -212,14 +258,15 @@ const Dashboard = () => {
         setRecentActivity(activityData);
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
+        setFetchError(error.message); // Зберігаємо повідомлення про помилку
       } finally {
         // * Stop loading state regardless of success or error
         setIsLoading(false);
       }
     };
     fetchDashboardData();
-    // * Dependency array includes dateRange and the manual refreshKey
-  }, [dateRange, refreshKey]);
+    // * Dependency array includes dateRange, refreshKey and session
+  }, [dateRange, refreshKey, session]);
 
   // ! Render
   return (
@@ -234,6 +281,17 @@ const Dashboard = () => {
           onRangeChange={setDateRange}
         />
       </div>
+
+      {/* --- Error Message Display --- */}
+      {fetchError && (
+        <div
+          className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6"
+          role="alert"
+        >
+          <strong className="font-bold">Error: </strong>
+          <span className="block sm:inline">{fetchError}</span>
+        </div>
+      )}
 
       {/* --- Main dashboard layout: 3-column grid on large screens --- */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

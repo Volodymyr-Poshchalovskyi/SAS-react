@@ -108,27 +108,28 @@ const Modal = ({
   const [actionStatus, setActionStatus] = useState('idle');
   const [errorMessage, setErrorMessage] = useState('');
 
-  // * Effect to handle Escape key press and reset state on open
+ // Ефект 1: Скидає стан модалки, коли вона ВІДКРИВАЄТЬСЯ
+  useEffect(() => {
+    if (isOpen) {
+      setActionStatus('idle');
+      setErrorMessage('');
+    }
+  }, [isOpen]); // * Залежить ТІЛЬКИ від isOpen
+
+  // Ефект 2: Керує слухачем клавіші 'Escape'
   useEffect(() => {
     const handleEscape = (event) => {
-      // * Only close if idle to prevent closing during processing
+      // * Дозволяє закрити лише якщо стан 'idle'
       if (event.key === 'Escape' && actionStatus === 'idle') {
         onClose();
       }
     };
 
     if (isOpen) {
-      // * Reset state when modal opens
-      setActionStatus('idle');
-      setErrorMessage('');
       document.addEventListener('keydown', handleEscape);
-    } else {
-      document.removeEventListener('keydown', handleEscape);
+      return () => document.removeEventListener('keydown', handleEscape);
     }
-
-    // * Cleanup listener on unmount or when isOpen changes
-    return () => document.removeEventListener('keydown', handleEscape);
-  }, [isOpen, onClose, actionStatus]); // * Added actionStatus dependency
+  }, [isOpen, onClose, actionStatus]);
 
   if (!isOpen) return null;
 
@@ -329,7 +330,8 @@ const ApplicationsForAdmin = () => {
 
   // ! Context & Hooks
   const { refreshKey } = useContext(DataRefreshContext); // * For manual refresh trigger
-  const { getApplications, updateApplicationStatus } = useAuth(); // * Auth hook for API calls
+  // * Auth hook for API calls (getApplications and updateApplicationStatus already handle auth implicitly via Supabase client)
+  const { getApplications, updateApplicationStatus } = useAuth();
 
   // ! Data Fetching
   // * useCallback ensures fetchApplications is stable unless getApplications changes
@@ -337,6 +339,7 @@ const ApplicationsForAdmin = () => {
     try {
       setError('');
       setLoading(true);
+      // * getApplications from useAuth will use the authenticated Supabase client
       const data = await getApplications();
       // * Format status for consistency ('pending' -> 'in progress')
       const formattedData = data.map((app) => ({
@@ -397,7 +400,7 @@ const ApplicationsForAdmin = () => {
 
     // * Confirmation function to be executed by the modal
     const performUpdate = async () => {
-      // * API call via useAuth hook
+      // * API call via useAuth hook (already handles authentication)
       await updateApplicationStatus(id, newStatus, email);
       // * Update local state optimistically (or after success confirmation)
       setApplications((apps) =>
@@ -521,8 +524,7 @@ const ApplicationsForAdmin = () => {
             <table className="w-full text-sm table-auto">
               {/* Table Header */}
               <thead className="text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50">
-                {' '}
-                {/* Added background */}
+                
                 <tr className="border-b border-slate-200 dark:border-slate-800">
                   <th className="p-4 font-medium text-left">Email</th>
                   <th className="p-4 font-medium text-left">

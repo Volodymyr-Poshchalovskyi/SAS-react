@@ -32,6 +32,7 @@ import {
 
 // ! Local Context
 import { DataRefreshContext } from './AdminLayout'; // * Context for triggering manual data refresh
+import { useAuth } from '../../hooks/useAuth';
 
 // ! Constants
 const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
@@ -284,7 +285,14 @@ const ConfirmationModal = ({
  * Modal specifically for editing a reel's title and accessing related actions
  * like copying link, editing media content, or making a copy.
  */
-const EditReelModal = ({ isOpen, onClose, reel, onSaveSuccess, onCopy }) => {
+const EditReelModal = ({
+  isOpen,
+  onClose,
+  reel,
+  onSaveSuccess,
+  onCopy,
+  session,
+}) => {
   const [formData, setFormData] = useState({ title: '' });
   const [status, setStatus] = useState('idle'); // 'idle', 'saving', 'error'
   const [errorMessage, setErrorMessage] = useState('');
@@ -331,10 +339,21 @@ const EditReelModal = ({ isOpen, onClose, reel, onSaveSuccess, onCopy }) => {
     e.preventDefault();
     setStatus('saving');
     setErrorMessage('');
+
+    const token = session?.access_token;
+    if (!token) {
+      setStatus('error');
+      setErrorMessage('Authentication error. Please log in again.');
+      return;
+    }
+
     try {
       const response = await fetch(`${API_BASE_URL}/reels/${reel.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         // * Only send fields that can be edited here (currently just title)
         body: JSON.stringify({ title: formData.title }),
       });
@@ -597,6 +616,7 @@ const MyAnalytics = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { refreshKey } = useContext(DataRefreshContext); // * Manual refresh trigger
+  const { session, user } = useAuth();
   const itemsPerPage = 10;
 
   // ! Effect: Fetch Reels Data
@@ -604,12 +624,21 @@ const MyAnalytics = () => {
   useEffect(() => {
     const fetchReels = async () => {
       setLoading(true);
+
+      const token = session?.access_token;
+      if (!token) {
+        setLoading(false);
+        console.error('No auth token found');
+        return;
+      }
+
       try {
         // * TODO: Replace mock user with actual user from auth context
-        const user = { id: 'mock-user-id-123' };
         if (user) setCurrentUserId(user.id);
 
-        const response = await fetch(`${API_BASE_URL}/reels`);
+        const response = await fetch(`${API_BASE_URL}/reels`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         if (!response.ok) throw new Error('Failed to fetch reels data.');
         const data = await response.json();
         setReelsData(data);
@@ -631,7 +660,7 @@ const MyAnalytics = () => {
       }
     };
     fetchReels();
-  }, [refreshKey]); // * Re-fetch when refreshKey changes
+  }, [refreshKey, session, user]); // * Re-fetch when refreshKey changes
 
   // ! Effect: Sync Pinned Reels to Local Storage
   useEffect(() => {
@@ -680,6 +709,13 @@ const MyAnalytics = () => {
    */
   const handleToggleStatus = async (id, currentStatus) => {
     const newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
+
+    const token = session?.access_token;
+    if (!token) {
+      console.error('No auth token for status toggle');
+      return;
+    }
+
     // * Optimistic UI update
     setReelsData((currentData) =>
       currentData.map((item) =>
@@ -690,7 +726,10 @@ const MyAnalytics = () => {
       // * API call
       const response = await fetch(`${API_BASE_URL}/reels/${id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ status: newStatus }),
       });
       if (!response.ok) throw new Error('Failed to update status.');
@@ -711,8 +750,16 @@ const MyAnalytics = () => {
    */
   const handleConfirmDelete = async () => {
     if (!reelToDelete) return;
+
+    const token = session?.access_token;
+    if (!token) {
+      console.error('No auth token for delete');
+      throw new Error('Authentication error.');
+    }
+
     const response = await fetch(`${API_BASE_URL}/reels/${reelToDelete.id}`, {
       method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
     });
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
@@ -730,9 +777,19 @@ const MyAnalytics = () => {
    */
   const handleConfirmMultiDelete = async () => {
     const reelIdsToDelete = Array.from(selectedReels);
+
+    const token = session?.access_token;
+    if (!token) {
+      console.error('No auth token for multi-delete');
+      throw new Error('Authentication error.');
+    }
+
     // * Send delete requests in parallel
     const deletePromises = reelIdsToDelete.map((id) =>
-      fetch(`${API_BASE_URL}/reels/${id}`, { method: 'DELETE' })
+      fetch(`${API_BASE_URL}/reels/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
     );
     const results = await Promise.allSettled(deletePromises);
 
@@ -1046,6 +1103,7 @@ const MyAnalytics = () => {
         reel={reelToEdit}
         onSaveSuccess={handleSaveSuccess}
         onCopy={handleCopy}
+        session={session}
       />
 
       {/* --- Main Content Area --- */}

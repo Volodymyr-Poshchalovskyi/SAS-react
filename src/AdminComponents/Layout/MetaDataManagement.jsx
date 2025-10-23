@@ -17,6 +17,8 @@ import {
 // ! Local Imports (Supabase & Context)
 import { supabase } from '../../lib/supabaseClient';
 import { DataRefreshContext } from './AdminLayout'; // * Context for triggering manual data refresh
+// NOTE: No need to import useAuth here unless specifically needed for user ID/role checks
+// The Supabase client handles authentication automatically based on the logged-in user state from AuthContext.
 
 // ========================================================================== //
 // ! HELPER COMPONENT: Highlight
@@ -197,6 +199,7 @@ const MetaDataManagement = () => {
   const [categories, setCategories] = useState([]);
   const [crafts, setCrafts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false); // Added submitting state
 
   // * Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -205,6 +208,7 @@ const MetaDataManagement = () => {
   const [currentTable, setCurrentTable] = useState(null); // 'Content Types', 'Categories', 'Crafts'
   const [currentItem, setCurrentItem] = useState(null); // The item being edited/deleted
   const [newItemName, setNewItemName] = useState(''); // Input value for Add/Edit modal
+  const [modalError, setModalError] = useState(''); // Error message for modals
 
   // ! Context
   const { refreshKey } = useContext(DataRefreshContext); // * Used to trigger re-fetch on manual refresh
@@ -231,6 +235,9 @@ const MetaDataManagement = () => {
       setLoading(true);
       try {
         // * Fetch all data types in parallel
+        // NOTE: Supabase client automatically includes the user's token if logged in.
+        // Ensure Row Level Security (RLS) policies are set up in Supabase
+        // to allow authenticated users to read these tables.
         const [typesRes, categoriesRes, craftsRes] = await Promise.all([
           supabase
             .from('content_types')
@@ -257,7 +264,8 @@ const MetaDataManagement = () => {
         setCrafts(craftsRes.data);
       } catch (error) {
         console.error('Error fetching metadata:', error);
-        // * TODO: Add user-facing error message
+        // * TODO: Add user-facing error message (e.g., using a toast library)
+        alert(`Error fetching data: ${error.message}`);
       } finally {
         setLoading(false);
       }
@@ -276,6 +284,7 @@ const MetaDataManagement = () => {
   const openEditModal = (table, mode, item = null) => {
     setCurrentTable(table);
     setModalMode(mode);
+    setModalError(''); // Clear previous errors
     if (mode === 'edit' && item) {
       setCurrentItem(item);
       setNewItemName(item.name); // * Pre-fill input with current name
@@ -296,6 +305,7 @@ const MetaDataManagement = () => {
       setCurrentTable(null);
       setCurrentItem(null);
       setNewItemName('');
+      setModalError('');
     }, 300); // * Adjust delay as needed
   };
 
@@ -307,6 +317,7 @@ const MetaDataManagement = () => {
   const openDeleteModal = (table, item) => {
     setCurrentTable(table);
     setCurrentItem(item);
+    setModalError(''); // Clear previous errors
     setIsDeleteModalOpen(true);
   };
 
@@ -319,6 +330,7 @@ const MetaDataManagement = () => {
     setTimeout(() => {
       setCurrentTable(null);
       setCurrentItem(null);
+      setModalError('');
     }, 300);
   };
 
@@ -328,25 +340,58 @@ const MetaDataManagement = () => {
    */
   const handleSave = async () => {
     if (!newItemName.trim() || !currentTable) return;
-    const { setData, tableName } = dataMap[currentTable];
+
+    // *** ЗМІНА: Отримуємо 'data' і перейменовуємо на 'currentData' ***
+    const { data: currentData, setData, tableName } = dataMap[currentTable];
     const trimmedName = newItemName.trim();
 
-    // * TODO: Add loading state to the save button
+    setIsSubmitting(true);
+    setModalError(''); // Clear previous error
+
     try {
+      // NOTE: Supabase client automatically includes the user's token if logged in.
+      // Ensure RLS policies are set up in Supabase to allow authenticated users
+      // to insert/update these tables.
       if (modalMode === 'add') {
+        // * --- START: DUPLICATE CHECK (ADD) ---
+        // *** ЗМІНА: Перевіряємо, чи існує елемент з такою ж назвою (без урахування регістру) ***
+        const existingItem = currentData.find(
+          (item) => item.name.toLowerCase() === trimmedName.toLowerCase()
+        );
+        if (existingItem) {
+          setModalError(`An item named "${trimmedName}" already exists.`);
+          setIsSubmitting(false);
+          return; // Зупиняємо виконання
+        }
+        // * --- END: DUPLICATE CHECK ---
+
         // * --- ADD LOGIC ---
         const { data, error } = await supabase
           .from(tableName)
-          .insert({ name: trimmedName })
+          .insert({ name: trimmedName }) // *** ЗМІНА: Використовуємо trimmedName ***
           .select() // * Return the newly created record
           .single(); // * Expecting a single record back
         if (error) throw error;
         setData((prevData) => [data, ...prevData]); // * Add new item to the beginning of the list
       } else if (modalMode === 'edit' && currentItem) {
+        // * --- START: DUPLICATE CHECK (EDIT) ---
+        // *** ЗМІНА: Перевіряємо, чи існує ІНШИЙ елемент з такою ж назвою ***
+        const existingItem = currentData.find(
+          (item) =>
+            item.name.toLowerCase() === trimmedName.toLowerCase() &&
+            item.id !== currentItem.id // <-- Важливо: виключаємо поточний елемент
+        );
+        if (existingItem) {
+          setModalError(`Another item named "${trimmedName}" already exists.`);
+          setIsSubmitting(false);
+          return; // Зупиняємо виконання
+        }
+        // * --- END: DUPLICATE CHECK ---
+
         // * --- EDIT LOGIC ---
         const { data, error } = await supabase
           .from(tableName)
-          .update({ name: trimmedName })
+          .update({ name: trimmedName }) // *** ЗМІНА: Використовуємо trimmedName ***
           .eq('id', currentItem.id)
           .select()
           .single();
@@ -359,10 +404,18 @@ const MetaDataManagement = () => {
       closeEditModal(); // * Close modal on success
     } catch (error) {
       console.error('Error saving item:', error);
-      alert(`Error: ${error.message}`); // * Basic error feedback
-      // * TODO: Implement better error handling (e.g., toast notification)
+      // *** ЗМІНА: Обробка помилки унікальності з бази даних ***
+      if (error.code === '23505') {
+        // 23505 - код помилки унікальності Postgres
+        setModalError(
+          `An item named "${trimmedName}" already exists (database error).`
+        );
+      } else {
+        setModalError(`Error: ${error.message}`); // Set error message for the modal
+      }
+    } finally {
+      setIsSubmitting(false); // Reset submitting state
     }
-    // * TODO: Reset loading state for the save button
   };
 
   /**
@@ -372,8 +425,13 @@ const MetaDataManagement = () => {
     if (!currentItem || !currentTable) return;
     const { setData, tableName } = dataMap[currentTable];
 
-    // * TODO: Add loading state to the delete button
+    setIsSubmitting(true);
+    setModalError(''); // Clear previous error
+
     try {
+      // NOTE: Supabase client automatically includes the user's token if logged in.
+      // Ensure RLS policies are set up in Supabase to allow authenticated users
+      // to delete from these tables.
       const { error } = await supabase
         .from(tableName)
         .delete()
@@ -386,10 +444,10 @@ const MetaDataManagement = () => {
       closeDeleteModal(); // * Close modal on success
     } catch (error) {
       console.error('Error deleting item:', error);
-      alert(`Error: ${error.message}`); // * Basic error feedback
-      // * TODO: Implement better error handling
+      setModalError(`Error: ${error.message}`); // Set error message for the modal
+    } finally {
+      setIsSubmitting(false); // Reset submitting state
     }
-    // * TODO: Reset loading state for the delete button
   };
 
   // ! Styles
@@ -459,7 +517,8 @@ const MetaDataManagement = () => {
                 </h3>
                 <button
                   onClick={closeEditModal}
-                  className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 -mt-1 -mr-1"
+                  disabled={isSubmitting} // Disable close button while submitting
+                  className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 -mt-1 -mr-1 disabled:opacity-50"
                   aria-label="Close modal"
                 >
                   <X className="h-5 w-5 text-slate-500" />
@@ -482,26 +541,31 @@ const MetaDataManagement = () => {
                   onKeyDown={(e) => e.key === 'Enter' && handleSave()} // * Save on Enter
                   className={inputClasses}
                   autoFocus // * Focus input on open
+                  disabled={isSubmitting} // Disable input while submitting
                 />
-                {/* TODO: Add error message display here if needed */}
+                {modalError && (
+                  <p className="text-sm text-red-500 mt-2">{modalError}</p>
+                )}
               </div>
 
               {/* Modal Footer */}
               <div className="mt-6 flex justify-end gap-3">
                 <button
                   onClick={closeEditModal}
-                  className="px-4 py-2 text-sm font-semibold rounded-md border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700"
-                  // TODO: Disable button when saving
+                  disabled={isSubmitting} // Disable cancel while submitting
+                  className="px-4 py-2 text-sm font-semibold rounded-md border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSave}
-                  className="px-4 py-2 text-sm font-semibold rounded-md bg-slate-900 text-white dark:bg-slate-200 dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-300"
-                  // TODO: Disable button when saving, show loader
+                  disabled={isSubmitting || !newItemName.trim()} // Disable save if submitting or name is empty
+                  className="px-4 py-2 text-sm font-semibold rounded-md bg-slate-900 text-white dark:bg-slate-200 dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-300 disabled:opacity-50 flex items-center gap-2"
                 >
-                  Save
-                  {/* {isSaving ? <Loader2 className="animate-spin" size={16}/> : 'Save'} */}
+                  {isSubmitting ? (
+                    <Loader2 className="animate-spin" size={16} />
+                  ) : null}
+                  {isSubmitting ? 'Saving...' : 'Save'}
                 </button>
               </div>
             </div>
@@ -544,22 +608,30 @@ const MetaDataManagement = () => {
                   </div>
                 </div>
               </div>
+              {/* Display error message if delete failed */}
+              {modalError && (
+                <p className="text-sm text-red-500 mt-4 text-center">
+                  {modalError}
+                </p>
+              )}
               {/* Buttons */}
               <div className="mt-6 flex justify-end gap-3">
                 <button
                   onClick={closeDeleteModal}
-                  className="px-4 py-2 text-sm font-semibold rounded-md border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700"
-                  // TODO: Disable button when deleting
+                  disabled={isSubmitting} // Disable cancel while submitting
+                  className="px-4 py-2 text-sm font-semibold rounded-md border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleDeleteConfirm}
-                  className="px-4 py-2 text-sm font-semibold rounded-md bg-red-600 text-white hover:bg-red-700"
-                  // TODO: Disable button when deleting, show loader
+                  disabled={isSubmitting} // Disable delete while submitting
+                  className="px-4 py-2 text-sm font-semibold rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
                 >
-                  Delete
-                  {/* {isDeleting ? <Loader2 className="animate-spin" size={16}/> : 'Delete'} */}
+                  {isSubmitting ? (
+                    <Loader2 className="animate-spin" size={16} />
+                  ) : null}
+                  {isSubmitting ? 'Deleting...' : 'Delete'}
                 </button>
               </div>
             </div>
