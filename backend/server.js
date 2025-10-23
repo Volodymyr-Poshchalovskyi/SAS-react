@@ -1,4 +1,9 @@
-// 1. Імпортуємо бібліотеки
+//backend/server.js
+
+// ========================================================================== //
+// ! SECTION 1: IMPORTS & INITIALIZATION
+// ========================================================================== //
+
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
@@ -7,10 +12,13 @@ const { createClient } = require('@supabase/supabase-js');
 const crypto = require('crypto');
 require('dotenv').config();
 
-// 2. Ініціалізація
+// * Initialize Express
 const app = express();
 const PORT = process.env.PORT || 3001;
+const HOST = '0.0.0.0'; // * Bind to 0.0.0.0 to be accessible on the local network
 
+// * Initialize Google Cloud Storage
+// * We are loading the key from a Base64 environment variable (common for PaaS)
 const keyJson = Buffer.from(
   process.env.GCS_SERVICE_ACCOUNT_KEY_BASE64,
   'base64'
@@ -19,14 +27,18 @@ const credentials = JSON.parse(keyJson);
 const storage = new Storage({ credentials });
 const bucket = storage.bucket(process.env.GCS_BUCKET_NAME);
 
+// * Initialize Supabase
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// ! Fatal error check: Ensure Supabase credentials are provided
 if (!supabaseUrl || !supabaseKey) {
   console.error(
     'FATAL ERROR: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be defined in your .env file.'
   );
   process.exit(1);
 }
+
 const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
     autoRefreshToken: false,
@@ -34,15 +46,20 @@ const supabase = createClient(supabaseUrl, supabaseKey, {
   },
 });
 
-// 3. Налаштування Express (Middleware)
+// ========================================================================== //
+// ! SECTION 2: EXPRESS MIDDLEWARE
+// ========================================================================== //
+
+// * Define allowed origins for CORS
 const allowedOrigins = [
   'http://localhost:5173',
   'http://192.168.0.123:5173',
   'http://192.168.1.103:5173',
   'http://192.168.1.106:5173',
-  "http://192.168.1.105:5173",
-   "http://192.168.1.109:5173",
+  'http://192.168.1.105:5173',
+  'http://192.168.1.109:5173',
   'http://192.168.1.110:5173',
+  'http://192.168.1.112:5173',
   'https://sas-frontend-zhgs.onrender.com',
 ];
 
@@ -59,10 +76,21 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-// ВАЖЛИВО: Додаємо парсер для 'text/plain', щоб navigator.sendBeacon працював
+
+// * Body Parsers
+// ! Important: We need express.text() to handle 'text/plain' payloads from navigator.sendBeacon
 app.use(express.text());
 app.use(express.json());
 
+// ========================================================================== //
+// ! SECTION 3: UTILITY FUNCTIONS
+// ========================================================================== //
+
+/**
+ * Generates a short random ID.
+ * @param {number} length - The desired length of the ID.
+ * @returns {string} A random alphanumeric string.
+ */
 function generateShortId(length = 5) {
   const chars =
     'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -72,10 +100,15 @@ function generateShortId(length = 5) {
   }
   return result;
 }
+
 // ========================================================================== //
-// API-ЕНДПОІНТИ ДЛЯ GOOGLE CLOUD STORAGE
+// ! SECTION 4: GOOGLE CLOUD STORAGE ENDPOINTS
 // ========================================================================== //
 
+/**
+ * Generates a v4 signed URL for uploading a file to GCS.
+ * * Dynamically sets the destination folder based on `destination` and `role` params.
+ */
 app.post('/generate-upload-url', async (req, res) => {
   try {
     const { fileName, fileType, destination, role } = req.body;
@@ -88,13 +121,14 @@ app.post('/generate-upload-url', async (req, res) => {
 
     if (destination === 'artists') {
       destinationFolder = 'back-end/artists';
-    } else if (destination === 'feature_pdf') { 
+    } else if (destination === 'feature_pdf') {
       destinationFolder = 'back-end/feature_pdf';
     } else if (role === 'main') {
       destinationFolder = 'back-end/videos';
     } else if (role === 'preview') {
       destinationFolder = 'back-end/previews';
     } else {
+      // * Default fallback logic
       destinationFolder = fileType.startsWith('video/')
         ? 'back-end/videos'
         : 'back-end/previews';
@@ -106,22 +140,24 @@ app.post('/generate-upload-url', async (req, res) => {
     const options = {
       version: 'v4',
       action: 'write',
-      expires: Date.now() + 15 * 60 * 1000,
+      expires: Date.now() + 15 * 60 * 1000, // 15 minutes
       contentType: fileType,
     };
     const [signedUrl] = await file.getSignedUrl(options);
     res.status(200).json({ signedUrl, gcsPath: filePath });
   } catch (error) {
     console.error('Error generating signed UPLOAD URL:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to generate upload URL.',
-        details: error.message,
-      });
+    res.status(500).json({
+      error: 'Failed to generate upload URL.',
+      details: error.message,
+    });
   }
 });
 
+/**
+ * Generates v4 signed URLs for reading multiple files from GCS.
+ * * Accepts an array of GCS paths and returns a map of { path: url }.
+ */
 app.post('/generate-read-urls', async (req, res) => {
   try {
     const { gcsPaths } = req.body;
@@ -129,11 +165,14 @@ app.post('/generate-read-urls', async (req, res) => {
       return res
         .status(400)
         .json({ error: 'gcsPaths must be a non-empty array.' });
+
     const options = {
       version: 'v4',
       action: 'read',
-      expires: Date.now() + 10 * 60 * 1000,
+      expires: Date.now() + 10 * 60 * 1000, // 10 minutes
     };
+
+    // * Process all URL requests in parallel
     const signedUrlsPromises = gcsPaths.map(async (path) => {
       if (typeof path !== 'string' || path.trim() === '')
         return { path, url: null, error: 'Invalid path' };
@@ -144,24 +183,32 @@ app.post('/generate-read-urls', async (req, res) => {
         return { path, url: null, error: fileError.message };
       }
     });
+
     const results = await Promise.all(signedUrlsPromises);
+
+    // * Convert array of results into a key-value map
     const signedUrlsMap = results.reduce((acc, result) => {
       if (result.url) acc[result.path] = result.url;
       return acc;
     }, {});
+
     res.status(200).json(signedUrlsMap);
   } catch (error) {
     console.error('Error generating signed READ URLs:', error);
-    res
-      .status(500)
-      .json({ error: 'Failed to generate read URLs.', details: error.message });
+    res.status(500).json({
+      error: 'Failed to generate read URLs.',
+      details: error.message,
+    });
   }
 });
 
 // ========================================================================== //
-// ЕНДПОІНТИ ДЛЯ АРТИСТІВ
+// ! SECTION 5: ARTISTS ENDPOINTS
 // ========================================================================== //
 
+/**
+ * Fetches artist details (photo path) by an array of names.
+ */
 app.post('/artists/details-by-names', async (req, res) => {
   const { names } = req.body;
   if (!names || !Array.isArray(names) || names.length === 0) {
@@ -178,20 +225,23 @@ app.post('/artists/details-by-names', async (req, res) => {
     res.status(200).json(data);
   } catch (error) {
     console.error('Error fetching artists by names:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to fetch artist details.',
-        details: error.message,
-      });
+    res.status(500).json({
+      error: 'Failed to fetch artist details.',
+      details: error.message,
+    });
   }
 });
 
+/**
+ * Updates an artist's details.
+ * * Also deletes the old GCS photo if a new one is provided.
+ */
 app.put('/artists/:id', async (req, res) => {
   const { id } = req.params;
   const { name, description, photo_gcs_path } = req.body;
 
   try {
+    // * Step 1: Get the current item to check for an old photo
     const { data: currentItem, error: fetchError } = await supabase
       .from('artists')
       .select('photo_gcs_path')
@@ -200,6 +250,7 @@ app.put('/artists/:id', async (req, res) => {
     if (fetchError)
       throw new Error('Could not fetch current artist to compare photo.');
 
+    // * Step 2: Update the artist record in Supabase
     const { data: updatedArtist, error: updateError } = await supabase
       .from('artists')
       .update({ name, description, photo_gcs_path })
@@ -208,6 +259,7 @@ app.put('/artists/:id', async (req, res) => {
       .single();
     if (updateError) throw updateError;
 
+    // * Step 3: Clean up the old GCS file if it's different
     if (
       currentItem.photo_gcs_path &&
       currentItem.photo_gcs_path !== photo_gcs_path
@@ -232,23 +284,31 @@ app.put('/artists/:id', async (req, res) => {
   }
 });
 
+/**
+ * Deletes an artist.
+ * * Also deletes the associated photo from GCS.
+ */
 app.delete('/artists/:id', async (req, res) => {
   const { id } = req.params;
   try {
+    // * Step 1: Get the GCS path *before* deleting the record
     const { data: item, error: fetchError } = await supabase
       .from('artists')
       .select('photo_gcs_path')
       .eq('id', id)
       .single();
 
+    // * PGRST116: No rows found (already deleted, which is fine)
     if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
 
+    // * Step 2: Delete the database record
     const { error: deleteError } = await supabase
       .from('artists')
       .delete()
       .eq('id', id);
     if (deleteError) throw deleteError;
 
+    // * Step 3: Clean up the GCS file
     if (item && item.photo_gcs_path) {
       await bucket
         .file(item.photo_gcs_path)
@@ -271,41 +331,40 @@ app.delete('/artists/:id', async (req, res) => {
 });
 
 // ========================================================================== //
-// ЕНДПОІНТИ ДЛЯ АНАЛІТИКИ
+// ! SECTION 6: ANALYTICS ENDPOINTS (REELS)
 // ========================================================================== //
 
+/**
+ * Logs a reel view event (e.g., 'start', 'completion', 'session_duration').
+ * ! This endpoint must handle both JSON (from fetch) and text/plain (from sendBeacon).
+ */
 app.post('/reels/log-event', async (req, res) => {
   try {
-    // ✨ ПОЧАТОК ЗМІНИ: Робимо ендпоінт універсальним
-    // Перевіряємо, чи тіло запиту є рядком (від sendBeacon) чи об'єктом (від fetch)
+    // * Handle different content types
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-    const { reel_id, session_id, event_type, media_item_id, duration_seconds } = body;
-    // ✨ КІНЕЦЬ ЗМІНИ
+    const { reel_id, session_id, event_type, media_item_id, duration_seconds } =
+      body;
 
     if (!reel_id || !session_id || !event_type) {
       return res
         .status(400)
         .json({ error: 'Missing required fields for logging.' });
     }
-    // Ця перевірка залишається, але вона стосується media_completion, а не session_duration
     if (event_type === 'completion' && !media_item_id) {
       return res
         .status(400)
         .json({ error: 'media_item_id is required for completion events.' });
     }
-  
-    const { error } = await supabase
-      .from('reel_views')
-      .insert({
-        reel_id,
-        session_id,
-        event_type,
-        media_item_id: media_item_id || null,
-        duration_seconds: duration_seconds || null,
-      });
+
+    const { error } = await supabase.from('reel_views').insert({
+      reel_id,
+      session_id,
+      event_type,
+      media_item_id: media_item_id || null,
+      duration_seconds: duration_seconds || null,
+    });
     if (error) throw error;
     res.status(201).json({ message: 'Event logged successfully.' });
-
   } catch (error) {
     console.error('Error logging analytics event:', error);
     res
@@ -315,9 +374,13 @@ app.post('/reels/log-event', async (req, res) => {
 });
 
 // ========================================================================== //
-// ЕНДПОІНТИ ДЛЯ АНАЛІТИКИ ДАШБОРДУ
+// ! SECTION 7: ANALYTICS ENDPOINTS (DASHBOARD)
 // ========================================================================== //
 
+/**
+ * Fetches daily view counts (media_completion) for a date range.
+ * * Fills in missing days with 0 views, which is required for charting.
+ */
 app.get('/analytics/views-over-time', async (req, res) => {
   const { startDate, endDate } = req.query;
   if (!startDate || !endDate) {
@@ -339,12 +402,14 @@ app.get('/analytics/views-over-time', async (req, res) => {
 
     if (error) throw error;
 
+    // * Aggregate counts by day
     const countsByDay = events.reduce((acc, event) => {
       const date = event.created_at.split('T')[0];
       acc[date] = (acc[date] || 0) + 1;
       return acc;
     }, {});
 
+    // * Create a complete date range, filling in zeros
     const result = [];
     let currentDate = new Date(startDate);
     const finalDate = new Date(endDate);
@@ -359,17 +424,20 @@ app.get('/analytics/views-over-time', async (req, res) => {
     }
 
     res.status(200).json(result);
-  } catch (error) {
+  } catch (error)
+  {
     console.error('Error fetching views over time:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to fetch daily view counts.',
-        details: error.message,
-      });
+    res.status(500).json({
+      error: 'Failed to fetch daily view counts.',
+      details: error.message,
+    });
   }
 });
 
+/**
+ * Fetches the top N trending media items based on 'completion' events.
+ * * This uses an "aggregate, then fetch" pattern for efficiency.
+ */
 app.get('/analytics/trending-media', async (req, res) => {
   const { startDate, endDate, limit = 4 } = req.query;
   if (!startDate || !endDate) {
@@ -381,6 +449,7 @@ app.get('/analytics/trending-media', async (req, res) => {
   fullEndDate.setUTCHours(23, 59, 59, 999);
 
   try {
+    // * Step 1: Get all completion events in the range
     const { data: completionEvents, error: viewError } = await supabase
       .from('reel_views')
       .select('media_item_id')
@@ -394,6 +463,7 @@ app.get('/analytics/trending-media', async (req, res) => {
       return res.status(200).json([]);
     }
 
+    // * Step 2: Aggregate counts in application code
     const countsByMediaItem = completionEvents.reduce(
       (acc, { media_item_id }) => {
         acc[media_item_id] = (acc[media_item_id] || 0) + 1;
@@ -402,6 +472,7 @@ app.get('/analytics/trending-media', async (req, res) => {
       {}
     );
 
+    // * Step 3: Get the top N IDs
     const topMediaItemIds = Object.entries(countsByMediaItem)
       .sort(([, countA], [, countB]) => countB - countA)
       .slice(0, Number(limit))
@@ -411,6 +482,7 @@ app.get('/analytics/trending-media', async (req, res) => {
       return res.status(200).json([]);
     }
 
+    // * Step 4: Fetch details for *only* the top N items
     const { data: trendingItems, error: itemsError } = await supabase
       .from('media_items')
       .select(`id, title, client, preview_gcs_path, artists`)
@@ -418,6 +490,7 @@ app.get('/analytics/trending-media', async (req, res) => {
 
     if (itemsError) throw itemsError;
 
+    // * Step 5: Combine details with view counts and sort
     const result = trendingItems.map((item) => ({
       ...item,
       views: countsByMediaItem[item.id] || 0,
@@ -428,26 +501,32 @@ app.get('/analytics/trending-media', async (req, res) => {
     res.status(200).json(result);
   } catch (error) {
     console.error('Error fetching trending media:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to fetch trending media.',
-        details: error.message,
-      });
+    res.status(500).json({
+      error: 'Failed to fetch trending media.',
+      details: error.message,
+    });
   }
 });
 
+/**
+ * Fetches recently created reels and enriches them with data (client, preview)
+ * from their *first* media item.
+ */
 app.get('/analytics/recent-activity', async (req, res) => {
   const { limit = 5 } = req.query;
   try {
+    // * Step 1: Get recent reels
     const { data: reels, error: reelsError } = await supabase
       .from('reels')
       .select('id, title, created_at')
       .order('created_at', { ascending: false })
       .limit(Number(limit));
     if (reelsError) throw reelsError;
+
+    // * Step 2: Enrich each reel in parallel
     const enrichedReels = await Promise.all(
       reels.map(async (reel) => {
+        // * Get the first item in the reel (by display_order)
         const { data: firstItem, error: itemError } = await supabase
           .from('reel_media_items')
           .select('media_items(client, preview_gcs_path)')
@@ -455,6 +534,7 @@ app.get('/analytics/recent-activity', async (req, res) => {
           .order('display_order', { ascending: true })
           .limit(1)
           .single();
+
         return {
           ...reel,
           client: itemError ? 'N/A' : firstItem.media_items.client,
@@ -467,28 +547,30 @@ app.get('/analytics/recent-activity', async (req, res) => {
     res.status(200).json(enrichedReels);
   } catch (error) {
     console.error('Error fetching recent activity:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to fetch recent activity.',
-        details: error.message,
-      });
+    res.status(500).json({
+      error: 'Failed to fetch recent activity.',
+      details: error.message,
+    });
   }
 });
 
 // ========================================================================== //
-// ЕНДПОІНТИ ДЛЯ РІЛСІВ (АДМІН ПАНЕЛЬ)
+// ! SECTION 8: REELS ENDPOINTS (ADMIN)
 // ========================================================================== //
 
+/**
+ * Creates a new reel.
+ * * Generates a unique `short_link` for the reel.
+ * * Inserts associated media items into the `reel_media_items` join table.
+ */
 app.post('/reels', async (req, res) => {
   const { title, media_item_ids, user_id } = req.body;
   if (!title || !media_item_ids || !user_id || media_item_ids.length === 0)
-    return res
-      .status(400)
-      .json({
-        error: 'Title, user_id, and at least one media_item_id are required.',
-      });
+    return res.status(400).json({
+      error: 'Title, user_id, and at least one media_item_id are required.',
+    });
   try {
+    // * Step 1: Generate a unique short_link, retrying if a collision occurs
     let shortLink;
     let isUnique = false;
     while (!isUnique) {
@@ -498,9 +580,11 @@ app.post('/reels', async (req, res) => {
         .select('id')
         .eq('short_link', shortLink)
         .single();
-      if (!data) isUnique = true;
-      if (error && error.code !== 'PGRST116') throw error;
+      if (!data) isUnique = true; // No record found, the link is unique
+      if (error && error.code !== 'PGRST116') throw error; // 'PGRST116' is "No rows found"
     }
+
+    // * Step 2: Create the main reel record
     const { data: newReel, error: reelError } = await supabase
       .from('reels')
       .insert({
@@ -512,6 +596,8 @@ app.post('/reels', async (req, res) => {
       .select()
       .single();
     if (reelError) throw reelError;
+
+    // * Step 3: Create the join table entries
     const reelMediaItemsData = media_item_ids.map((mediaId, index) => ({
       reel_id: newReel.id,
       media_item_id: mediaId,
@@ -521,6 +607,7 @@ app.post('/reels', async (req, res) => {
       .from('reel_media_items')
       .insert(reelMediaItemsData);
     if (itemsError) throw itemsError;
+
     res.status(201).json(newReel);
   } catch (error) {
     console.error('Error creating reel:', error);
@@ -530,15 +617,20 @@ app.post('/reels', async (req, res) => {
   }
 });
 
+/**
+ * Fetches all reels with calculated analytics.
+ * ! This uses an efficient "fetch all, join in app" strategy to avoid N+1 queries.
+ */
 app.get('/reels', async (req, res) => {
   try {
+    // * Step 1: Fetch all primary reel data
     const { data: reels, error: reelsError } = await supabase
       .from('reels')
       .select('*, user_profiles(first_name, last_name)')
       .order('created_at', { ascending: false });
-
     if (reelsError) throw reelsError;
 
+    // * Step 2: Fetch all join table links
     const { data: allLinks, error: linksError } = await supabase
       .from('reel_media_items')
       .select(
@@ -546,11 +638,13 @@ app.get('/reels', async (req, res) => {
       );
     if (linksError) throw linksError;
 
+    // * Step 3: Fetch all analytics data
     const { data: allViews, error: viewsError } = await supabase
       .from('reel_views')
       .select('reel_id, session_id, event_type, duration_seconds');
     if (viewsError) throw viewsError;
 
+    // * Step 4: Process links into lookup maps
     const mediaIdsByReel = allLinks.reduce((acc, link) => {
       if (!acc[link.reel_id]) acc[link.reel_id] = [];
       acc[link.reel_id].push({
@@ -559,10 +653,12 @@ app.get('/reels', async (req, res) => {
       });
       return acc;
     }, {});
+    // Sort the media items for each reel
     for (const reelId in mediaIdsByReel) {
       mediaIdsByReel[reelId].sort((a, b) => a.order - b.order);
       mediaIdsByReel[reelId] = mediaIdsByReel[reelId].map((item) => item.id);
     }
+    // Get the first preview path for each reel
     const previewPathByReelId = allLinks
       .sort((a, b) => a.display_order - b.display_order)
       .reduce((acc, link) => {
@@ -572,6 +668,7 @@ app.get('/reels', async (req, res) => {
         return acc;
       }, {});
 
+    // * Step 5: Process analytics data into a lookup map
     const analyticsByReel = allViews.reduce((acc, view) => {
       const { reel_id, session_id, event_type, duration_seconds } = view;
       if (!acc[reel_id]) {
@@ -591,6 +688,7 @@ app.get('/reels', async (req, res) => {
       return acc;
     }, {});
 
+    // * Step 6: Combine all data
     const analyticsData = reels.map((reel) => {
       const reelAnalytics = analyticsByReel[reel.id] || {
         sessions: new Set(),
@@ -627,11 +725,17 @@ app.get('/reels', async (req, res) => {
   }
 });
 
+/**
+ * Updates an existing reel.
+ * * Updates reel metadata (title, status, etc.).
+ * * Replaces the `reel_media_items` using a "delete all, insert new" strategy.
+ */
 app.put('/reels/:id', async (req, res) => {
   const { id } = req.params;
   const { title, artists, status, media_item_ids } = req.body;
 
   try {
+    // * Step 1: Update main reel metadata (if provided)
     const updateData = {};
     if (title !== undefined) updateData.title = title;
     if (artists !== undefined) updateData.artists = artists;
@@ -645,13 +749,16 @@ app.put('/reels/:id', async (req, res) => {
       if (updateReelError) throw updateReelError;
     }
 
+    // * Step 2: Update media item links (if provided)
     if (media_item_ids && Array.isArray(media_item_ids)) {
+      // * Delete all existing links for this reel
       const { error: deleteError } = await supabase
         .from('reel_media_items')
         .delete()
         .eq('reel_id', id);
       if (deleteError) throw deleteError;
 
+      // * Insert new links
       if (media_item_ids.length > 0) {
         const newReelMediaItems = media_item_ids.map((mediaId, index) => ({
           reel_id: id,
@@ -665,14 +772,16 @@ app.put('/reels/:id', async (req, res) => {
       }
     }
 
+    // * Step 3: Fetch the final updated reel data to return to the client
     const { data: finalReel, error: finalFetchError } = await supabase
       .from('reels')
       .select('*, user_profiles(first_name, last_name)')
       .eq('id', id)
       .single();
-
     if (finalFetchError) throw finalFetchError;
 
+    // * Step 4: Fetch basic analytics to return (for UI consistency)
+    // ? This could be optimized, but is fine for a single PUT request.
     const { data: views, error: viewsError } = await supabase
       .from('reel_views')
       .select('session_id, event_type')
@@ -695,7 +804,7 @@ app.put('/reels/:id', async (req, res) => {
       completed_views,
       completion_rate:
         total_views > 0 ? (completed_views / total_views) * 100 : 0,
-      media_item_ids: media_item_ids || [],
+      media_item_ids: media_item_ids || [], // Return the new set of IDs
     });
   } catch (error) {
     console.error(`Error updating reel ${id}:`, error);
@@ -705,12 +814,17 @@ app.put('/reels/:id', async (req, res) => {
   }
 });
 
+/**
+ * Deletes a reel and all its associated data (links, analytics).
+ */
 app.delete('/reels/:id', async (req, res) => {
   const { id } = req.params;
   try {
+    // * Manually cascade deletes (Supabase doesn't do this by default on links/views)
     await supabase.from('reel_media_items').delete().eq('reel_id', id);
     await supabase.from('reel_views').delete().eq('reel_id', id);
     await supabase.from('reels').delete().eq('id', id);
+
     res.status(200).json({ message: 'Reel deleted successfully.' });
   } catch (error) {
     console.error(`Error deleting reel ${id}:`, error);
@@ -721,11 +835,18 @@ app.delete('/reels/:id', async (req, res) => {
 });
 
 // ========================================================================== //
-// ПУБЛІЧНИЙ ЕНДПОІНТ ДЛЯ СТОРІНКИ РІЛСА
+// ! SECTION 9: REELS ENDPOINT (PUBLIC)
 // ========================================================================== //
 
+/**
+ * Fetches all data needed to display a public reel page.
+ * * Fetches the reel by its `short_link`.
+ * * Fetches all associated media items, sorted by `display_order`.
+ * * Enriches media items with artist details (name, description, photo).
+ */
 app.get('/reels/public/:short_link', async (req, res) => {
   try {
+    // * Step 1: Fetch the reel and its nested media items
     const { data: reel, error: reelError } = await supabase
       .from('reels')
       .select(
@@ -739,21 +860,25 @@ app.get('/reels/public/:short_link', async (req, res) => {
     if (reel.status !== 'Active')
       return res.status(403).json({ details: 'This reel is not active.' });
 
+    // * Step 2: Sort and filter media items
     const sortedMediaItems = (reel.reel_media_items || [])
       .sort((a, b) => a.display_order - b.display_order)
       .map((item) => item.media_items)
-      .filter(Boolean);
+      .filter(Boolean); // Filter out any null/undefined items
 
     const defaultDirectorImagePath = 'back-end/artists/director.jpg';
 
+    // * Step 3: Enrich each media item with full artist details
     const mediaItemsWithPaths = await Promise.all(
       sortedMediaItems.map(async (item) => {
         const artistNames = (item.artists || '')
           .split(',')
           .map((name) => name.trim())
           .filter(Boolean);
+
         let enrichedArtists = [];
         if (artistNames.length > 0) {
+          // * Fetch details for all artists in this item in one query
           const { data: artistRecords, error: artistsError } = await supabase
             .from('artists')
             .select('name, description, photo_gcs_path')
@@ -762,11 +887,13 @@ app.get('/reels/public/:short_link', async (req, res) => {
           if (artistsError)
             console.error('Error fetching artists:', artistsError.message);
 
+          // * Create a map for easy lookup
           const artistMap = (artistRecords || []).reduce((acc, artist) => {
             acc[artist.name] = artist;
             return acc;
           }, {});
 
+          // * Build the final artist array, subbing in defaults
           enrichedArtists = artistNames.map((name) => {
             const record = artistMap[name];
             const photoPath =
@@ -782,15 +909,16 @@ app.get('/reels/public/:short_link', async (req, res) => {
         }
 
         return {
-            ...item, // ✨ ДОДАНО ЦЕЙ ВАЖЛИВИЙ РЯДОК
+          ...item, // ! Keep all original media_item fields
           videoGcsPath: item.video_gcs_path,
-          video_hls_path: item.video_hls_path, 
+          video_hls_path: item.video_hls_path,
           previewGcsPath: item.preview_gcs_path || item.video_gcs_path,
           artists: enrichedArtists,
         };
       })
     );
-    
+
+    // * Step 4: Assemble final public data object
     const publicData = {
       reelDbId: reel.id,
       reelTitle: reel.title,
@@ -809,9 +937,12 @@ app.get('/reels/public/:short_link', async (req, res) => {
 });
 
 // ========================================================================== //
-// ЕНДПОІНТИ ДЛЯ МЕДІА-АЙТЕМІВ
+// ! SECTION 10: MEDIA ITEMS ENDPOINTS
 // ========================================================================== //
 
+/**
+ * Fetches a single media item by its ID.
+ */
 app.get('/media-items/:id', async (req, res) => {
   const { id } = req.params;
   try {
@@ -821,7 +952,7 @@ app.get('/media-items/:id', async (req, res) => {
       .eq('id', id)
       .single();
     if (error) throw error;
-    if (!data) return res.status(404).json({ error: 'Media item not found.' });
+    if (!data) return res.status(4404).json({ error: 'Media item not found.' });
     res.status(200).json(data);
   } catch (error) {
     console.error(`Error fetching media item ${id}:`, error);
@@ -831,6 +962,10 @@ app.get('/media-items/:id', async (req, res) => {
   }
 });
 
+/**
+ * Fetches multiple media items by an array of IDs.
+ * * Used by the reel editor to get item details.
+ */
 app.get('/media-items', async (req, res) => {
   const ids = req.query.id;
   if (!ids || !Array.isArray(ids) || ids.length === 0) {
@@ -854,10 +989,15 @@ app.get('/media-items', async (req, res) => {
   }
 });
 
+/**
+ * Updates a media item.
+ * * Also cleans up old GCS files (video, preview) if they are replaced.
+ */
 app.put('/media-items/:id', async (req, res) => {
   const { id } = req.params;
   const updatedData = req.body;
   try {
+    // * Step 1: Get current file paths for cleanup
     const { data: currentItem, error: fetchError } = await supabase
       .from('media_items')
       .select('video_gcs_path, preview_gcs_path')
@@ -865,11 +1005,15 @@ app.put('/media-items/:id', async (req, res) => {
       .single();
     if (fetchError)
       throw new Error('Could not fetch current item to compare files.');
+
+    // * Step 2: Update the database record
     const { error: updateError } = await supabase
       .from('media_items')
       .update(updatedData)
       .eq('id', id);
     if (updateError) throw updateError;
+
+    // * Step 3: Delete old GCS files if they changed
     const filesToDelete = [];
     if (
       currentItem.video_gcs_path &&
@@ -881,6 +1025,7 @@ app.put('/media-items/:id', async (req, res) => {
       currentItem.preview_gcs_path !== updatedData.preview_gcs_path
     )
       filesToDelete.push(currentItem.preview_gcs_path);
+
     if (filesToDelete.length > 0) {
       await Promise.all(
         filesToDelete.map((path) =>
@@ -902,11 +1047,19 @@ app.put('/media-items/:id', async (req, res) => {
   }
 });
 
+/**
+ * ! CRITICAL: Deletes a media item and all its associated data.
+ * * 1. Deletes GCS files (original video, preview).
+ * * 2. Deletes the *entire* GCS transcoded folder (HLS files).
+ * * 3. Deletes links from `reel_media_items`.
+ * * 4. Deletes any `reels` that become empty as a result.
+ * * 5. Deletes the `media_items` record itself.
+ */
 app.delete('/media-items/:id', async (req, res) => {
   const { id } = req.params;
 
   try {
-    // Крок 1: Отримуємо шляхи до файлів з БД ПЕРЕД видаленням запису
+    // * Step 1: Get file paths from the DB *before* deleting the record
     const { data: item, error: fetchError } = await supabase
       .from('media_items')
       .select('video_gcs_path, preview_gcs_path')
@@ -914,131 +1067,151 @@ app.delete('/media-items/:id', async (req, res) => {
       .single();
 
     if (fetchError && fetchError.code === 'PGRST116') {
-      return res.status(200).json({ message: 'Item not found, assumed already deleted.' });
+      return res
+        .status(200)
+        .json({ message: 'Item not found, assumed already deleted.' });
     }
     if (fetchError) {
       throw new Error(`Could not fetch media item to delete: ${fetchError.message}`);
     }
     if (!item) {
-      return res.status(404).json({ error: `Media item with id ${id} not found.` });
+      return res
+        .status(404)
+        .json({ error: `Media item with id ${id} not found.` });
     }
-    
-    // Крок 2: Намагаємось видалити файли з Google Cloud Storage
-    // Це найкритичніший крок.
+
+    // * Step 2: Attempt to delete all associated files from GCS
     const deletePromises = [];
 
-    // Додаємо оригінальне відео та прев'ю до списку на видалення
-    if (item.video_gcs_path) deletePromises.push(bucket.file(item.video_gcs_path).delete());
-    if (item.preview_gcs_path) deletePromises.push(bucket.file(item.preview_gcs_path).delete());
+    // * Add original video and preview to delete queue
+    if (item.video_gcs_path)
+      deletePromises.push(bucket.file(item.video_gcs_path).delete());
+    if (item.preview_gcs_path)
+      deletePromises.push(bucket.file(item.preview_gcs_path).delete());
 
-    // ✨ ПОЧАТОК НОВОЇ ЛОГІКИ ✨
-    // Якщо є оригінальне відео, конструюємо шлях до папки транскодування
+    // * Add the *entire transcoded folder* to delete queue
     if (item.video_gcs_path) {
       const originalVideoPath = item.video_gcs_path;
-      // Отримуємо ім'я файлу без розширення (напр., "uuid-my-video")
-      const fileNameWithoutExt = path.basename(originalVideoPath, path.extname(originalVideoPath));
-      // Формуємо префікс папки, яку треба очистити
+      // e.g., "uuid-my-video" from "back-end/videos/uuid-my-video.mp4"
+      const fileNameWithoutExt = path.basename(
+        originalVideoPath,
+        path.extname(originalVideoPath)
+      );
+      // e.g., "back-end/transcoded_videos/uuid-my-video/"
       const transcodedPrefix = `back-end/transcoded_videos/${fileNameWithoutExt}/`;
-      
-      console.log(`Adding transcoded folder to deletion queue: ${transcodedPrefix}`);
-      // Додаємо обіцянку видалення всіх файлів у цій папці
+
+      console.log(
+        `Adding transcoded folder to deletion queue: ${transcodedPrefix}`
+      );
+      // * This deletes all files matching the prefix (the whole folder)
       deletePromises.push(bucket.deleteFiles({ prefix: transcodedPrefix }));
     }
-    // ✨ КІНЕЦЬ НОВОЇ ЛОГІКИ ✨
 
-    // ✨ ПОЧАТОК ЗМІНИ: Використовуємо Promise.allSettled для надійного видалення
+    // * Step 2.5: Execute GCS deletion
+    // ! Use Promise.allSettled to ensure we continue even if a file (e.g., preview)
+    // ! doesn't exist (404 error). We still want to delete the DB record.
     if (deletePromises.length > 0) {
-      console.log(`Attempting ${deletePromises.length} GCS deletion operations for item ${id}.`);
-      
-      // Використовуємо allSettled замість all.
-      // Це гарантує, що ми спробуємо видалити всі файли,
-      // і код не зупиниться, якщо якийсь файл не знайдено (404).
+      console.log(
+        `Attempting ${deletePromises.length} GCS deletion operations for item ${id}.`
+      );
       const results = await Promise.allSettled(deletePromises);
 
-      let allSucceeded = true;
-      results.forEach((result, index) => {
+      results.forEach((result) => {
         if (result.status === 'rejected') {
-          allSucceeded = false;
           const error = result.reason;
-          // Логуємо помилки, які НЕ є "Not Found"
+          // * Log errors that are *not* "Not Found"
           if (error.code !== 404) {
-             console.error(`Failed to delete a GCS file (continuing anyway):`, error.message);
+            console.error(
+              `Failed to delete a GCS file (continuing anyway):`,
+              error.message
+            );
           } else {
-             // Це очікувана "помилка", якщо прев'ю чи відео не існує
-             console.warn(`GCS file not found during deletion (skipping): ${error.message}`);
+            console.warn(
+              `GCS file not found during deletion (skipping): ${error.message}`
+            );
           }
         }
       });
-
-      if (allSucceeded) {
-        console.log('Successfully deleted all associated files/prefixes from GCS.');
-      } else {
-        console.warn('One or more GCS deletion tasks failed (e.g., file not found). Continuing with DB deletion as requested.');
-      }
+      console.log(
+        'GCS cleanup tasks finished. Continuing with DB deletion.'
+      );
     }
-    // ✨ КІНЕЦЬ ЗМІНИ: Критична помилка більше не кидається.
-    // Виконання коду продовжиться до Кроку 3 (видалення з БД)
-    // незалежно від того, чи були файли в GCS.
-    // Крок 3: Видаляємо всі пов'язані записи (з `reel_media_items`).
+
+    // * Step 3: Clean up database links (find affected reels)
     const { data: affectedReelLinks, error: linksError } = await supabase
       .from('reel_media_items')
       .select('reel_id')
       .eq('media_item_id', id);
     if (linksError) throw linksError;
 
+    // * Delete the links
     const { error: deleteLinksError } = await supabase
       .from('reel_media_items')
       .delete()
       .eq('media_item_id', id);
     if (deleteLinksError) throw deleteLinksError;
 
-    // Перевіряємо та видаляємо рілси, що стали порожніми
+    // * Step 4: Check for and delete "orphan" reels
     if (affectedReelLinks && affectedReelLinks.length > 0) {
       const affectedReelIds = affectedReelLinks.map((link) => link.reel_id);
+      
+      // * Check which of the affected reels *still* have items
       const { data: remainingLinks, error: checkError } = await supabase
         .from('reel_media_items')
         .select('reel_id')
         .in('reel_id', affectedReelIds);
       if (checkError) throw checkError;
+
+      const reelsThatStillHaveItems = new Set(
+        (remainingLinks || []).map((link) => link.reel_id)
+      );
       
-      const reelsThatStillHaveItems = new Set((remainingLinks || []).map((link) => link.reel_id));
-      const reelsToDeleteIds = affectedReelIds.filter(reelId => !reelsThatStillHaveItems.has(reelId));
-      
+      // * Find reels that are now empty
+      const reelsToDeleteIds = affectedReelIds.filter(
+        (reelId) => !reelsThatStillHaveItems.has(reelId)
+      );
+
       if (reelsToDeleteIds.length > 0) {
+        console.log(`Deleting ${reelsToDeleteIds.length} orphan reels...`);
         await supabase.from('reels').delete().in('id', reelsToDeleteIds);
       }
     }
 
-    // Крок 4: Тільки після успішного видалення файлів з GCS, видаляємо запис з БД
+    // * Step 5: Finally, delete the media item record itself
     const { error: deleteItemError } = await supabase
       .from('media_items')
       .delete()
       .eq('id', id);
     if (deleteItemError) {
-      throw new Error(`Failed to delete database record after cleaning storage: ${deleteItemError.message}`);
+      throw new Error(
+        `Failed to delete database record after cleaning storage: ${deleteItemError.message}`
+      );
     }
 
-    // Крок 5: Повідомляємо про успіх
+    // * Step 6: Success
     res.status(200).json({
       message: 'Media item and all associated files/reels deleted successfully.',
     });
-
   } catch (error) {
-    // Загальний блок для відлову всіх помилок
-    console.error(`FATAL: Error during deletion process for media item ${id}:`, error);
-    res.status(500).json({ 
-      error: 'Failed to complete the deletion process.', 
-      details: error.message 
+    // * General error handler
+    console.error(
+      `FATAL: Error during deletion process for media item ${id}:`,
+      error
+    );
+    res.status(500).json({
+      error: 'Failed to complete the deletion process.',
+      details: error.message,
     });
   }
 });
 
-
 // ========================================================================== //
-// ЕНДПОІНТИ ДЛЯ Feature: PDF Password
+// ! SECTION 11: FEATURE: PDF PASSWORD ENDPOINTS
 // ========================================================================== //
 
-// Отримати поточний (останній) пароль
+/**
+ * Gets the *current* (most recent) PDF password.
+ */
 app.get('/feature-pdf-password/current', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -1051,7 +1224,6 @@ app.get('/feature-pdf-password/current', async (req, res) => {
     if (error && error.code !== 'PGRST116') {
       throw error;
     }
-
     res.status(200).json({ value: data ? data.value : null });
   } catch (error) {
     console.error('Error fetching current PDF password:', error);
@@ -1061,12 +1233,15 @@ app.get('/feature-pdf-password/current', async (req, res) => {
   }
 });
 
-// Встановити новий пароль
+/**
+ * Sets a *new* PDF password (creates a new row).
+ */
 app.post('/feature-pdf-password', async (req, res) => {
   const { value } = req.body;
-
   if (!value || typeof value !== 'string' || value.trim() === '') {
-    return res.status(400).json({ error: 'Password value is required and must be a non-empty string.' });
+    return res
+      .status(400)
+      .json({ error: 'Password value is required and must be a non-empty string.' });
   }
 
   try {
@@ -1075,10 +1250,9 @@ app.post('/feature-pdf-password', async (req, res) => {
       .insert({ value: value })
       .select()
       .single();
-
     if (error) throw error;
-
-    res.status(201).json({ message: 'Password updated successfully.', newValue: data.value });
+    res.status(201)
+      .json({ message: 'Password updated successfully.', newValue: data.value });
   } catch (error) {
     console.error('Error setting new PDF password:', error);
     res
@@ -1087,10 +1261,11 @@ app.post('/feature-pdf-password', async (req, res) => {
   }
 });
 
-// Перевірити пароль (ОНОВЛЕНО)
+/**
+ * Verifies a submitted password against the *current* password.
+ */
 app.post('/feature-pdf-password/verify', async (req, res) => {
   const { password } = req.body;
-
   if (!password) {
     return res.status(400).json({ success: false, error: 'Password is required.' });
   }
@@ -1106,7 +1281,9 @@ app.post('/feature-pdf-password/verify', async (req, res) => {
     if (error && error.code !== 'PGRST116') throw error;
 
     if (correctPasswordRecord && correctPasswordRecord.value === password) {
-      return res.status(200).json({ success: true, version: correctPasswordRecord.created_at });
+      // * Return success and the `created_at` timestamp as a "version"
+      return res.status(200)
+        .json({ success: true, version: correctPasswordRecord.created_at });
     } else {
       return res.status(401).json({ success: false, error: 'Invalid password.' });
     }
@@ -1116,6 +1293,10 @@ app.post('/feature-pdf-password/verify', async (req, res) => {
   }
 });
 
+/**
+ * Gets the *version* (created_at) of the current password.
+ * * Used by the client to check if its cached password is stale.
+ */
 app.get('/feature-pdf-password/version', async (req, res) => {
   try {
     const { data, error } = await supabase
@@ -1126,7 +1307,6 @@ app.get('/feature-pdf-password/version', async (req, res) => {
       .single();
 
     if (error && error.code !== 'PGRST116') throw error;
-
     res.status(200).json({ version: data ? data.created_at : null });
   } catch (error) {
     console.error('Error fetching password version:', error);
@@ -1134,19 +1314,18 @@ app.get('/feature-pdf-password/version', async (req, res) => {
   }
 });
 
-
-
-
 // ========================================================================== //
-// ЕНДПОІНТИ ДЛЯ Feature: PDF File
+// ! SECTION 12: FEATURE: PDF FILE ENDPOINTS
 // ========================================================================== //
 
-// Отримати поточний (останній) PDF файл
+/**
+ * Gets the *current* (most recent) PDF file record.
+ */
 app.get('/feature-pdf/current', async (req, res) => {
   try {
     const { data, error } = await supabase
       .from('feature_pdf_file')
-      .select('*') // Змінено на '*', щоб отримувати ID
+      .select('*')
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
@@ -1154,7 +1333,6 @@ app.get('/feature-pdf/current', async (req, res) => {
     if (error && error.code !== 'PGRST116') {
       throw error;
     }
-
     res.status(200).json(data);
   } catch (error) {
     console.error('Error fetching current PDF file:', error);
@@ -1164,34 +1342,37 @@ app.get('/feature-pdf/current', async (req, res) => {
   }
 });
 
-// Завантажити новий PDF файл (і видалити старий з GCS)
+/**
+ * Sets a *new* PDF file.
+ * * This creates a new DB row and deletes the *old* file from GCS.
+ */
 app.post('/feature-pdf', async (req, res) => {
   const { title, gcs_path } = req.body;
-
   if (!title || !gcs_path) {
     return res.status(400).json({ error: 'Title and gcs_path are required.' });
   }
 
   try {
+    // * Step 1: Get the path of the *current* file for cleanup
     const { data: currentFile, error: fetchError } = await supabase
       .from('feature_pdf_file')
       .select('gcs_path')
       .order('created_at', { ascending: false })
       .limit(1)
       .single();
-
     if (fetchError && fetchError.code !== 'PGRST116') {
       throw fetchError;
     }
 
+    // * Step 2: Insert the new file record
     const { data: newFile, error: insertError } = await supabase
       .from('feature_pdf_file')
       .insert({ title, gcs_path })
       .select()
       .single();
-
     if (insertError) throw insertError;
 
+    // * Step 3: Delete the old file from GCS
     if (currentFile && currentFile.gcs_path) {
       await bucket.file(currentFile.gcs_path).delete().catch(err => {
         console.warn(`Could not delete old PDF file from GCS: ${currentFile.gcs_path}`, err.message);
@@ -1206,19 +1387,21 @@ app.post('/feature-pdf', async (req, res) => {
       .json({ error: 'Failed to set new PDF file.', details: error.message });
   }
 });
+
 // ========================================================================== //
-// НОВІ ЕНДПОІНТИ ДЛЯ СТАТИСТИКИ
+// ! SECTION 13: FEATURE: PDF STATS ENDPOINTS
 // ========================================================================== //
 
-// Отримати історію файлів разом з їхньою статистикою
+/**
+ * Gets the history of PDF files along with their aggregated stats.
+ * * This calls a Supabase RPC function (Database Function) for efficiency.
+ */
 app.get('/feature-pdf/history-with-stats', async (req, res) => {
   try {
     const { data, error } = await supabase.rpc('get_pdf_history_with_stats');
-
     if (error) {
       throw error;
     }
-
     res.status(200).json(data);
   } catch (error) {
     console.error('Error fetching PDF history with stats:', error);
@@ -1229,10 +1412,13 @@ app.get('/feature-pdf/history-with-stats', async (req, res) => {
   }
 });
 
-// Записати дані про перегляд файлу
+/**
+ * Logs a PDF view event (scroll depth).
+ * ! This endpoint must handle both JSON (from fetch) and text/plain (from sendBeacon).
+ */
 app.post('/feature-pdf/log-view', async (req, res) => {
   try {
-    // navigator.sendBeacon надсилає дані як текст, тому парсимо їх
+    // * Handle different content types
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     const { pdf_file_id, completion_percentage } = body;
 
@@ -1246,7 +1432,6 @@ app.post('/feature-pdf/log-view', async (req, res) => {
         pdf_file_id: Number(pdf_file_id),
         completion_percentage: Number(completion_percentage),
       });
-
     if (error) {
       throw error;
     }
@@ -1262,13 +1447,13 @@ app.post('/feature-pdf/log-view', async (req, res) => {
 });
 
 
-// 5. Запускаємо сервер
-const HOST = '0.0.0.0'; // ✨ ЗМІНА: Додано хост для доступу з мережі
+// ========================================================================== //
+// ! SECTION 14: START SERVER
+// ========================================================================== //
 
 app.listen(PORT, HOST, () => {
-  // ✨ ЗМІНА: Оновлено повідомлення в консолі
   console.log(`✅ Backend server is running on http://${HOST}:${PORT}`);
   console.log(
-    `✅ Accessible on your network at http://192.168.1.103:${PORT}`
+    `✅ Accessible on your network (e.g., http://192.168.1.103:${PORT})`
   );
 });

@@ -1,4 +1,5 @@
 // src/Data/DirectorsData.js
+
 export const directorsData = [
   {
     id: 1,

@@ -1,3 +1,0 @@
-# Function dependencies
-google-cloud-storage==2.*
-supabase==2.*

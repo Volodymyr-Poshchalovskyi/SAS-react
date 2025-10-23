@@ -1,7 +1,9 @@
-// src/layouts/AdminLayout.jsx
-
+// src/AdminComponents/Layout/AdminLayout.jsx
+// ! React & Router
 import React, { useState, createContext, useContext } from 'react';
 import { Outlet, useNavigate, useLocation, NavLink } from 'react-router-dom';
+
+// ! Icons (lucide-react)
 import {
   LayoutDashboard,
   Clapperboard,
@@ -14,24 +16,27 @@ import {
   Tags,
   Sparkles,
   RefreshCw,
-  Loader2, // Іконка для модалки
-  CheckCircle2, // Іконка для модалки
-  AlertTriangle, // Іконка для модалки
+  Loader2,
+  CheckCircle2,
+  AlertTriangle,
 } from 'lucide-react';
+
+// ! Local Imports (Hooks & Context)
 import { useAuth } from '../../hooks/useAuth';
-// Імпортуємо провайдер та хук з UploadContext
 import { UploadProvider, useUpload } from '../../context/UploadContext';
 
-// Контекст для оновлення даних (залишається без змін)
+// * Context for triggering a manual data refresh across child components
 export const DataRefreshContext = createContext(null);
 
 /**
- * Новий компонент для глобальної модалки статусу.
- * Він читає стан безпосередньо з useUpload()
+ * ? GlobalUploadStatus
+ * A global component that displays the status of file uploads.
+ * It floats in the corner and gets its state directly from the UploadContext.
  */
 const GlobalUploadStatus = () => {
   const { uploadStatus, cancelUpload } = useUpload();
 
+  // * Don't render anything if no upload is active
   if (!uploadStatus.isActive) return null;
 
   const {
@@ -44,12 +49,13 @@ const GlobalUploadStatus = () => {
     currentFileProgress,
   } = uploadStatus;
 
+  // * Derive component state from context
   const isUploading = !isSuccess && !error;
   const isError = !!error;
 
   return (
     <div className="fixed bottom-6 right-6 z-[100] w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl p-4 transition-all">
-      {/* Заголовок модалки (повідомлення) */}
+      {/* Header: Icon + Status Message */}
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold text-sm text-slate-800 dark:text-slate-200 flex items-center">
           {isSuccess ? (
@@ -63,24 +69,24 @@ const GlobalUploadStatus = () => {
         </h3>
       </div>
 
-      {/* Попередження про перезавантаження */}
+      {/* Uploading Warning */}
       {isUploading && (
         <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
           Please do not reload the page.
         </p>
       )}
 
-      {/* Повідомлення про помилку */}
+      {/* Error Message */}
       {isError && (
         <p className="text-sm text-red-600 dark:text-red-500 mb-3 break-words">
           {error}
         </p>
       )}
 
-      {/* Індикатори прогресу */}
+      {/* Progress Indicators */}
       {isUploading && totalFiles > 0 && (
         <div className="space-y-3 max-h-48 overflow-y-auto pr-2 mb-3">
-          {/* Загальний прогрес (якщо файлів більше одного) */}
+          {/* Overall Progress (only if more than 1 file) */}
           {totalFiles > 1 && (
             <div>
               <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 mb-1">
@@ -98,7 +104,7 @@ const GlobalUploadStatus = () => {
             </div>
           )}
 
-          {/* Прогрес поточного файлу */}
+          {/* Current File Progress */}
           {currentFileName && (
             <div>
               <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 mb-1">
@@ -118,7 +124,7 @@ const GlobalUploadStatus = () => {
         </div>
       )}
 
-      {/* Кнопка скасування */}
+      {/* Cancel Button */}
       {isUploading && (
         <button
           onClick={cancelUpload}
@@ -131,13 +137,21 @@ const GlobalUploadStatus = () => {
   );
 };
 
-
+/**
+ * ? AdminLayout
+ * The main layout shell for all authenticated admin and user panel pages.
+ * It provides the sidebar, main content area (`<Outlet />`),
+ * and wraps the entire application in the `UploadProvider`
+ * and `DataRefreshContext.Provider`.
+ */
 function AdminLayout() {
+  // ! Hooks
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
-
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // ! Handlers
   const triggerRefresh = () => setRefreshKey((prevKey) => prevKey + 1);
 
   const handleLogout = async () => {
@@ -149,9 +163,12 @@ function AdminLayout() {
     }
   };
 
+  // ! Dynamic Configuration
+  // * Check if we are in the admin panel or user panel
   const isAdminPanel = location.pathname.startsWith('/adminpanel');
   const basePath = isAdminPanel ? '/adminpanel' : '/userpanel';
 
+  // * Helper function for NavLink active states
   const getNavLinkClasses = ({ isActive }) => {
     const baseClasses =
       'w-full flex items-center justify-start px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150';
@@ -165,6 +182,7 @@ function AdminLayout() {
   const refreshButtonClasses =
     'w-full flex items-center justify-start px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-50';
 
+  // * Navigation items
   const navItems = [
     { to: `${basePath}/dashboard`, label: 'Dashboard', icon: LayoutDashboard },
     {
@@ -185,6 +203,7 @@ function AdminLayout() {
     },
   ];
 
+  // * Admin-specific navigation items
   const adminNavItems = [
     {
       to: '/adminpanel/feature',
@@ -204,13 +223,14 @@ function AdminLayout() {
     },
   ];
 
+  // ! Render
   return (
-    // Обгортаємо *весь* layout у UploadProvider
+    // * UploadProvider wraps the *entire* layout
     <UploadProvider>
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50">
         {/* ===== SIDEBAR ===== */}
         <aside className="fixed top-0 left-0 z-40 w-64 h-screen border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex flex-col">
-          {/* Навігація з можливістю скролу */}
+          {/* --- Scrollable Navigation --- */}
           <div className="flex-1 p-4 overflow-y-auto">
             <nav className="flex flex-col space-y-1">
               <button
@@ -224,6 +244,7 @@ function AdminLayout() {
 
               <hr className="my-2 border-slate-200 dark:border-slate-800" />
 
+              {/* --- Main Nav --- */}
               {navItems.map((item) => (
                 <NavLink
                   key={item.to}
@@ -235,6 +256,8 @@ function AdminLayout() {
                   <span>{item.label}</span>
                 </NavLink>
               ))}
+
+              {/* --- Admin-Only Nav --- */}
               {isAdminPanel &&
                 adminNavItems.map((item) => (
                   <NavLink
@@ -250,7 +273,7 @@ function AdminLayout() {
             </nav>
           </div>
 
-          {/* БЛОК З ІНФОРМАЦІЄЮ ПРО ЮЗЕРА */}
+          {/* --- User Info Block --- */}
           <div className="p-4">
             <h1 className="text-xl font-bold text-center">
               {isAdminPanel ? 'Admin Panel' : 'User Panel'}
@@ -265,7 +288,7 @@ function AdminLayout() {
             )}
           </div>
 
-          {/* Кнопка виходу */}
+          {/* --- Logout Button --- */}
           <div className="p-4 border-t border-slate-200 dark:border-slate-800">
             <button
               onClick={handleLogout}
@@ -282,11 +305,13 @@ function AdminLayout() {
         {/* ===== MAIN CONTENT ===== */}
         <DataRefreshContext.Provider value={{ refreshKey, triggerRefresh }}>
           <main className="ml-64 flex-1 p-6 lg:p-8">
+            {/* * Child routes (Dashboard, Library, etc.) are rendered here */}
             <Outlet />
           </main>
         </DataRefreshContext.Provider>
 
-        {/* Рендеримо глобальну модалку тут. Вона поза <Outlet />, але всередині <UploadProvider> */}
+        {/* ===== GLOBAL COMPONENTS ===== */}
+        {/* * This component is inside UploadProvider but outside the main content area */}
         <GlobalUploadStatus />
       </div>
     </UploadProvider>

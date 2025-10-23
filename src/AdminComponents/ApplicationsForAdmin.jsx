@@ -1,24 +1,43 @@
 // src/AdminComponents/ApplicationsForAdmin.jsx
 
-// ✨ ЗМІНА 1: Імпортуємо useContext та DataRefreshContext
-import React, { useState, useEffect, useMemo, useCallback, useContext } from 'react';
+// ! React & Core Hooks
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useContext,
+} from 'react';
+
+// ! Lucide Icons
+import {
+  Loader2,
+  CheckCircle,
+  AlertTriangle,
+  X as CloseIcon,
+} from 'lucide-react'; // * Renamed X to CloseIcon for clarity
+
+// ! Local Imports (Hooks & Context)
 import { useAuth } from '../hooks/useAuth';
-import { Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
-// Переконайтеся, що шлях до AdminLayout правильний
-import { DataRefreshContext } from './Layout/AdminLayout';
+import { DataRefreshContext } from './Layout/AdminLayout'; // * Context for triggering manual data refresh
 
+// ========================================================================== //
+// ! SECTION 1: HELPER COMPONENTS
+// ========================================================================== //
 
-// =======================
-// Helper Components (StatusBadge, Highlight, Modal)
-// (Ці компоненти залишаються без змін)
-// =======================
+/**
+ * ? StatusBadge
+ * Displays a styled badge indicating the application status.
+ */
 const StatusBadge = ({ status }) => {
   const baseClasses =
     'inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full text-xs font-medium capitalize';
+  // * Style mappings based on status
   const statusStyles = {
     approved:
       'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300',
     denied: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300',
+    // * Keep 'in progress' for display
     'in progress':
       'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300',
   };
@@ -37,16 +56,23 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+/**
+ * ? Highlight
+ * A component to highlight search terms within a string of text.
+ */
 const Highlight = ({ text, highlight }) => {
-  if (!text) return null;
-  if (!highlight.trim()) return <span>{text}</span>;
+  if (!text) return null; // * Return null if text is falsy
+  if (!highlight?.trim()) return <span>{text}</span>; // * Use optional chaining
 
-  const regex = new RegExp(`(${highlight})`, 'gi');
-  const parts = text.split(regex);
+  // * Escape regex special characters in the highlight term
+  const escapedHighlight = highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(${escapedHighlight})`, 'gi');
+  const parts = String(text).split(regex); // * Ensure text is a string
 
   return (
     <span>
       {parts.map((part, i) =>
+        // * Case-insensitive comparison
         part.toLowerCase() === highlight.toLowerCase() ? (
           <mark
             key={i}
@@ -62,68 +88,86 @@ const Highlight = ({ text, highlight }) => {
   );
 };
 
+/**
+ * ? Modal
+ * A generic modal component for confirmations and displaying status (processing, success, error).
+ */
 const Modal = ({
   isOpen,
   onClose,
   title,
   children,
-  confirmText,
+  confirmText = 'Confirm', // * Default confirm text
   onConfirm,
   showCancelButton = true,
-  confirmButtonClass,
+  confirmButtonClass, // * Optional custom class for confirm button
   successTitle = 'Success',
   successMessage,
 }) => {
+  // * Internal state for managing the action lifecycle (idle, processing, success, error)
   const [actionStatus, setActionStatus] = useState('idle');
   const [errorMessage, setErrorMessage] = useState('');
 
+  // * Effect to handle Escape key press and reset state on open
   useEffect(() => {
     const handleEscape = (event) => {
+      // * Only close if idle to prevent closing during processing
       if (event.key === 'Escape' && actionStatus === 'idle') {
         onClose();
       }
     };
 
     if (isOpen) {
+      // * Reset state when modal opens
       setActionStatus('idle');
       setErrorMessage('');
+      document.addEventListener('keydown', handleEscape);
+    } else {
+      document.removeEventListener('keydown', handleEscape);
     }
 
-    document.addEventListener('keydown', handleEscape);
+    // * Cleanup listener on unmount or when isOpen changes
     return () => document.removeEventListener('keydown', handleEscape);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, actionStatus]); // * Added actionStatus dependency
 
   if (!isOpen) return null;
 
+  // * Handler for the confirm button click
   const handleConfirmClick = async () => {
     setActionStatus('processing');
     setErrorMessage('');
     try {
-      await onConfirm();
+      await onConfirm(); // * Execute the passed confirmation logic
       setActionStatus('success');
       setTimeout(() => {
+        // * Auto-close on success
         onClose();
       }, 2000);
     } catch (error) {
       console.error('Modal confirmation error:', error);
       setActionStatus('error');
       setErrorMessage(error.message || 'An unexpected error occurred.');
-      setTimeout(() => setActionStatus('idle'), 3000);
+      // * Optionally revert to idle after showing error
+      // setTimeout(() => setActionStatus('idle'), 3000);
     }
   };
 
+  // * Reusable button styling
   const baseButtonClasses =
     'inline-flex items-center justify-center py-2 px-4 rounded-md text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 disabled:opacity-60 disabled:cursor-not-allowed';
 
   return (
+    // * Modal backdrop
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-      onMouseDown={actionStatus === 'idle' ? onClose : undefined}
+      onMouseDown={actionStatus === 'idle' ? onClose : undefined} // * Close on backdrop click only if idle
     >
+      {/* Modal Content */}
       <div
         className="relative w-full max-w-md p-6 m-4 bg-white rounded-xl shadow-xl dark:bg-slate-900"
-        onMouseDown={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()} // * Prevent closing when clicking inside
       >
+        {/* Success State */}
         {actionStatus === 'success' ? (
           <div className="text-center py-4">
             <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
@@ -137,7 +181,9 @@ const Modal = ({
             )}
           </div>
         ) : (
+          // * Idle, Processing, or Error State
           <>
+            {/* Modal Header */}
             <div className="flex items-start justify-between">
               <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-50">
                 {title}
@@ -148,27 +194,17 @@ const Modal = ({
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors disabled:opacity-50"
                 aria-label="Close modal"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-6 w-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
+                <CloseIcon className="h-6 w-6" />{' '}
+                {/* // * Using renamed icon */}
               </button>
             </div>
 
+            {/* Modal Body (Content passed as children) */}
             <div className="mt-4 text-slate-600 dark:text-slate-300">
               {children}
             </div>
 
+            {/* Error Message Display */}
             {actionStatus === 'error' && (
               <div className="mt-4 flex items-center gap-2 text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 p-3 rounded-md">
                 <AlertTriangle className="h-5 w-5 flex-shrink-0" />
@@ -176,6 +212,7 @@ const Modal = ({
               </div>
             )}
 
+            {/* Modal Footer (Buttons) */}
             <div className="mt-6 flex justify-end gap-3">
               {showCancelButton && (
                 <button
@@ -190,10 +227,11 @@ const Modal = ({
                 onClick={handleConfirmClick}
                 disabled={actionStatus === 'processing'}
                 className={`${baseButtonClasses} text-white ${
-                  confirmButtonClass ||
+                  confirmButtonClass || // * Use provided class or default blue
                   'bg-indigo-600 hover:bg-indigo-700 focus-visible:ring-indigo-500'
                 }`}
               >
+                {/* Show loader when processing */}
                 {actionStatus === 'processing' && (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 )}
@@ -207,28 +245,42 @@ const Modal = ({
   );
 };
 
+// ========================================================================== //
+// ! SECTION 2: SKELETON LOADER COMPONENT
+// ========================================================================== //
 
-// =======================
-// Skeleton Loader Component
-// =======================
+/**
+ * ? SkeletonLoader
+ * Displays a placeholder UI while application data is being fetched.
+ */
 const SkeletonLoader = () => {
+  // * Single skeleton row component
   const SkeletonRow = () => (
     <tr className="animate-pulse">
-      <td className="p-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div></td>
+      <td className="p-4">
+        <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div>
+      </td>
       <td className="p-4 max-w-md">
         <div className="space-y-2">
-            <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
-            <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-5/6"></div>
+          <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
+          <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-5/6"></div>
         </div>
       </td>
-      <td className="p-4"><div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-28"></div></td>
-      <td className="p-4 text-center"><div className="h-6 bg-slate-200 dark:bg-slate-700 rounded-full w-24 mx-auto"></div></td>
-      <td className="p-4 text-center"><div className="h-7 bg-slate-200 dark:bg-slate-700 rounded w-32 mx-auto"></div></td>
+      <td className="p-4">
+        <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-28"></div>
+      </td>
+      <td className="p-4 text-center">
+        <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded-full w-24 mx-auto"></div>
+      </td>
+      <td className="p-4 text-center">
+        <div className="h-7 bg-slate-200 dark:bg-slate-700 rounded w-32 mx-auto"></div>
+      </td>
     </tr>
   );
 
   return (
     <div className="max-w-7xl mx-auto">
+      {/* Skeleton Header */}
       <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
         <div className="h-9 w-48 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse"></div>
         <div className="flex items-center gap-4 flex-wrap">
@@ -236,10 +288,11 @@ const SkeletonLoader = () => {
           <div className="h-10 w-64 bg-slate-200 dark:bg-slate-700 rounded-md animate-pulse"></div>
         </div>
       </div>
+      {/* Skeleton Table */}
       <div className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden">
         <table className="w-full text-sm">
+          {/* // * Use the actual header for better structure representation */}
           <thead className="text-slate-500 dark:text-slate-400">
-             {/* Реальний заголовок для кращої візуалізації */}
             <tr className="border-b border-slate-200 dark:border-slate-800">
               <th className="p-4 font-medium text-left">Email</th>
               <th className="p-4 font-medium text-left">Application Text</th>
@@ -249,7 +302,10 @@ const SkeletonLoader = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-            {[...Array(8)].map((_, i) => <SkeletonRow key={i} />)}
+            {/* // * Render multiple skeleton rows */}
+            {[...Array(8)].map((_, i) => (
+              <SkeletonRow key={i} />
+            ))}
           </tbody>
         </table>
       </div>
@@ -257,104 +313,107 @@ const SkeletonLoader = () => {
   );
 };
 
+// ========================================================================== //
+// ! SECTION 3: MAIN COMPONENT - ApplicationsForAdmin
+// ========================================================================== //
 
-// =======================
-// Main Component
-// =======================
 const ApplicationsForAdmin = () => {
-  // ---------- State ----------
+  // ! State
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [visibleCount, setVisibleCount] = useState(8);
+  const [visibleCount, setVisibleCount] = useState(8); // * "Show More" pagination
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all'); // * Filter state
+  const [modalConfig, setModalConfig] = useState({ isOpen: false }); // * State for the Modal component
 
-  const [modalConfig, setModalConfig] = useState({
-    isOpen: false,
-    title: '',
-    message: '',
-    confirmText: 'Confirm',
-    onConfirm: () => {},
-    confirmButtonClass: '',
-    successTitle: '',
-    successMessage: '',
-  });
-  
-  // ✨ ЗМІНА 2: Отримуємо ключ оновлення з контексту
-  const { refreshKey } = useContext(DataRefreshContext);
-  const { getApplications, updateApplicationStatus } = useAuth();
+  // ! Context & Hooks
+  const { refreshKey } = useContext(DataRefreshContext); // * For manual refresh trigger
+  const { getApplications, updateApplicationStatus } = useAuth(); // * Auth hook for API calls
 
+  // ! Data Fetching
+  // * useCallback ensures fetchApplications is stable unless getApplications changes
   const fetchApplications = useCallback(async () => {
     try {
       setError('');
       setLoading(true);
       const data = await getApplications();
+      // * Format status for consistency ('pending' -> 'in progress')
       const formattedData = data.map((app) => ({
         ...app,
-        text: app.message,
+        text: app.message, // * Rename 'message' to 'text' if needed
         status: app.status === 'pending' ? 'in progress' : app.status,
       }));
       setApplications(formattedData);
     } catch (err) {
-      setError(err.message);
+      console.error('Error fetching applications:', err); // * Log error
+      setError(err.message || 'Failed to load applications.'); // * Set user-facing error
     } finally {
       setLoading(false);
     }
-  }, [getApplications]);
-  
-  // ✨ ЗМІНА 3: Додаємо refreshKey до масиву залежностей
+  }, [getApplications]); // * Dependency on the function from useAuth
+
+  // * useEffect fetches data on mount and when refreshKey changes
   useEffect(() => {
     fetchApplications();
-  }, [fetchApplications, refreshKey]);
+  }, [fetchApplications, refreshKey]); // * Re-run if fetchApplications or refreshKey changes
 
-  // ... решта логіки компонента без змін ...
+  // ! Memoized Filtering
+  // * useMemo recalculates filteredApplications only when dependencies change
   const filteredApplications = useMemo(() => {
     return applications
       .filter((app) => {
+        // * Apply status filter first
         if (statusFilter === 'all') return true;
         return app.status === statusFilter;
       })
       .filter((app) => {
-        if (!searchTerm) return true;
+        // * Then apply search term filter
+        if (!searchTerm.trim()) return true; // * Trim search term
+        const lowerSearchTerm = searchTerm.toLowerCase();
         return (
-          app.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (app.text &&
-            app.text.toLowerCase().includes(searchTerm.toLowerCase()))
+          app.email.toLowerCase().includes(lowerSearchTerm) ||
+          (app.text && app.text.toLowerCase().includes(lowerSearchTerm))
         );
       });
   }, [applications, searchTerm, statusFilter]);
 
+  // ! Event Handlers
+  // * useCallback for stable modal close function
   const closeModal = useCallback(() => {
     setModalConfig((prev) => ({ ...prev, isOpen: false }));
   }, []);
 
+  /**
+   * Opens the confirmation modal before updating application status.
+   * @param {string} id - The ID of the application.
+   * @param {string} newStatus - The target status ('approved' or 'denied').
+   * @param {string} email - The applicant's email (for display).
+   */
   const handleUpdateStatus = (id, newStatus, email) => {
     const isApproving = newStatus === 'approved';
     const actionText = isApproving ? 'approve' : 'deny';
     const actionPastTense = isApproving ? 'approved' : 'denied';
 
+    // * Confirmation function to be executed by the modal
     const performUpdate = async () => {
-      try {
-        await updateApplicationStatus(id, newStatus, email);
-        setApplications((apps) =>
-          apps.map((app) =>
-            app.id === id ? { ...app, status: newStatus } : app
-          )
-        );
-      } catch (err) {
-        console.error(`Failed to ${actionText} application:`, err);
-        throw err;
-      }
+      // * API call via useAuth hook
+      await updateApplicationStatus(id, newStatus, email);
+      // * Update local state optimistically (or after success confirmation)
+      setApplications((apps) =>
+        apps.map((app) => (app.id === id ? { ...app, status: newStatus } : app))
+      );
+      // * Note: Error handling is within the modal's handleConfirmClick
     };
 
+    // * Configure and open the modal
     setModalConfig({
       isOpen: true,
       title: `Confirm Action: ${isApproving ? 'Approve' : 'Deny'}`,
-      message: `Are you sure you want to ${actionText} this application for ${email}? This action cannot be undone.`,
+      message: `Are you sure you want to ${actionText} this application for ${email}?`,
       onConfirm: performUpdate,
       confirmText: isApproving ? 'Approve' : 'Deny',
-      confirmButtonClass: isApproving
+      confirmButtonClass: isApproving // * Specific button colors
         ? 'bg-green-600 hover:bg-green-700 focus-visible:ring-green-500'
         : 'bg-red-600 hover:bg-red-700 focus-visible:ring-red-500',
       successTitle: `Application ${actionPastTense}`,
@@ -362,23 +421,37 @@ const ApplicationsForAdmin = () => {
     });
   };
 
+  /**
+   * Handles the "Show More" button click for pagination.
+   */
   const handleShowMore = () => {
-    setVisibleCount((prevCount) => prevCount + 5);
+    setVisibleCount((prevCount) => prevCount + 5); // * Increase visible items
   };
 
+  // ! Utility Functions
+  /**
+   * Formats a date string into a readable format.
+   * @param {string} dateString - ISO date string.
+   * @returns {string} Formatted date string (e.g., "Oct 23, 2025, 16:05").
+   */
   const formatApplicationDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      day: '2-digit',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    });
+    try {
+      return new Date(dateString).toLocaleDateString('en-US', {
+        year: 'numeric',
+        day: '2-digit',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+    } catch (e) {
+      return 'Invalid Date'; // * Handle potential invalid date strings
+    }
   };
 
+  // ! Styles
   const baseButtonClasses =
-    'py-1 px-3 rounded-md text-xs font-semibold border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900';
+    'py-1 px-3 rounded-md text-xs font-semibold border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 disabled:opacity-50'; // * Added disabled style
   const approveButtonClasses =
     'border-green-600/50 text-green-700 hover:bg-green-50 dark:border-green-500/50 dark:text-green-400 dark:hover:bg-green-500/10 focus-visible:ring-green-400';
   const denyButtonClasses =
@@ -386,22 +459,30 @@ const ApplicationsForAdmin = () => {
   const inputClasses =
     'flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500 dark:focus-visible:ring-offset-slate-900';
 
+  // ! Render Logic
+
+  // * Loading State
   if (loading) return <SkeletonLoader />;
+
+  // * Error State
   if (error)
     return <div className="p-4 text-center text-red-500">Error: {error}</div>;
 
   return (
     <div className="max-w-7xl mx-auto">
+      {/* --- Page Header & Filters --- */}
       <div className="flex justify-between items-center mb-6 flex-wrap gap-4">
         <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50">
           Applications
         </h1>
         <div className="flex items-center gap-4 flex-wrap">
+          {/* Status Filter Dropdown */}
           <div className="w-full sm:w-48">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className={inputClasses}
+              aria-label="Filter by status"
             >
               <option value="all">All Statuses</option>
               <option value="in progress">In Progress</option>
@@ -409,6 +490,7 @@ const ApplicationsForAdmin = () => {
               <option value="denied">Denied</option>
             </select>
           </div>
+          {/* Search Input */}
           <div className="w-full sm:w-64">
             <input
               type="text"
@@ -416,24 +498,31 @@ const ApplicationsForAdmin = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className={inputClasses}
+              aria-label="Search applications"
             />
           </div>
         </div>
       </div>
 
+      {/* --- Applications Table or Empty State --- */}
       {filteredApplications.length === 0 ? (
+        // * Empty State Message
         <div className="text-center p-8 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl bg-white dark:bg-slate-900/70">
           <p className="text-slate-500 dark:text-slate-400">
             {searchTerm || statusFilter !== 'all'
-              ? `No applications found for the selected filters.`
-              : 'There are no new applications.'}
+              ? `No applications found matching the current filters.`
+              : 'There are no applications to display.'}
           </p>
         </div>
       ) : (
+        // * Table Container
         <div className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm table-auto">
-              <thead className="text-slate-500 dark:text-slate-400">
+              {/* Table Header */}
+              <thead className="text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900/50">
+                {' '}
+                {/* Added background */}
                 <tr className="border-b border-slate-200 dark:border-slate-800">
                   <th className="p-4 font-medium text-left">Email</th>
                   <th className="p-4 font-medium text-left">
@@ -444,29 +533,40 @@ const ApplicationsForAdmin = () => {
                   <th className="p-4 font-medium text-center">Actions</th>
                 </tr>
               </thead>
+              {/* Table Body */}
               <tbody className="text-slate-800 dark:text-slate-200">
                 {filteredApplications.slice(0, visibleCount).map((app) => (
                   <tr
                     key={app.id}
                     className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors"
                   >
+                    {/* Email */}
                     <td className="p-4 text-left align-top">
                       <span className="font-medium text-slate-900 dark:text-slate-50 break-all">
                         <Highlight text={app.email} highlight={searchTerm} />
                       </span>
                     </td>
+                    {/* Application Text */}
                     <td className="p-4 text-left align-top max-w-md">
-                      <p className="text-slate-600 dark:text-slate-400 break-words">
+                      {' '}
+                      {/* Max width for text */}
+                      <p className="text-slate-600 dark:text-slate-400 break-words line-clamp-3">
+                        {' '}
+                        {/* Line clamping */}
                         <Highlight text={app.text} highlight={searchTerm} />
                       </p>
                     </td>
+                    {/* Date */}
                     <td className="p-4 text-left align-top text-slate-600 dark:text-slate-300 whitespace-nowrap">
                       {formatApplicationDate(app.created_at)}
                     </td>
+                    {/* Status */}
                     <td className="p-4 text-center align-top">
                       <StatusBadge status={app.status} />
                     </td>
+                    {/* Actions */}
                     <td className="p-4 text-center align-top">
+                      {/* // * Show buttons only if status is 'in progress' */}
                       {app.status === 'in progress' && (
                         <div className="flex flex-wrap items-center justify-center gap-2">
                           <button
@@ -474,6 +574,7 @@ const ApplicationsForAdmin = () => {
                               handleUpdateStatus(app.id, 'approved', app.email)
                             }
                             className={`${baseButtonClasses} ${approveButtonClasses}`}
+                            aria-label={`Approve application from ${app.email}`}
                           >
                             Approve
                           </button>
@@ -482,6 +583,7 @@ const ApplicationsForAdmin = () => {
                               handleUpdateStatus(app.id, 'denied', app.email)
                             }
                             className={`${baseButtonClasses} ${denyButtonClasses}`}
+                            aria-label={`Deny application from ${app.email}`}
                           >
                             Deny
                           </button>
@@ -493,19 +595,22 @@ const ApplicationsForAdmin = () => {
               </tbody>
             </table>
           </div>
+          {/* "Show More" Button */}
           {visibleCount < filteredApplications.length && (
             <div className="p-4 text-center border-t border-slate-100 dark:border-slate-800">
               <button
                 onClick={handleShowMore}
                 className="py-2 px-4 text-sm font-medium rounded-md border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
-                Show More (
+                Show More ({/* Calculate remaining items */}
                 {Math.min(5, filteredApplications.length - visibleCount)} more)
               </button>
             </div>
           )}
         </div>
       )}
+
+      {/* --- Confirmation Modal --- */}
       <Modal
         isOpen={modalConfig.isOpen}
         onClose={closeModal}
@@ -516,6 +621,7 @@ const ApplicationsForAdmin = () => {
         successTitle={modalConfig.successTitle}
         successMessage={modalConfig.successMessage}
       >
+        {/* // * Message content for the modal */}
         <p>{modalConfig.message}</p>
       </Modal>
     </div>

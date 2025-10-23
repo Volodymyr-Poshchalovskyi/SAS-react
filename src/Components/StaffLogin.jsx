@@ -1,13 +1,26 @@
+// src/Components/StaffLogin.jsx
+
+// ! React Import
 import React from 'react';
 
+// ========================================================================== //
+// ! HELPER COMPONENT: GoogleIcon
+// ========================================================================== //
+
+/**
+ * ? GoogleIcon
+ * A simple SVG component for the Google logo used in the login button.
+ */
 const GoogleIcon = () => (
+  // * SVG markup for the Google logo
   <svg
     width="18"
     height="18"
     viewBox="0 0 24 24"
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
-    className="mr-3"
+    className="mr-3" // * Margin to separate icon from text
+    aria-hidden="true" // * Hide decorative icon from screen readers
   >
     <path
       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -28,9 +41,26 @@ const GoogleIcon = () => (
   </svg>
 );
 
+// ========================================================================== //
+// ! MAIN COMPONENT: StaffLogin
+// ========================================================================== //
+
+/**
+ * ? StaffLogin Component
+ * Renders the login interface specifically for staff, using Google Sign-In.
+ * Displays loading states and error messages.
+ *
+ * @param {object} props - Component props.
+ * @param {function} props.handleGoogleLogin - Function triggered when the Google login button is clicked.
+ * @param {boolean} props.loading - Indicates if the login process is currently active.
+ * @param {string} props.error - Error message to display, if any occurred during login.
+ * @returns {JSX.Element} The StaffLogin component UI.
+ */
 const StaffLogin = ({ handleGoogleLogin, loading, error }) => {
   return (
+    // * Main container with fade-in animation
     <div className="max-w-sm mx-auto text-center animate-fadeIn">
+      {/* --- Header Section --- */}
       <div className="mb-8 sm:mb-10">
         <h2 className="text-xl font-semibold text-black mb-2 tracking-wider uppercase">
           WELCOME BACK.
@@ -39,16 +69,25 @@ const StaffLogin = ({ handleGoogleLogin, loading, error }) => {
           PLEASE SIGN IN USING <br /> YOUR CORPORATE EMAIL
         </p>
       </div>
-      {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+
+      {/* --- Error Message Display --- */}
+      {error && (
+        <p className="text-red-500 text-sm mb-4" role="alert">
+          {error}
+        </p>
+      )}
+
+      {/* --- Google Sign-In Button --- */}
       <button
         onClick={handleGoogleLogin}
         type="button"
-        disabled={loading}
-        className="w-full py-3 mt-4 bg-white text-gray-700 font-semibold text-sm border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50"
+        disabled={loading} // * Disable button during login process
+        className="w-full py-3 mt-4 bg-white text-gray-700 font-semibold text-sm border border-gray-300 flex items-center justify-center hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" // * Added disabled styles
       >
         {loading ? (
-          'PROCESSING...'
+          'PROCESSING...' // * Text shown while loading
         ) : (
+          // * Content shown when idle
           <>
             <GoogleIcon />
             Sign in with Google
