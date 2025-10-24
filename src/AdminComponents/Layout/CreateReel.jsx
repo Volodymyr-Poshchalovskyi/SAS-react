@@ -24,7 +24,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL;
  * A video player component with built-in HLS (m3u8) support.
  * Uses Hls.js library if supported, otherwise falls back to native playback.
  */
-const InlineHlsPlayer = forwardRef(({ src, ...props }, ref) => {
+export const InlineHlsPlayer = forwardRef(({ src, ...props }, ref) => {
   const internalVideoRef = useRef(null);
   // * Allow parent to pass its own ref or use the internal one
   const videoRef = ref || internalVideoRef;

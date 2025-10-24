@@ -29,7 +29,8 @@ import {
 
 // ! Local Context
 import { DataRefreshContext } from './AdminLayout';
-import { useAuth } from '../../hooks/useAuth'; // Імпортуємо useAuth
+import { useAuth } from '../../hooks/useAuth';
+import { InlineHlsPlayer } from './CreateReel';
 
 // ========================================================================== //
 // ! CONSTANTS & API CLIENTS
@@ -62,12 +63,13 @@ const MediaPreviewModal = ({ mediaUrl, mediaType, onClose }) => {
         onClick={(e) => e.stopPropagation()}
       >
         {mediaType === 'video' ? (
-          <video
+          // 👇 UPDATED LOGIC: Use InlineHlsPlayer for video
+          <InlineHlsPlayer
             src={mediaUrl}
             controls
             autoPlay
             className="w-full max-h-[80vh]"
-          ></video>
+          />
         ) : (
           <img
             src={mediaUrl}
@@ -1254,18 +1256,31 @@ const Library = () => {
 
   const handleRowDoubleClick = (item) => {
     // * Open the full-resolution preview modal
-    const fullResolutionAssetPath = item.video_gcs_path;
+    // 👇 UPDATED LOGIC: Prioritize HLS path over GCS video path
+    const fullResolutionAssetPath = item.video_hls_path || item.video_gcs_path;
+
     if (!fullResolutionAssetPath) return;
+
+    // * NOTE: Since the video_hls_path is an m3u8 playlist,
+    // * we treat it as a video regardless of its explicit type.
+    const isAssetVideo =
+      !!item.video_gcs_path || !!item.video_hls_path || item.type === 'video';
+
     const assetUrl = `${CDN_BASE_URL}/${fullResolutionAssetPath}`;
-    // * Determine media type
-    let assetType = item.type;
-    if (!assetType) {
+
+    // * Determine media type (simplified to just check if it's a video asset)
+    let assetType = 'image'; // * Default to image
+    if (isAssetVideo) {
+      assetType = 'video';
+    } else {
+      // Fallback to check extension if no video path is present and type is unknown
       const extension = fullResolutionAssetPath.split('.').pop().toLowerCase();
-      if (['mp4', 'mov', 'webm', 'avi', 'm3u8'].includes(extension)) // Додано m3u8
+      if (['mp4', 'mov', 'webm', 'avi', 'm3u8'].includes(extension))
         assetType = 'video';
       else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension))
         assetType = 'image';
     }
+
     if (assetUrl && assetType)
       setModalMedia({ url: assetUrl, type: assetType });
   };
@@ -1275,18 +1290,18 @@ const Library = () => {
 
     const token = session?.access_token; // Отримуємо токен
     if (!token) {
-       console.error("No auth token for delete");
-       throw new Error("Authentication Error"); // Повертаємо помилку для модалки
+      console.error('No auth token for delete');
+      throw new Error('Authentication Error'); // Повертаємо помилку для модалки
     }
 
     // * API call to delete a single item
     const res = await fetch(`${API_BASE_URL}/media-items/${itemToDelete.id}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${token}` } // Додаємо заголовок
+      headers: { Authorization: `Bearer ${token}` }, // Додаємо заголовок
     });
     if (!res.ok) {
-       const errorData = await res.json().catch(() => ({}));
-       throw new Error(errorData.error || 'Failed to delete item.'); // Повертаємо помилку
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || 'Failed to delete item.'); // Повертаємо помилку
     }
     // * Remove from local state
     setItems((prev) => prev.filter((item) => item.id !== itemToDelete.id));
@@ -1298,15 +1313,15 @@ const Library = () => {
 
     const token = session?.access_token; // Отримуємо токен
     if (!token) {
-       console.error("No auth token for multi-delete");
-       throw new Error("Authentication Error"); // Повертаємо помилку
+      console.error('No auth token for multi-delete');
+      throw new Error('Authentication Error'); // Повертаємо помилку
     }
 
     // * Send all delete requests in parallel
     const deletePromises = itemIdsToDelete.map((id) =>
       fetch(`${API_BASE_URL}/media-items/${id}`, {
-          method: 'DELETE',
-          headers: { Authorization: `Bearer ${token}` } // Додаємо заголовок
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }, // Додаємо заголовок
       })
     );
     const results = await Promise.allSettled(deletePromises);
@@ -1335,8 +1350,10 @@ const Library = () => {
     setIsMultiDeleteModalOpen(false);
 
     // * Якщо були помилки, викидаємо помилку, щоб модальне вікно показало статус помилки
-    if(hasErrors) {
-        throw new Error("Some items failed to delete. Check console for details.");
+    if (hasErrors) {
+      throw new Error(
+        'Some items failed to delete. Check console for details.'
+      );
     }
   };
 

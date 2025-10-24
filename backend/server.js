@@ -16,6 +16,8 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 const HOST = '0.0.0.0'; // * Bind to 0.0.0.0 to be accessible on the local network
+app.use(express.json({ limit: '10mb' })); // Збільште ліміт до 10MB (або більше)
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // * Initialize Google Cloud Storage
 // * We are loading the key from a Base64 environment variable (common for PaaS)
