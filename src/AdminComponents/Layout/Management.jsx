@@ -1,13 +1,13 @@
 // src/AdminComponents/Layout/Management.jsx
 
 // ! React & Core Hooks
-import React,
-{
+import React, {
   useState,
   useMemo,
   useEffect,
   useRef,
-  useContext
+  useContext,
+  useCallback, // Додаємо useCallback
 } from 'react';
 
 // ! Lucide Icons
@@ -23,10 +23,10 @@ import {
 } from 'lucide-react';
 
 // ! Local Imports (Supabase & Context)
-import { supabase } from '../../lib/supabaseClient';
+// Видаляємо прямий імпорт supabase, бо всі запити йдуть через бекенд
+// import { supabase } from '../../lib/supabaseClient';
 import { DataRefreshContext } from './AdminLayout';
 import { useAuth } from '../../hooks/useAuth';
-// Import useAuth hook
 
 // ========================================================================== //
 // ! HELPER COMPONENT: Highlight
@@ -37,25 +37,32 @@ import { useAuth } from '../../hooks/useAuth';
  * A component to highlight search terms within a string of text.
  */
 const Highlight = ({ text, highlight }) => {
-  if (!highlight?.trim()) return <span>{text}</span>;
-  const regex = new RegExp(`(${highlight})`, 'gi');
-  const parts = String(text).split(regex);
-  return (
-    <span>
-      {parts.map((part, i) =>
-        part.toLowerCase() === highlight.toLowerCase() ? (
-          <mark
-            key={i}
-            className="bg-yellow-200 dark:bg-yellow-600/40 text-black dark:text-white rounded px-0.5"
-          >
-            {part}
-          </mark>
-        ) : (
-          part
-        )
-      )}
-    </span>
-  );
+  if (!highlight?.trim() || !text) return <span>{text}</span>; // Додано перевірку на text
+  // Захист від некоректних регулярних виразів
+  const escapedHighlight = highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  try {
+    const regex = new RegExp(`(${escapedHighlight})`, 'gi');
+    const parts = String(text).split(regex);
+    return (
+      <span>
+        {parts.map((part, i) =>
+          part && part.toLowerCase() === highlight.toLowerCase() ? ( // Додано перевірку на part
+            <mark
+              key={i}
+              className="bg-yellow-200 dark:bg-yellow-600/40 text-black dark:text-white rounded px-0.5"
+            >
+              {part}
+            </mark>
+          ) : (
+            part
+          )
+        )}
+      </span>
+    );
+  } catch (e) {
+    console.error('Highlight regex error:', e);
+    return <span>{text}</span>; // Повертаємо оригінальний текст при помилці
+  }
 };
 
 // ========================================================================== //
@@ -67,15 +74,17 @@ const Highlight = ({ text, highlight }) => {
  * A reusable card component that displays a searchable, paginated list of items
  * with add, edit, and delete functionality.
  */
-const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
+const DataTable = ({ title, data, onAdd, onEdit, onDelete, isLoading }) => { // Додано isLoading prop
   const [searchTerm, setSearchTerm] = useState('');
   const [visibleCount, setVisibleCount] = useState(10); // * "Show More" pagination
 
   // * Memoized search filter
   const filteredData = useMemo(() => {
     if (!searchTerm) return data;
-    return data.filter((item) =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase())
+    return data.filter(
+      (item) =>
+        item.name && // Додано перевірку на item.name
+        item.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [data, searchTerm]);
 
@@ -93,6 +102,18 @@ const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
     setVisibleCount((prevCount) => prevCount + 10);
   };
 
+  // --- DataTable Skeleton ---
+  const SkeletonLoader = () => (
+    <div className="p-4 animate-pulse">
+      <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded w-full mb-4"></div>
+      <div className="space-y-2">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="h-8 bg-slate-200 dark:bg-slate-700 rounded"></div>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div className="bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl flex flex-col min-h-[300px]">
       {/* Card Header */}
@@ -102,7 +123,8 @@ const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
         </h2>
         <button
           onClick={onAdd}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 rounded-md hover:bg-slate-700 dark:hover:bg-slate-300 transition-colors w-full sm:w-auto justify-center"
+          disabled={isLoading} // Блокуємо кнопку під час завантаження
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 rounded-md hover:bg-slate-700 dark:hover:bg-slate-300 transition-colors w-full sm:w-auto justify-center disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Plus className="w-4 h-4" />
           Add New
@@ -118,24 +140,27 @@ const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
             placeholder={`Search in ${title}...`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent pl-9 pr-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500"
+            disabled={isLoading} // Блокуємо пошук під час завантаження
+            className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent pl-9 pr-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500 disabled:opacity-50"
           />
         </div>
       </div>
 
-      {/* Item List */}
+      {/* Item List or Skeleton */}
       <div className="p-2 overflow-y-auto flex-1">
-        {dataToDisplay.length > 0 ? (
+        {isLoading ? (
+          <SkeletonLoader />
+        ) : dataToDisplay.length > 0 ? (
           <ul className="divide-y divide-slate-100 dark:divide-slate-800">
             {dataToDisplay.map((item) => (
               <li
                 key={item.id}
                 className="flex justify-between items-center p-2 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800/50"
               >
-                <span className="text-sm text-slate-700 dark:text-slate-300">
+                <span className="text-sm text-slate-700 dark:text-slate-300 truncate pr-2"> {/* Додано truncate */}
                   <Highlight text={item.name} highlight={searchTerm} />
                 </span>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0"> {/* Додано flex-shrink-0 */}
                   <button
                     onClick={() => onEdit(item)}
                     className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
@@ -162,7 +187,7 @@ const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
       </div>
 
       {/* Show More Button */}
-      {filteredData.length > visibleCount && (
+      {!isLoading && filteredData.length > visibleCount && (
         <div className="p-4 border-t border-slate-200 dark:border-slate-800 mt-auto">
           <button
             onClick={handleShowMore}
@@ -185,9 +210,9 @@ const ManagementPage = () => {
   const [artists, setArtists] = useState([]);
   const [clients, setClients] = useState([]);
   const [celebrities, setCelebrities] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const [loading, setLoading] = useState(true); // Єдиний стан завантаження
+  const [isSubmitting, setIsSubmitting] = useState(false); // Для модальних вікон
+  const [errorMsg, setErrorMsg] = useState(''); // Глобальна помилка сторінки + помилки модалки
 
   // * Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -203,17 +228,18 @@ const ManagementPage = () => {
 
   // ! Refs & Context
   const fileInputRef = useRef(null);
-  const { refreshKey } = useContext(DataRefreshContext); // * Get refresh trigger
-const { session, user } = useAuth();
+  const { refreshKey } = useContext(DataRefreshContext);
+  const { session, user } = useAuth(); // Отримуємо session
   const API_BASE_URL = import.meta.env.VITE_API_URL;
 
   // * A map to easily access state and table info by name
-  const dataMap = {
+  // Використовуємо useCallback для setData функцій, щоб мемоізувати їх
+  const dataMap = useMemo(() => ({
     Artists: {
       data: artists,
-      setData: setArtists,
-      tableName: 'artists',
-      hasDetails: true, // * Artists table has photo/description
+      setData: setArtists, // useCallback не потрібен для setState з useState
+      tableName: 'artists', // Використовуємо це для URL
+      hasDetails: true,
     },
     Clients: {
       data: clients,
@@ -224,344 +250,382 @@ const { session, user } = useAuth();
     'Featured Celebrity': {
       data: celebrities,
       setData: setCelebrities,
-      tableName: 'celebrities',
+      tableName: 'celebrities', // Змінено з 'featured_celebrity'
       hasDetails: false,
     },
-  };
+  }), [artists, clients, celebrities]); // Залежності для useMemo
+
 
   // ! Effect: Data Fetching
-  // * Fetches data on initial mount AND when 'refreshKey' changes
   useEffect(() => {
     const fetchAllData = async () => {
-      if (!session) { 
+      // Перевіряємо сесію ПЕРЕД запитом
+      if (!session?.access_token) {
+        console.warn('Management.jsx: No session token, skipping data fetch.');
         setLoading(false);
-        return; 
+        setArtists([]); setClients([]); setCelebrities([]); // Очищуємо дані
+        setErrorMsg("Please log in to view this page."); // Інформуємо користувача
+        return;
       }
-      console.log('Fetching management data...');
+      const token = session.access_token;
+      const headers = { Authorization: `Bearer ${token}` };
+
+      console.log('Fetching management data via backend...');
       setLoading(true);
+      setErrorMsg(''); // Скидаємо помилку перед новим запитом
+
       try {
-        const [artistsRes, clientsRes, celebritiesRes] = await Promise.all([
-          supabase
-            .from('artists')
-            .select('*')
-            .order('created_at', { ascending: false }),
-          supabase
-            .from('clients')
-            .select('*')
-            .order('created_at', { ascending: false }),
-          supabase
-            .from('celebrities')
-            .select('*')
-            .order('created_at', { ascending: false }),
+        // Використовуємо Promise.allSettled для надійності
+        const results = await Promise.allSettled([
+          fetch(`${API_BASE_URL}/artists`, { headers }),
+          fetch(`${API_BASE_URL}/clients`, { headers }),
+          fetch(`${API_BASE_URL}/celebrities`, { headers }),
         ]);
 
-        if (artistsRes.error) throw artistsRes.error;
-        if (clientsRes.error) throw clientsRes.error;
-        if (celebritiesRes.error) throw celebritiesRes.error;
+        let fetchErrorOccurred = false;
+        const data = { artists: [], clients: [], celebrities: [] };
+        const keys = ['artists', 'clients', 'celebrities'];
 
-        setArtists(artistsRes.data);
-        setClients(clientsRes.data);
-        setCelebrities(celebritiesRes.data);
-      } catch (error) {
-        console.error('Error fetching data:', error);
+        // Обробляємо результати
+        for (let i = 0; i < results.length; i++) {
+            const result = results[i];
+            const key = keys[i];
+            if (result.status === 'fulfilled') {
+                const response = result.value;
+                if (!response.ok) {
+                    console.error(`Failed to fetch ${key}: ${response.status}`);
+                    fetchErrorOccurred = true;
+                } else {
+                    data[key] = await response.json();
+                }
+            } else {
+                 console.error(`Request rejected for ${key}:`, result.reason);
+                 fetchErrorOccurred = true;
+            }
+        }
+
+        // Оновлюємо стани
+        setArtists(data.artists);
+        setClients(data.clients);
+        setCelebrities(data.celebrities);
+
+        if (fetchErrorOccurred) {
+            setErrorMsg('Failed to load some data. Please try refreshing.');
+        }
+
+      } catch (error) { // Малоймовірно з allSettled, але про всяк випадок
+        console.error('Critical error fetching data via backend:', error);
+        setErrorMsg(`Critical error: ${error.message}`);
+        setArtists([]); setClients([]); setCelebrities([]); // Очищуємо дані
       } finally {
         setLoading(false);
       }
     };
+
     fetchAllData();
-  }, [refreshKey, session]); // * Dependency on refreshKey
+  }, [refreshKey, session]); // Залежить від session
 
   // ! Effect: Photo Preview
-  // * Creates a blob URL for a selected photo file and cleans it up
   useEffect(() => {
     if (!photoFile) {
       setPhotoPreview(null);
       return;
     }
-    const objectUrl = URL.createObjectURL(photoFile);
-    setPhotoPreview(objectUrl);
-    // * Cleanup function
-    return () => URL.revokeObjectURL(objectUrl);
+    let objectUrl = null;
+    try {
+        objectUrl = URL.createObjectURL(photoFile);
+        setPhotoPreview(objectUrl);
+    } catch(e) {
+        console.error("Error creating object URL:", e);
+        setPhotoPreview(null); // Скидаємо прев'ю при помилці
+    }
+
+    // Cleanup function
+    return () => {
+        if (objectUrl) {
+            URL.revokeObjectURL(objectUrl);
+        }
+    };
   }, [photoFile]);
 
-  // ! Modal Handlers
-  /**
-   * Resets all modal and form state to default.
-   */
-  const resetModalState = () => {
+
+  // ! Modal Handlers (використовуємо useCallback)
+  const resetModalState = useCallback(() => {
     setIsEditModalOpen(false);
     setIsDeleteModalOpen(false);
     setCurrentTable(null);
     setCurrentItem(null);
     setFormData({ name: '', description: '' });
     setPhotoFile(null);
-    setPhotoPreview(null);
+    // setPhotoPreview(null); // Не скидаємо тут, useEffect сам очистить
     setIsSubmitting(false);
-    setErrorMsg('');
-  };
+    setErrorMsg(''); // Скидаємо помилку модалки при закритті
+  }, []);
 
-  /**
-   * Opens the Add/Edit modal, populating it with item data if in 'edit' mode.
-   */
-  const openEditModal = async (table, mode, item = null) => {
+  const openEditModal = useCallback(async (table, mode, item = null) => {
+    // Перевірка сесії перед відкриттям модалки, особливо для Edit
+     if (mode === 'edit' && !session?.access_token) {
+        setErrorMsg("Authentication expired. Please log in again to edit.");
+        return; // Не відкриваємо модалку
+     }
+
     setCurrentTable(table);
     setModalMode(mode);
-    const token = session?.access_token; // Get token
+    setErrorMsg(''); // Скидаємо помилку при відкритті
+    const token = session?.access_token;
 
     if (mode === 'edit' && item) {
       setCurrentItem(item);
-      setFormData({ name: item.name, description: item.description || '' });
-      // * If item has a photo, fetch a signed URL to display it
-      if (item.photo_gcs_path) {
-         if (!token || !user) { // Перевірка токена та користувача
-    console.error("Cannot fetch photo preview: User not authenticated.");
-    setPhotoPreview(null);
-  } else {
-              try {
-                  const response = await fetch(`${API_BASE_URL}/generate-read-urls`, {
-                      method: 'POST',
-                      headers: {
-                          'Content-Type': 'application/json',
-                          'Authorization': `Bearer ${token}` // Add auth header
-                      },
-                      body: JSON.stringify({ gcsPaths: [item.photo_gcs_path] }),
-                  });
-                  if (!response.ok) throw new Error('Could not get photo preview.');
+      setFormData({ name: item.name || '', description: item.description || '' }); // Додано fallback
+
+      // Завантажуємо прев'ю фото, якщо воно є
+      if (item.photo_gcs_path && token) { // Перевіряємо токен
+          try {
+              const response = await fetch(`${API_BASE_URL}/generate-read-urls`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                  body: JSON.stringify({ gcsPaths: [item.photo_gcs_path] }),
+              });
+              if (response.ok) {
                   const urlMap = await response.json();
-                  setPhotoPreview(urlMap[item.photo_gcs_path]);
-              } catch (e) {
-                  console.error('Failed to get signed URL for preview:', e);
+                  setPhotoPreview(urlMap[item.photo_gcs_path] || null); // Додано fallback
+              } else {
+                  console.error('Could not get photo preview URL:', response.status);
                   setPhotoPreview(null);
               }
+          } catch (e) {
+              console.error('Failed to get signed URL for preview:', e);
+              setPhotoPreview(null);
           }
+      } else {
+           setPhotoPreview(null); // Скидаємо прев'ю, якщо немає шляху або токена
       }
+    } else {
+        // Скидаємо стан для 'add'
+        setCurrentItem(null);
+        setFormData({ name: '', description: '' });
+        setPhotoFile(null);
+        setPhotoPreview(null);
     }
     setIsEditModalOpen(true);
-  };
+  }, [session, API_BASE_URL]); // Додаємо залежності
 
-  /**
-   * Opens the Delete confirmation modal.
-   */
-  const openDeleteModal = (table, item) => {
+  const openDeleteModal = useCallback((table, item) => {
     setCurrentTable(table);
     setCurrentItem(item);
+    setErrorMsg(''); // Скидаємо помилку при відкритті
     setIsDeleteModalOpen(true);
-  };
+  }, []); // Залежностей немає
 
-  // ! API Handlers
-  /**
-   * Uploads a photo file to GCS via the backend.
-   * @returns {Promise<string|null>} The GCS path of the uploaded file or null.
-   */
-  const uploadPhoto = async (file) => {
+  // ! API Handlers (використовуємо useCallback)
+
+   const uploadPhoto = useCallback(async (file) => {
     if (!file) return null;
-    const token = session?.access_token; // Get token
+    const token = session?.access_token;
     if (!token) {
         throw new Error("Authentication required to upload photo.");
     }
+    const headers = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+    };
 
-    // * 1. Get a signed URL from the backend
-    const response = await fetch(`${API_BASE_URL}/generate-upload-url`, {
-      method: 'POST',
-      headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}` // Add auth header
-      },
-      body: JSON.stringify({
-        fileName: file.name,
-        fileType: file.type,
-        destination: 'artists', // * Specific destination for artist photos
-      }),
-    });
-    if (!response.ok) throw new Error('Failed to get signed URL.');
-    const { signedUrl, gcsPath } = await response.json();
-    // * 2. Upload the file directly to GCS using the signed URL
-    const uploadResponse = await fetch(signedUrl, {
-      method: 'PUT',
-      headers: { 'Content-Type': file.type },
-      body: file,
-    });
-    if (!uploadResponse.ok) throw new Error('Failed to upload to GCS.');
-    return gcsPath;
-  };
+    try {
+        // 1. Get Signed URL
+        const signedUrlRes = await fetch(`${API_BASE_URL}/generate-upload-url`, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify({
+                fileName: file.name,
+                fileType: file.type,
+                destination: 'artists', // Завжди для артистів
+            }),
+        });
+        if (!signedUrlRes.ok) {
+            const errorText = await signedUrlRes.text();
+            throw new Error(`Could not get upload URL: ${errorText}`);
+        }
+        const { signedUrl, gcsPath } = await signedUrlRes.json();
 
-  /**
-   * Handles the 'Save' button click in the Add/Edit modal.
-   * Manages both 'add' and 'edit' logic.
-   */
-  const handleSave = async () => {
-    if (!formData.name.trim() || !currentTable) return;
+        // 2. Upload to GCS
+        const uploadResponse = await fetch(signedUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': file.type },
+            body: file,
+        });
+        if (!uploadResponse.ok) {
+            throw new Error(`Upload to GCS failed with status ${uploadResponse.status}.`);
+        }
+        return gcsPath;
+    } catch (error) {
+         console.error("Photo upload error:", error);
+         // Перекидаємо помилку далі, щоб handleSave міг її обробити
+         throw error;
+    }
+   }, [session, API_BASE_URL]); // Залежності для useCallback
+
+  const handleSave = useCallback(async () => {
+    const trimmedName = formData.name.trim(); // Отримуємо обрізане ім'я один раз
+    if (!trimmedName || !currentTable) {
+        setErrorMsg("Name cannot be empty."); // Повідомлення про помилку
+        return;
+    }
     setIsSubmitting(true);
     setErrorMsg('');
-    
-    // *** ЗМІНА: Отримуємо 'data' і перейменовуємо на 'currentData' ***
-    const { data: currentData, setData, tableName, hasDetails } = dataMap[currentTable];
+
+    const tableConfig = dataMap[currentTable];
+    if (!tableConfig) {
+        setErrorMsg("Invalid table configuration.");
+        setIsSubmitting(false);
+        return;
+    }
+    const { setData, tableName, hasDetails, data: currentData } = tableConfig; // Отримуємо currentData тут
+
     const token = session?.access_token;
-    const trimmedName = formData.name.trim(); // *** ЗМІНА: Використовуємо trimmedName ***
+    if (!token) {
+        setErrorMsg("Authentication error. Please log in again.");
+        setIsSubmitting(false);
+        return;
+    }
+    const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+
+    // --- Клієнтська перевірка на дублікати ---
+    const existingItem = currentData.find(
+      (item) =>
+        item.name?.toLowerCase() === trimmedName.toLowerCase() && // Додано ?.
+        (!currentItem || item.id !== currentItem.id)
+    );
+    if (existingItem) {
+      setErrorMsg(`An item named "${trimmedName}" already exists.`);
+      setIsSubmitting(false);
+      return;
+    }
+    // --- Кінець перевірки ---
+
+    let url = '';
+    let method = '';
+    let payload = {};
 
     try {
-      if (modalMode === 'add') {
-        // * --- START: DUPLICATE CHECK (ADD) ---
-        // *** ЗМІНА: Перевіряємо, чи існує елемент з такою ж назвою (без урахування регістру) ***
-        const existingItem = currentData.find(
-          (item) => item.name.toLowerCase() === trimmedName.toLowerCase()
-        );
-        if (existingItem) {
-          setErrorMsg(`An item named "${trimmedName}" already exists.`);
-          setIsSubmitting(false);
-          return; // Зупиняємо виконання
-        }
-        // * --- END: DUPLICATE CHECK ---
-
-        // * --- ADD LOGIC ---
-        let payload = { name: trimmedName }; // *** ЗМІНА: Використовуємо trimmedName ***
-        if (hasDetails) {
-          const photo_gcs_path = await uploadPhoto(photoFile);
-          payload = {
-            ...payload,
-            description: formData.description.trim(),
-            photo_gcs_path,
-          };
-        }
-        // Supabase client uses service key, no need for user token here for insert
-        const { data, error } = await supabase
-          .from(tableName)
-          .insert(payload)
-          .select()
-          .single();
-        if (error) throw error;
-        setData((prev) => [data, ...prev]); // * Add to top of list
-      } else if (modalMode === 'edit' && currentItem) {
-        
-        // * --- START: DUPLICATE CHECK (EDIT) ---
-        // *** ЗМІНА: Перевіряємо, чи існує ІНШИЙ елемент з такою ж назвою ***
-        const existingItem = currentData.find(
-          (item) =>
-            item.name.toLowerCase() === trimmedName.toLowerCase() &&
-            item.id !== currentItem.id // <-- Важливо: виключаємо поточний елемент
-        );
-        if (existingItem) {
-          setErrorMsg(`Another item named "${trimmedName}" already exists.`);
-          setIsSubmitting(false);
-          return; // Зупиняємо виконання
-        }
-        // * --- END: DUPLICATE CHECK ---
-
-        // * --- EDIT LOGIC ---
-        let payload = { name: trimmedName }; // *** ЗМІНА: Використовуємо trimmedName ***
-        if (hasDetails) {
-            if (!token) throw new Error("Authentication required for editing.");
-          // * Artists table uses a special backend PUT route for file cleanup
-          let photo_gcs_path = currentItem.photo_gcs_path;
-          if (photoFile) {
-            // * Upload new photo if one was selected
-            photo_gcs_path = await uploadPhoto(photoFile);
-          }
-          payload = {
-            ...payload,
-            description: formData.description.trim(),
-            photo_gcs_path,
-          };
-          const response = await fetch(
-            `${API_BASE_URL}/artists/${currentItem.id}`,
-            {
-              method: 'PUT',
-              headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${token}` // Add auth header
-              },
-              body: JSON.stringify(payload),
+        if (modalMode === 'add') {
+            method = 'POST';
+            url = `${API_BASE_URL}/${tableName}`;
+            payload = { name: trimmedName };
+            if (hasDetails) {
+                const photo_gcs_path = await uploadPhoto(photoFile); // Може кинути помилку
+                payload.description = formData.description.trim();
+                payload.photo_gcs_path = photo_gcs_path;
             }
-          );
-          if (!response.ok)
-            throw new Error('Failed to update artist on server.');
-          const data = await response.json();
-          setData((prev) =>
-            prev.map((item) => (item.id === currentItem.id ? data : item))
-          );
+        } else if (modalMode === 'edit' && currentItem) {
+            method = 'PUT';
+            url = `${API_BASE_URL}/${tableName}/${currentItem.id}`;
+            payload = { name: trimmedName };
+            if (hasDetails) {
+                let photo_gcs_path = currentItem.photo_gcs_path;
+                if (photoFile) {
+                    photo_gcs_path = await uploadPhoto(photoFile); // Може кинути помилку
+                }
+                payload.description = formData.description.trim();
+                payload.photo_gcs_path = photo_gcs_path;
+            }
         } else {
-          // * Other tables (Clients, Celebrities) use a simple Supabase update
-          // Supabase client uses service key, no need for user token here for update
-          const { data, error } = await supabase
-            .from(tableName)
-            .update(payload) // *** ЗМІНА: payload вже містить trimmedName ***
-            .eq('id', currentItem.id)
-            .select()
-            .single();
-          if (error) throw error;
-          setData((prev) =>
-            prev.map((item) => (item.id === currentItem.id ? data : item))
-          );
+            throw new Error("Invalid operation state.");
         }
-      }
-      resetModalState();
-    } catch (error) {
-      console.error('Error saving item:', error);
-      // *** ЗМІНА: Обробка помилки унікальності з бази даних ***
-      if (error.code === '23505') { // 23505 - код помилки унікальності Postgres
-         setErrorMsg(`An item named "${trimmedName}" already exists (database error).`);
-      } else {
-         setErrorMsg(`Error: ${error.message}`);
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
-  /**
-   * Handles the 'Delete' confirmation click.
-   */
-  const handleDeleteConfirm = async () => {
+        const response = await fetch(url, { method, headers, body: JSON.stringify(payload) });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: `Request failed with status ${response.status}` }));
+            // Бекенд повертає 409 при дублікаті
+            if (response.status === 409) {
+                 throw new Error(errorData.error || `Item named "${trimmedName}" already exists.`);
+            }
+            throw new Error(errorData.error || `Failed to ${modalMode} item.`);
+        }
+
+        const resultData = await response.json();
+
+        // Оновлюємо стан на клієнті
+        if (modalMode === 'add') {
+            setData((prev) => [resultData, ...prev]);
+        } else {
+            setData((prev) =>
+                prev.map((item) => (item.id === currentItem.id ? resultData : item))
+            );
+        }
+        resetModalState();
+
+    } catch (error) {
+        console.error(`Error ${modalMode === 'add' ? 'adding' : 'updating'} item:`, error);
+        setErrorMsg(`${error.message}`); // Показуємо помилку в модалці
+        // isSubmitting залишиться true, щоб кнопка була заблокована до виправлення
+    } finally {
+        // Скидаємо isSubmitting ТІЛЬКИ якщо НЕ було помилки
+        // Якщо була помилка, залишаємо isSubmitting=true, щоб користувач бачив помилку і не міг спамити
+        if (!errorMsg && isSubmitting) { // Додано перевірку isSubmitting
+             setIsSubmitting(false);
+        }
+    }
+  }, [formData, currentTable, modalMode, currentItem, photoFile, session, dataMap, resetModalState, uploadPhoto, API_BASE_URL, errorMsg, isSubmitting]); // Додаємо залежності
+
+
+   const handleDeleteConfirm = useCallback(async () => {
     if (!currentItem || !currentTable) return;
+
+    const tableConfig = dataMap[currentTable];
+     if (!tableConfig) {
+        setErrorMsg("Invalid table configuration for delete.");
+        return;
+    }
+    const { setData, tableName } = tableConfig;
+
+    const token = session?.access_token;
+    if (!token) {
+        setErrorMsg("Authentication error. Please log in again.");
+        setIsSubmitting(false); // Дозволяємо закрити модалку
+        return;
+    }
+
     setIsSubmitting(true);
-    const { setData, tableName, hasDetails } = dataMap[currentTable];
-    const token = session?.access_token; // Get token
+    setErrorMsg('');
+    const url = `${API_BASE_URL}/${tableName}/${currentItem.id}`;
 
     try {
-      if (hasDetails) {
-        if (!token) throw new Error("Authentication required for deleting.");
-        // * Artists use a special backend DELETE route for file cleanup
-        const response = await fetch(
-          `${API_BASE_URL}/artists/${currentItem.id}`,
-          {
-              method: 'DELETE',
-              headers: { 'Authorization': `Bearer ${token}` } // Add auth header
-          }
+        const response = await fetch(url, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+        // Бекенд повертає 200 або 204 при успіху (навіть якщо вже видалено)
+        if (response.status > 204) {
+             const errorData = await response.json().catch(() => ({ error: `Request failed with status ${response.status}` }));
+             throw new Error(errorData.error || 'Failed to delete item.');
+        }
+
+        // Видаляємо зі стану на клієнті
+        setData((prevData) =>
+            prevData.filter((item) => item.id !== currentItem.id)
         );
-        if (!response.ok) throw new Error('Failed to delete artist on server.');
-      } else {
-        // * Other tables use a simple Supabase delete
-        // Supabase client uses service key, no need for user token here for delete
-        const { error } = await supabase
-          .from(tableName)
-          .delete()
-          .eq('id', currentItem.id);
-        if (error) throw error;
-      }
-      // * Remove from local state
-      setData((prevData) =>
-        prevData.filter((item) => item.id !== currentItem.id)
-      );
-      resetModalState();
+        resetModalState(); // Закриваємо модалку та скидаємо isSubmitting
+
     } catch (error) {
-      console.error('Error deleting item:', error);
-      setIsSubmitting(false);
-      // * (Note: error message isn't shown here, modal just stays open)
-      // * Optionally set an error message in the modal state if needed
-       setErrorMsg(`Error: ${error.message}`); // Show error in modal instead of just console
+        console.error('Error deleting item via backend:', error);
+        setErrorMsg(`Error: ${error.message}`);
+        // isSubmitting залишається true, щоб користувач бачив помилку
     } finally {
-      // Ensure submitting state is reset even if error occurs,
-      // unless we want the modal to stay stuck on error.
-      // Resetting allows user to retry or cancel.
-       if(!isDeleteModalOpen) setIsSubmitting(false); // Only reset if modal is intended to close
+        // Скидаємо isSubmitting тільки якщо НЕ було помилки, бо resetModalState вже це робить
+         if (errorMsg && isSubmitting) { // Якщо була помилка, isSubmitting=true
+             // Можна не скидати, щоб кнопка була заблокована
+             // setIsSubmitting(false); // Або скинути, щоб дозволити спробувати ще раз/закрити
+         }
     }
-  };
+   }, [currentItem, currentTable, session, dataMap, resetModalState, API_BASE_URL, errorMsg, isSubmitting]); // Додаємо залежності
 
   // ! Styles
   const inputClasses =
-    'flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500';
+    'flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500 disabled:opacity-50'; // Додано disabled
   const textareaClasses =
-    'flex min-h-[80px] w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500';
+    'flex min-h-[80px] w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500 disabled:opacity-50'; // Додано disabled
 
   // ! Render
   return (
@@ -569,70 +633,67 @@ const { session, user } = useAuth();
       <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-50 mb-6">
         Artists / Clients / Featured Celebrity
       </h1>
-      {loading ? (
-        // * --- Loading Skeletons ---
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {[...Array(3)].map((_, i) => (
-            <div
-              key={i}
-              className="bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl p-4 min-h-[300px] animate-pulse"
-            >
-              <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-1/3 mb-4"></div>
-              <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded w-full mb-4"></div>
-              <div className="space-y-2">
-                <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded"></div>
-                <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded"></div>
-                <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded"></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        // * --- Loaded Data Tables ---
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:items-start">
-          <DataTable
-            title="Artists"
-            data={artists}
-            onAdd={() => openEditModal('Artists', 'add')}
-            onEdit={(item) => openEditModal('Artists', 'edit', item)}
-            onDelete={(item) => openDeleteModal('Artists', item)}
-          />
-          <DataTable
-            title="Clients"
-            data={clients}
-            onAdd={() => openEditModal('Clients', 'add')}
-            onEdit={(item) => openEditModal('Clients', 'edit', item)}
-            onDelete={(item) => openDeleteModal('Clients', item)}
-          />
-          <DataTable
-            title="Featured Celebrity"
-            data={celebrities}
-            onAdd={() => openEditModal('Featured Celebrity', 'add')}
-            onEdit={(item) => openEditModal('Featured Celebrity', 'edit', item)}
-            onDelete={(item) => openDeleteModal('Featured Celebrity', item)}
-          />
+      {/* Повідомлення про помилку завантаження */}
+      {errorMsg && !loading && !isEditModalOpen && !isDeleteModalOpen && ( // Показуємо тільки якщо модалки закриті
+        <div
+          className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6"
+          role="alert"
+        >
+          <strong className="font-bold">Error: </strong>
+          <span className="block sm:inline">{errorMsg}</span>
         </div>
       )}
+
+       {/* --- Data Tables --- */}
+       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:items-start">
+            <DataTable
+                title="Artists"
+                data={artists}
+                isLoading={loading} // Передаємо стан завантаження
+                onAdd={() => openEditModal('Artists', 'add')}
+                onEdit={(item) => openEditModal('Artists', 'edit', item)}
+                onDelete={(item) => openDeleteModal('Artists', item)}
+            />
+            <DataTable
+                title="Clients"
+                data={clients}
+                isLoading={loading} // Передаємо стан завантаження
+                onAdd={() => openEditModal('Clients', 'add')}
+                onEdit={(item) => openEditModal('Clients', 'edit', item)}
+                onDelete={(item) => openDeleteModal('Clients', item)}
+            />
+            <DataTable
+                title="Featured Celebrity"
+                data={celebrities}
+                isLoading={loading} // Передаємо стан завантаження
+                onAdd={() => openEditModal('Featured Celebrity', 'add')}
+                onEdit={(item) => openEditModal('Featured Celebrity', 'edit', item)}
+                onDelete={(item) => openDeleteModal('Featured Celebrity', item)}
+            />
+       </div>
+
 
       {/* --- Add/Edit Modal --- */}
       {isEditModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-          onMouseDown={resetModalState} // * Click on backdrop to close
+          onMouseDown={resetModalState}
         >
           <div
             className="relative bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-lg m-4"
-            onMouseDown={(e) => e.stopPropagation()} // * Prevent modal click from closing
+            onMouseDown={(e) => e.stopPropagation()}
           >
             <div className="p-6">
               <div className="flex justify-between items-start mb-4">
                 <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-50">
                   {modalMode === 'add' ? 'Add' : 'Edit'}{' '}
-                  {currentTable?.replace(/s$/, '').replace('Featured ', '')}
+                  {/* Захист від null/undefined currentTable */}
+                  {currentTable?.replace(/s$/, '').replace('Featured ', '') || 'Item'}
                 </h3>
                 <button
                   onClick={resetModalState}
-                  className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 -mt-1 -mr-1"
+                  disabled={isSubmitting} // Блокуємо закриття під час відправки
+                  className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 -mt-1 -mr-1 disabled:opacity-50"
                 >
                   <X className="h-5 w-5 text-slate-500" />
                 </button>
@@ -648,8 +709,8 @@ const { session, user } = useAuth();
                         Photo
                       </label>
                       <div
-                        onClick={() => fileInputRef.current.click()}
-                        className="cursor-pointer aspect-square w-full bg-slate-100 dark:bg-slate-700/50 rounded-md flex items-center justify-center text-slate-400 border-2 border-dashed border-slate-300 dark:border-slate-600 hover:border-teal-500 dark:hover:border-teal-500 transition-colors"
+                        onClick={() => !isSubmitting && fileInputRef.current.click()} // Заборона кліку під час відправки
+                        className={`cursor-pointer aspect-square w-full bg-slate-100 dark:bg-slate-700/50 rounded-md flex items-center justify-center text-slate-400 border-2 border-dashed border-slate-300 dark:border-slate-600 ${!isSubmitting && 'hover:border-teal-500 dark:hover:border-teal-500'} transition-colors ${isSubmitting && 'opacity-50 cursor-not-allowed'}`}
                       >
                         {photoPreview ? (
                           <img
@@ -670,7 +731,25 @@ const { session, user } = useAuth();
                         onChange={(e) => setPhotoFile(e.target.files[0])}
                         accept="image/*"
                         className="hidden"
+                        disabled={isSubmitting} // Блокування інпуту
                       />
+                       {/* Кнопка видалення фото */}
+                       {photoPreview && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setPhotoFile(null);
+                                    setPhotoPreview(null);
+                                    // Якщо це режим редагування і фото було з сервера,
+                                    // можливо, потрібно буде очистити photo_gcs_path при збереженні
+                                    // (але це складніше, поки що просто очищуємо прев'ю)
+                                }}
+                                disabled={isSubmitting}
+                                className="mt-2 text-xs text-red-500 hover:underline disabled:opacity-50"
+                            >
+                                Remove photo
+                            </button>
+                        )}
                     </div>
                     {/* Name & Description */}
                     <div className="col-span-2 space-y-4">
@@ -679,7 +758,7 @@ const { session, user } = useAuth();
                           htmlFor="itemName"
                           className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300"
                         >
-                          Name
+                          Name <span className="text-red-500">*</span>
                         </label>
                         <input
                           id="itemName"
@@ -689,7 +768,9 @@ const { session, user } = useAuth();
                             setFormData((f) => ({ ...f, name: e.target.value }))
                           }
                           className={inputClasses}
+                          disabled={isSubmitting} // Блокування
                           autoFocus
+                          required // Додано required
                         />
                       </div>
                       <div>
@@ -709,6 +790,7 @@ const { session, user } = useAuth();
                             }))
                           }
                           className={textareaClasses}
+                          disabled={isSubmitting} // Блокування
                           rows="4"
                         />
                       </div>
@@ -722,7 +804,7 @@ const { session, user } = useAuth();
                       htmlFor="itemNameSimple"
                       className="block mb-2 text-sm font-medium text-slate-700 dark:text-slate-300"
                     >
-                      Name
+                      Name <span className="text-red-500">*</span>
                     </label>
                     <input
                       id="itemNameSimple"
@@ -731,18 +813,22 @@ const { session, user } = useAuth();
                       onChange={(e) =>
                         setFormData((f) => ({ ...f, name: e.target.value }))
                       }
-                      onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+                      onKeyDown={(e) => e.key === 'Enter' && !isSubmitting && handleSave()} // Заборона Enter під час відправки
                       className={inputClasses}
+                      disabled={isSubmitting} // Блокування
                       autoFocus
+                      required // Додано required
                     />
                   </div>
                 )}
-                {errorMsg && <p className="text-sm text-red-500">{errorMsg}</p>}
+                {/* Помилка модалки */}
+                {errorMsg && <p className="text-sm text-red-500 mt-2">{errorMsg}</p>}
               </div>
 
               {/* Modal Footer */}
               <div className="mt-6 flex justify-end gap-3">
                 <button
+                  type="button" // Важливо вказати type="button"
                   onClick={resetModalState}
                   disabled={isSubmitting}
                   className="px-4 py-2 text-sm font-semibold rounded-md border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50"
@@ -750,14 +836,16 @@ const { session, user } = useAuth();
                   Cancel
                 </button>
                 <button
+                  type="button" // Важливо вказати type="button"
                   onClick={handleSave}
-                  disabled={isSubmitting}
-                  className="px-4 py-2 text-sm font-semibold rounded-md bg-slate-900 text-white dark:bg-slate-200 dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-300 disabled:opacity-50 flex items-center gap-2"
+                  disabled={isSubmitting || !formData.name.trim()} // Перевірка на пусте ім'я
+                  className="px-4 py-2 text-sm font-semibold rounded-md bg-slate-900 text-white dark:bg-slate-200 dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-300 disabled:opacity-50 flex items-center justify-center min-w-[80px]" // Додано min-w
                 >
-                  {isSubmitting && (
+                  {isSubmitting ? (
                     <Loader2 className="animate-spin" size={16} />
+                  ) : (
+                    'Save'
                   )}
-                  {isSubmitting ? 'Saving...' : 'Save'}
                 </button>
               </div>
             </div>
@@ -769,7 +857,8 @@ const { session, user } = useAuth();
       {isDeleteModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-          onMouseDown={resetModalState}
+          // Не закриваємо по кліку на фон, якщо йде видалення
+          onMouseDown={!isSubmitting ? resetModalState : undefined}
         >
           <div
             className="relative bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md m-4"
@@ -798,10 +887,11 @@ const { session, user } = useAuth();
                   </div>
                 </div>
               </div>
-               {/* Display error message if delete failed */}
-               {errorMsg && <p className="text-sm text-red-500 mt-4 text-center">{errorMsg}</p>}
+              {/* Помилка модалки */}
+              {errorMsg && <p className="text-sm text-red-500 mt-4 text-center">{errorMsg}</p>}
               <div className="mt-6 flex justify-end gap-3">
                 <button
+                  type="button"
                   onClick={resetModalState}
                   disabled={isSubmitting}
                   className="px-4 py-2 text-sm font-semibold rounded-md border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50"
@@ -809,14 +899,16 @@ const { session, user } = useAuth();
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={handleDeleteConfirm}
                   disabled={isSubmitting}
-                  className="px-4 py-2 text-sm font-semibold rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
+                  className="px-4 py-2 text-sm font-semibold rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 flex items-center justify-center min-w-[90px]" // Додано min-w
                 >
-                  {isSubmitting && (
+                  {isSubmitting ? (
                     <Loader2 className="animate-spin" size={16} />
+                  ) : (
+                   'Delete'
                   )}
-                  {isSubmitting ? 'Deleting...' : 'Delete'}
                 </button>
               </div>
             </div>

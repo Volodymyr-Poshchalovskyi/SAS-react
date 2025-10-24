@@ -1,6 +1,7 @@
 // src/AdminComponents/Layout/Dashboard.jsx
+
 // ! React & Router
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 // ! Child Components
@@ -13,23 +14,17 @@ import TrendingDirectors from './TrendingDirectors';
 import { formatDistanceToNow } from 'date-fns';
 
 // ! Context
-// * Import the context to listen for manual refresh triggers
 import { DataRefreshContext } from './AdminLayout';
-import { useAuth } from '../../hooks/useAuth'; // Імпортуємо useAuth
+import { useAuth } from '../../hooks/useAuth'; // <--- useAuth вже тут
 
 // ! Constants
 const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
 const API_BASE_URL = import.meta.env.VITE_API_URL;
 
-// * Tailwind classes for consistent card styling
 const cardClasses =
   'bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl';
 
-/**
- * ? ListItem
- * A presentational component for the "Recent Activity" feed.
- * Includes a built-in skeleton loading state.
- */
+// ... (Компонент ListItem без змін) ...
 const ListItem = ({
   imageUrl,
   title,
@@ -41,7 +36,6 @@ const ListItem = ({
 }) => (
   <div className="flex items-center space-x-4 py-3">
     {isLoading ? (
-      // * Skeleton Loader
       <div className="animate-pulse flex items-center space-x-4 w-full">
         <div className="w-16 h-10 bg-slate-200 dark:bg-slate-700 rounded-md"></div>
         <div className="flex-grow space-y-2">
@@ -50,7 +44,6 @@ const ListItem = ({
         </div>
       </div>
     ) : (
-      // * Loaded Content
       <>
         <img
           className="w-16 h-10 object-cover rounded-md border border-slate-200 dark:border-slate-800"
@@ -81,24 +74,15 @@ const ListItem = ({
   </div>
 );
 
-/**
- * ? toYYYYMMDD
- * Formats a Date object into a 'YYYY-MM-DD' string for API requests.
- */
 const toYYYYMMDD = (date) => {
+  /* ... (без змін) ... */
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
 
-/**
- * ? Dashboard
- * The main component for the admin dashboard page.
- * Fetches and displays analytics data, trending content, and recent activity.
- */
 const Dashboard = () => {
-  // * Default date range: last 7 days
   const today = new Date();
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(today.getDate() - 6);
@@ -106,53 +90,103 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   // ! State
-  const [dateRange, setDateRange] = useState({
-    from: sevenDaysAgo,
-    to: today,
-  });
+  const [dateRange, setDateRange] = useState({ from: sevenDaysAgo, to: today });
   const [chartData, setChartData] = useState([]);
   const [trendingVideos, setTrendingVideos] = useState([]);
   const [trendingDirectors, setTrendingDirectors] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [fetchError, setFetchError] = useState(null); // Додаємо стан помилки
+  const [fetchError, setFetchError] = useState(null);
 
   // ! Context
-  // * Get the manual refresh trigger from the parent layout
-  const { refreshKey } = useContext(DataRefreshContext);
-const { session, user } = useAuth(); // Отримуємо сесію та користувача
-  /**
-   * Navigates to the main analytics page and passes state to open
-   * the modal for the specific reel.
-   */
+  const { refreshKey, triggerRefresh } = useContext(DataRefreshContext);
+  
+  // --- ▼▼▼ ЗМІНА 1: Дістаємо 'session' з useAuth ▼▼▼ ---
+  const { session, user, loading: authLoading, supabase } = useAuth();
+  // --- ▲▲▲ КІНЕЦЬ ЗМІНИ ▲▲▲ ---
+
   const handleShowreelClick = (reelId) => {
+    /* ... (без змін) ... */
     navigate('/adminpanel/analytics', {
       state: { openModalForReelId: reelId },
     });
   };
 
-  // ! Main Data Fetching Effect
-  // * This effect re-runs when 'dateRange' changes or 'refreshKey' is updated
+  // (Опціональний focus listener, залишаємо без змін)
   useEffect(() => {
+    const handleFocus = () => {
+      console.log('Dashboard focused, triggering data refresh...');
+      triggerRefresh();
+    };
+    window.addEventListener('focus', handleFocus);
+    console.log('Dashboard focus listener added.');
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      console.log('Dashboard focus listener removed.');
+    };
+  }, [triggerRefresh]);
+
+  // ! Main Data Fetching Effect
+  useEffect(() => {
+    // --- ▼▼▼ ЗМІНА 2: Додаємо перевірку '!session' ▼▼▼ ---
+    if (
+      authLoading ||
+      !user ||
+      !session || // <-- Додано
+      !supabase ||
+      !dateRange.from ||
+      !dateRange.to
+    ) {
+      console.log(
+        `Dashboard fetch skipped: authLoading=${authLoading}, user=${!!user}, session=${!!session}, supabase=${!!supabase}, dateRange=${!!(dateRange.from && dateRange.to)}`
+      );
+      if (!authLoading && (!user || !session)) { // <-- Додано
+        setIsLoading(false);
+        setFetchError('Authentication required to view dashboard.');
+        setChartData([]);
+        setTrendingVideos([]);
+        setTrendingDirectors([]);
+        setRecentActivity([]);
+      }
+      return;
+    }
+    // --- ▲▲▲ КІНЕЦЬ ЗМІНИ ▲▲▲ ---
+
     const fetchDashboardData = async () => {
+      console.log(
+        `[${new Date().toLocaleTimeString()}] Starting fetchDashboardData...`
+      );
       setIsLoading(true);
-      setFetchError(null); // Скидаємо помилку перед новим запитом
-      setTrendingDirectors([]); // * Clear directors on new fetch
-      if (!dateRange.from || !dateRange.to) return;
-
-      const token = session?.access_token;
-      if (!token || !user) { // Перевірка токена і користувача
-    setFetchError('Authentication token not found. Please log in again.');
-    setIsLoading(false);
-    return;
-  }
-
-      const headers = { Authorization: `Bearer ${token}` };
-
-      const startDateStr = toYYYYMMDD(dateRange.from);
-      const endDateStr = toYYYYMMDD(dateRange.to);
+      setFetchError(null);
+      setTrendingDirectors([]);
+      let token = null;
 
       try {
+        // --- ▼▼▼ ЗМІНА 3: Прибираємо getSession(), беремо токен з context ▼▼▼ ---
+        
+        // ПРИБИРАЄМО ЦЕЙ БЛОК:
+        // const { data: sessionData, error: sessionError } =
+        //   await supabase.auth.getSession();
+        // if (sessionError || !sessionData.session) {
+        //   throw new Error(
+        //     'Authentication error getting session for dashboard.'
+        //   );
+        // }
+        // token = sessionData.session.access_token;
+        
+        // ДОДАЄМО ЦЕ:
+        token = session.access_token;
+        if (!token) {
+          throw new Error('Authentication error: No access token found in session.');
+        }
+        console.log('Got token directly from AuthContext for dashboard fetch.');
+        // --- ▲▲▲ КІНЕЦЬ ЗМІНИ ▲▲▲ ---
+
+        const headers = { Authorization: `Bearer ${token}` };
+
+        const startDateStr = toYYYYMMDD(dateRange.from);
+        const endDateStr = toYYYYMMDD(dateRange.to);
+
         // * Step 1: Fetch all primary analytics data in parallel
         const [chartRes, trendingRes, activityRes] = await Promise.all([
           fetch(
@@ -168,23 +202,24 @@ const { session, user } = useAuth(); // Отримуємо сесію та ко�
           }),
         ]);
 
-        // Перевіряємо статус відповідей
+        console.log('API Responses:', {
+          chartStatus: chartRes.status,
+          trendingStatus: trendingRes.status,
+          activityStatus: activityRes.status,
+        });
+
         if (!chartRes.ok || !trendingRes.ok || !activityRes.ok) {
-          // Спробуємо отримати текст помилки з першого невдалого запиту
-          let errorDetails = `HTTP error! Status: ${
-            (!chartRes.ok && chartRes.status) ||
-            (!trendingRes.ok && trendingRes.status) ||
-            (!activityRes.ok && activityRes.status)
-          }`;
+          // ... (Обробка помилок залишається такою ж) ...
+          let errorDetails = `HTTP error! Status: ${(!chartRes.ok && chartRes.status) || (!trendingRes.ok && trendingRes.status) || (!activityRes.ok && activityRes.status)}`;
           try {
             const errorJson = await (!chartRes.ok
               ? chartRes.json()
               : !trendingRes.ok
-              ? trendingRes.json()
-              : activityRes.json());
-            errorDetails = errorJson.error || errorDetails;
+                ? trendingRes.json()
+                : activityRes.json());
+            errorDetails = errorJson.details || errorJson.error || errorDetails;
           } catch (e) {
-            // Ігноруємо помилки парсингу JSON
+            /*ignore*/
           }
           throw new Error(`Failed to fetch dashboard data. ${errorDetails}`);
         }
@@ -192,12 +227,16 @@ const { session, user } = useAuth(); // Отримуємо сесію та ко�
         const chartData = await chartRes.json();
         const trendingData = await trendingRes.json();
         const activityData = await activityRes.json();
+        console.log('Fetched primary data:', {
+          chartData: chartData.length,
+          trendingData: trendingData.length,
+          activityData: activityData.length,
+        });
 
-        // * Step 2: Process trending videos to calculate top directors (by views)
+        // * Step 2: Process trending videos (Без змін)
         const directorViews = {};
         trendingData.forEach((video) => {
           if (video.artists) {
-            // * Assumes first artist is the director
             const directorName = video.artists.split(',')[0].trim();
             if (directorName) {
               directorViews[directorName] =
@@ -205,13 +244,13 @@ const { session, user } = useAuth(); // Отримуємо сесію та ко�
             }
           }
         });
-
         const topDirectors = Object.entries(directorViews)
           .sort(([, a], [, b]) => b - a)
           .slice(0, 3)
           .map(([name, totalViews]) => ({ name, totalViews }));
+        console.log('Calculated top directors (pre-details):', topDirectors);
 
-        // * Step 3: Fetch details (photos) for the top directors
+        // * Step 3: Fetch details for top directors (З ТОКЕНОМ)
         let finalTopDirectors = [];
         if (topDirectors.length > 0) {
           const directorNames = topDirectors.map((d) => d.name);
@@ -221,27 +260,26 @@ const { session, user } = useAuth(); // Отримуємо сесію та ко�
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`, // Додаємо токен і сюди
+                Authorization: `Bearer ${token}`, // <-- Використовуємо той самий токен
               },
               body: JSON.stringify({ names: directorNames }),
             }
           );
-          if (!detailsRes.ok) {
-             console.error("Failed to fetch director details, using defaults.");
-             // Не кидаємо помилку, просто використовуємо дефолтні фото
-          }
-          
+
+          console.log('Director details response status:', detailsRes.status);
+
           const directorDetails = detailsRes.ok ? await detailsRes.json() : [];
+          if (!detailsRes.ok) {
+            console.error('Failed to fetch director details, using defaults.');
+          }
+          console.log('Fetched director details:', directorDetails);
 
           const defaultDirectorImagePath = 'back-end/artists/director.jpg';
-
-          // * Create a map for quick photo lookup
           const directorDetailsMap = directorDetails.reduce((acc, director) => {
             acc[director.name] = { photoGcsPath: director.photo_gcs_path };
             return acc;
           }, {});
 
-          // * Step 4: Map director details and add default photos where missing
           finalTopDirectors = topDirectors.map((director) => ({
             ...director,
             photoGcsPath:
@@ -250,24 +288,36 @@ const { session, user } = useAuth(); // Отримуємо сесію та ко�
           }));
         }
 
-        // * Step 5: Set all component state
+        // * Step 5: Set all component state (Без змін)
         setChartData(chartData);
-        setTrendingVideos(trendingData.slice(0, 4)); // * Only take top 4 for UI
+        setTrendingVideos(trendingData.slice(0, 4));
         setTrendingDirectors(finalTopDirectors);
         setRecentActivity(activityData);
+        console.log(
+          `[${new Date().toLocaleTimeString()}] Dashboard states updated successfully.`
+        );
       } catch (error) {
-        console.error('Failed to fetch dashboard data:', error);
-        setFetchError(error.message); // Зберігаємо повідомлення про помилку
+        console.error('Error in fetchDashboardData:', error);
+        setFetchError(error.message || 'An unexpected error occurred.');
+        setChartData([]);
+        setTrendingVideos([]);
+        setTrendingDirectors([]);
+        setRecentActivity([]);
       } finally {
-        // * Stop loading state regardless of success or error
+        console.log(
+          `[${new Date().toLocaleTimeString()}] Setting isLoading to false in fetchDashboardData.`
+        );
         setIsLoading(false);
       }
     };
-    fetchDashboardData();
-    // * Dependency array includes dateRange, refreshKey and session
-  }, [dateRange, refreshKey, session], user);
 
-  // ! Render
+    fetchDashboardData();
+  // --- ▼▼▼ ЗМІНА 4: Додаємо 'session' в залежності ▼▼▼ ---
+  }, [dateRange, refreshKey, session, user, supabase, authLoading, navigate]);
+  // --- ▲▲▲ КІНЕЦЬ ЗМІНИ ▲▲▲ ---
+
+
+  // ! Render (Без змін)
   return (
     <div className="w-full p-4 sm:p-6 lg:p-8">
       {/* --- Header --- */}
@@ -292,7 +342,7 @@ const { session, user } = useAuth(); // Отримуємо сесію та ко�
         </div>
       )}
 
-      {/* --- Main dashboard layout: 3-column grid on large screens --- */}
+      {/* --- Main dashboard layout --- */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* --- Left Side (2 columns) --- */}
         <div className="lg:col-span-2 space-y-8">
@@ -312,7 +362,6 @@ const { session, user } = useAuth(); // Отримуємо сесію та ко�
               </p>
             </div>
           </div>
-
           {/* Trending Videos & Directors */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <TrendingVideos videos={trendingVideos} isLoading={isLoading} />
@@ -322,7 +371,6 @@ const { session, user } = useAuth(); // Отримуємо сесію та ко�
             />
           </div>
         </div>
-
         {/* --- Right Side (1 column) --- */}
         <div className="lg:col-span-1 space-y-8">
           {/* Recent Activity Feed */}
@@ -332,7 +380,6 @@ const { session, user } = useAuth(); // Отримуємо сесію та ко�
                 Recent Activity
               </h2>
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                {/* Show 5 skeleton items while loading */}
                 {isLoading
                   ? [...Array(5)].map((_, i) => (
                       <ListItem key={i} isLoading={true} />
@@ -355,6 +402,11 @@ const { session, user } = useAuth(); // Отримуємо сесію та ко�
                         isLoading={false}
                       />
                     ))}
+                {!isLoading && recentActivity.length === 0 && (
+                  <p className="text-sm text-slate-500 dark:text-slate-400 py-4 text-center">
+                    No recent activity found.
+                  </p>
+                )}
               </div>
             </div>
           </div>

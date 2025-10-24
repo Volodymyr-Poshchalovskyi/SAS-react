@@ -247,6 +247,326 @@ app.post('/generate-read-urls', async (req, res) => {
 /**
  * Fetches artist details (photo path) by an array of names.
  */
+app.get('/artists', requireAuth, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('artists')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.status(200).json(data || []);
+  } catch (error) {
+    console.error('Error fetching all artists:', error);
+    res.status(500).json({ error: 'Failed to fetch artists.', details: error.message });
+  }
+});
+// ========================================================================== //
+// ! SECTION 5.1: CLIENTS ENDPOINTS
+// ========================================================================== //
+
+// GET all clients
+app.get('/clients', requireAuth, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('clients')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.status(200).json(data || []);
+  } catch (error) {
+    console.error('Error fetching clients:', error);
+    res.status(500).json({ error: 'Failed to fetch clients.', details: error.message });
+  }
+});
+
+// POST (add) a new client
+app.post('/clients', requireAuth, async (req, res) => {
+  const { name } = req.body;
+  if (!name || typeof name !== 'string' || name.trim() === '') {
+    return res.status(400).json({ error: 'Client name is required.' });
+  }
+  try {
+    const { data, error } = await supabase
+      .from('clients')
+      .insert({ name: name.trim() })
+      .select()
+      .single();
+    if (error) throw error;
+    res.status(201).json(data);
+  } catch (error) {
+    console.error('Error adding client:', error);
+     // Додамо обробку помилки унікальності
+    if (error.code === '23505') { 
+        res.status(409).json({ error: `Client named "${name.trim()}" already exists.` });
+    } else {
+        res.status(500).json({ error: 'Failed to add client.', details: error.message });
+    }
+  }
+});
+
+// PUT (update) a client
+app.put('/clients/:id', requireAuth, async (req, res) => {
+  const { id } = req.params;
+  const { name } = req.body;
+  if (!name || typeof name !== 'string' || name.trim() === '') {
+    return res.status(400).json({ error: 'Client name is required.' });
+  }
+  try {
+    const { data, error } = await supabase
+      .from('clients')
+      .update({ name: name.trim() })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    res.status(200).json(data);
+  } catch (error) {
+    console.error(`Error updating client ${id}:`, error);
+    // Додамо обробку помилки унікальності при оновленні
+    if (error.code === '23505') { 
+        res.status(409).json({ error: `Another client named "${name.trim()}" already exists.` });
+    } else if (error.code === 'PGRST116') { // Якщо запис не знайдено
+         res.status(404).json({ error: 'Client not found.' });
+    } else {
+        res.status(500).json({ error: 'Failed to update client.', details: error.message });
+    }
+  }
+});
+
+// DELETE a client
+app.delete('/clients/:id', requireAuth, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { error } = await supabase
+      .from('clients')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    res.status(200).json({ message: 'Client deleted successfully.' });
+  } catch (error) {
+    console.error(`Error deleting client ${id}:`, error);
+     if (error.code === 'PGRST116') { // Якщо запис не знайдено (вже видалено)
+         res.status(200).json({ message: 'Client already deleted or not found.' });
+    } else {
+        res.status(500).json({ error: 'Failed to delete client.', details: error.message });
+    }
+  }
+});
+
+
+// ========================================================================== //
+// ! SECTION 5.2: CELEBRITIES ENDPOINTS
+// ========================================================================== //
+
+// GET all celebrities
+app.get('/celebrities', requireAuth, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('celebrities')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    res.status(200).json(data || []);
+  } catch (error) {
+    console.error('Error fetching celebrities:', error);
+    res.status(500).json({ error: 'Failed to fetch celebrities.', details: error.message });
+  }
+});
+
+// POST (add) a new celebrity
+app.post('/celebrities', requireAuth, async (req, res) => {
+  const { name } = req.body;
+  if (!name || typeof name !== 'string' || name.trim() === '') {
+    return res.status(400).json({ error: 'Celebrity name is required.' });
+  }
+  try {
+    const { data, error } = await supabase
+      .from('celebrities')
+      .insert({ name: name.trim() })
+      .select()
+      .single();
+    if (error) throw error;
+    res.status(201).json(data);
+  } catch (error) {
+    console.error('Error adding celebrity:', error);
+     if (error.code === '23505') { 
+        res.status(409).json({ error: `Celebrity named "${name.trim()}" already exists.` });
+    } else {
+        res.status(500).json({ error: 'Failed to add celebrity.', details: error.message });
+    }
+  }
+});
+
+// PUT (update) a celebrity
+app.put('/celebrities/:id', requireAuth, async (req, res) => {
+  const { id } = req.params;
+  const { name } = req.body;
+  if (!name || typeof name !== 'string' || name.trim() === '') {
+    return res.status(400).json({ error: 'Celebrity name is required.' });
+  }
+  try {
+    const { data, error } = await supabase
+      .from('celebrities')
+      .update({ name: name.trim() })
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    res.status(200).json(data);
+  } catch (error) {
+    console.error(`Error updating celebrity ${id}:`, error);
+    if (error.code === '23505') { 
+        res.status(409).json({ error: `Another celebrity named "${name.trim()}" already exists.` });
+    } else if (error.code === 'PGRST116') { 
+         res.status(404).json({ error: 'Celebrity not found.' });
+    } else {
+        res.status(500).json({ error: 'Failed to update celebrity.', details: error.message });
+    }
+  }
+});
+
+// DELETE a celebrity
+app.delete('/celebrities/:id', requireAuth, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { error } = await supabase
+      .from('celebrities')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    res.status(200).json({ message: 'Celebrity deleted successfully.' });
+  } catch (error) {
+    console.error(`Error deleting celebrity ${id}:`, error);
+     if (error.code === 'PGRST116') { 
+         res.status(200).json({ message: 'Celebrity already deleted or not found.' });
+    } else {
+        res.status(500).json({ error: 'Failed to delete celebrity.', details: error.message });
+    }
+  }
+});
+
+// backend/server.js
+
+// ... (Весь існуючий код до SECTION 5.2)
+
+// ========================================================================== //
+// ! SECTION 5.3: METADATA ENDPOINTS (Content Types, Categories, Crafts)
+// ========================================================================== //
+
+/**
+ * Універсальна функція для створення ендпоїнтів GET, POST, PUT, DELETE
+ * для таблиць з простим CRUD (з полями id, name).
+ * @param {string} routeBase - Базовий шлях для маршруту (наприклад, 'content-types').
+ * @param {string} tableName - Ім'я таблиці Supabase (наприклад, 'content_types').
+ */
+function createSimpleCrudEndpoints(routeBase, tableName) {
+  // GET all items
+  app.get(`/${routeBase}`, requireAuth, async (req, res) => {
+    try {
+      const { data, error } = await supabase
+        .from(tableName)
+        .select('id, name')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      res.status(200).json(data || []);
+    } catch (error) {
+      console.error(`Error fetching ${tableName}:`, error);
+      res.status(500).json({ error: `Failed to fetch ${tableName}.`, details: error.message });
+    }
+  });
+
+  // POST (add) a new item
+  app.post(`/${routeBase}`, requireAuth, async (req, res) => {
+    const { name } = req.body;
+    if (!name || typeof name !== 'string' || name.trim() === '') {
+      return res.status(400).json({ error: 'Name is required.' });
+    }
+    try {
+      const { data, error } = await supabase
+        .from(tableName)
+        .insert({ name: name.trim() })
+        .select('id, name') // Повертаємо лише необхідні поля
+        .single();
+      if (error) throw error;
+      res.status(201).json(data);
+    } catch (error) {
+      console.error(`Error adding to ${tableName}:`, error);
+      if (error.code === '23505') { // PostgreSQL unique violation
+        res.status(409).json({ error: `An item named "${name.trim()}" already exists in ${tableName}.` });
+      } else {
+        res.status(500).json({ error: `Failed to add item to ${tableName}.`, details: error.message });
+      }
+    }
+  });
+
+  // PUT (update) an item
+  app.put(`/${routeBase}/:id`, requireAuth, async (req, res) => {
+    const { id } = req.params;
+    const { name } = req.body;
+    if (!name || typeof name !== 'string' || name.trim() === '') {
+      return res.status(400).json({ error: 'Name is required.' });
+    }
+    try {
+      const { data, error } = await supabase
+        .from(tableName)
+        .update({ name: name.trim() })
+        .eq('id', id)
+        .select('id, name')
+        .single();
+
+      if (error) throw error;
+
+      // Якщо Supabase повернув помилку "No rows found" (PGRST116), це 404
+      if (!data) {
+        return res.status(404).json({ error: 'Item not found.' });
+      }
+      res.status(200).json(data);
+    } catch (error) {
+      console.error(`Error updating item ${id} in ${tableName}:`, error);
+      if (error.code === '23505') {
+        res.status(409).json({ error: `Another item named "${name.trim()}" already exists in ${tableName}.` });
+      } else if (error.code === 'PGRST116') {
+         res.status(404).json({ error: 'Item not found.' });
+      } else {
+        res.status(500).json({ error: `Failed to update item in ${tableName}.`, details: error.message });
+      }
+    }
+  });
+
+  // DELETE an item
+  app.delete(`/${routeBase}/:id`, requireAuth, async (req, res) => {
+    const { id } = req.params;
+    try {
+      const { error, count } = await supabase
+        .from(tableName)
+        .delete()
+        .eq('id', id)
+        .select('*', { count: 'exact' }); // Використовуємо count для перевірки, чи був видалений запис
+
+      if (error) throw error;
+      
+      // На відміну від single(), delete() повертає лише error/data. 
+      // Якщо запис не знайдено/видалено, помилки немає, але count = 0.
+      if (count === 0) {
+          // Якщо запис не знайдено, все одно повертаємо 200, бо ціль (відсутність запису) досягнута
+          console.warn(`Attempted to delete item ${id} from ${tableName}, but it was not found.`);
+      }
+
+      res.status(200).json({ message: 'Item deleted successfully.' });
+    } catch (error) {
+      console.error(`Error deleting item ${id} from ${tableName}:`, error);
+      res.status(500).json({ error: `Failed to delete item from ${tableName}.`, details: error.message });
+    }
+  });
+}
+
+// * Ініціалізуємо ендпоїнти для кожної таблиці метаданих
+createSimpleCrudEndpoints('content-types', 'content_types');
+createSimpleCrudEndpoints('categories', 'categories');
+createSimpleCrudEndpoints('crafts', 'crafts');
+
+// ... (Весь існуючий код після SECTION 5.2)
+
 app.post('/artists/details-by-names', requireAuth, async (req, res) => {
   const { names } = req.body;
   if (!names || !Array.isArray(names) || names.length === 0) {
@@ -368,6 +688,191 @@ app.delete('/artists/:id', requireAuth, async (req, res) => {
   }
 });
 
+// ========================================================================== //
+// ! SECTION 5.4: APPLICATIONS ENDPOINTS (NEW)
+// ========================================================================== //
+
+/**
+ * GET all access applications.
+ * Requires authentication.
+ */
+app.get('/applications', requireAuth, async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('applications') 
+      .select('id, email, message, status, created_at')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    res.status(200).json(data || []);
+  } catch (error) {
+    console.error('Error fetching access applications:', error);
+    res.status(500).json({ error: 'Failed to fetch applications.', details: error.message });
+  }
+});
+
+/**
+ * PUT endpoint to update the status of an access application.
+ * Handles user provisioning (invite/profile creation) if approved.
+ */
+
+// ========================================================================== //
+// ! SECTION 5.5: USER MANAGEMENT ENDPOINTS (NEW)
+// ========================================================================== //
+
+/**
+ * GET all user profiles (excluding staff).
+ * Requires authentication and relies on Service Role Key (Admin context).
+ */
+app.get('/users', requireAuth, async (req, res) => {
+  try {
+    // * Використовуємо Service Role Key (supabase) для обходу RLS
+    // * і прямого запиту до user_profiles.
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .neq('role', 'staff') // * Виключаємо користувачів-співробітників
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Supabase error fetching users:', error);
+      throw error;
+    }
+    
+    res.status(200).json(data || []);
+  } catch (error) {
+    console.error('Error fetching user profiles:', error);
+    res.status(500).json({ error: 'Failed to fetch users.', details: error.message });
+  }
+});
+
+/**
+ * PUT endpoint to update a user's status (active/deactivated).
+ * Requires authentication.
+ */
+app.put('/users/:userId/status', requireAuth, async (req, res) => {
+  const { userId } = req.params;
+  const { status } = req.body; // 'active' or 'deactivated'
+
+  if (!status || !['active', 'deactivated'].includes(status)) {
+    return res.status(400).json({ error: 'Valid status is required.' });
+  }
+
+  try {
+    // * Step 1: Update user_profiles status in the database
+    const { data: profileUpdateData, error: profileUpdateError } = await supabase
+      .from('user_profiles')
+      .update({ status: status })
+      .eq('id', userId)
+      .select()
+      .single();
+
+    if (profileUpdateError) throw profileUpdateError;
+    if (!profileUpdateData) return res.status(404).json({ error: 'User profile not found.' });
+
+    // * Step 2: (Optional but recommended) Invalidate Supabase Auth session for security
+    // * If status is 'deactivated', force sign out by invalidating all sessions.
+    if (status === 'deactivated') {
+        const { error: signOutError } = await supabase.auth.admin.signOut(userId);
+        if (signOutError) {
+            console.warn(`Failed to sign out user ${userId} sessions:`, signOutError);
+            // Non-critical, but log it
+        }
+    }
+    
+    // * Step 3: Return updated profile data (or success message)
+    res.status(200).json(profileUpdateData);
+
+  } catch (error) {
+    console.error(`Error updating user status for ${userId}:`, error);
+    res.status(500).json({ error: 'Failed to update user status.', details: error.message });
+  }
+});
+
+app.put('/applications/:id/status', requireAuth, async (req, res) => {
+  const { id } = req.params;
+  const { status, email } = req.body; // 'approved' or 'denied'
+
+  if (!status || !email || !['approved', 'denied'].includes(status)) {
+    return res.status(400).json({ error: 'Valid status and email are required.' });
+  }
+
+  // Якщо статус denied, ми просто оновлюємо статус у БД
+  if (status === 'denied') {
+      try {
+           const { data: deniedApp, error: updateError } = await supabase
+            .from('applications') 
+            .update({ status: status })
+            .eq('id', id)
+            .select('id, status, email')
+            .single();
+
+           if (updateError) throw updateError;
+           if (!deniedApp) return res.status(404).json({ error: 'Application not found.' });
+
+           // * Optional: Logic to send rejection email (like the Edge function did in AuthContext)
+           // * ...
+
+           return res.status(200).json(deniedApp);
+
+      } catch (error) {
+           console.error(`Error denying application ${id}:`, error);
+           return res.status(500).json({ error: 'Failed to deny application.', details: error.message });
+      }
+  }
+  
+  // Якщо статус approved, ми оновлюємо статус і запрошуємо користувача
+  if (status === 'approved') {
+      try {
+          // * 1. Оновлюємо статус у БД (щоб уникнути подвійного опрацювання)
+          const { data: updatedApp, error: updateError } = await supabase
+            .from('applications') 
+            .update({ status: status })
+            .eq('id', id)
+            .select('id, status, email')
+            .single();
+          
+          if (updateError) throw updateError;
+          if (!updatedApp) return res.status(404).json({ error: 'Application not found.' });
+          
+          // * 2. Запрошуємо користувача через Supabase Admin Auth
+          const { data: authData, error: authError } = await supabase.auth.admin.inviteUserByEmail(email);
+          
+          if (authError) {
+              console.warn(`Supabase Auth Invite/Exists Error for ${email}:`, authError);
+              // Якщо користувач вже існує, це не критична помилка, продовжуємо
+          }
+          
+          // Отримуємо ID, якщо він був у authData або шукаємо його
+          const userId = authData?.user?.id || (await supabase.auth.admin.getUserByEmail(email))?.data?.user?.id;
+          
+          // * 3. Гарантуємо, що профіль існує (для RLS та ролей)
+          if (userId) {
+              const { error: profileError } = await supabase
+                  .from('user_profiles')
+                  .upsert({ 
+                      id: userId, 
+                      email: email, 
+                      role: 'editor' // Встановлюємо початкову роль
+                  }, { onConflict: 'id' }); 
+                  
+              if (profileError) console.error(`Error upserting profile for ${email}:`, profileError);
+          }
+          
+          return res.status(200).json(updatedApp);
+
+      } catch (error) {
+          console.error(`Critical error approving application ${id}:`, error);
+          return res.status(500).json({ error: 'Failed to approve application and provision user.', details: error.message });
+      }
+  }
+
+  // Якщо не approved/denied
+  return res.status(400).json({ error: 'Invalid status provided.' });
+});
+// ========================================================================== //
+// ! END SECTION 5.4
+// ========================================================================== //
 // ========================================================================== //
 // ! SECTION 6: ANALYTICS ENDPOINTS (REELS)
 // ========================================================================== //
@@ -981,6 +1486,27 @@ app.get('/reels/public/:short_link', async (req, res) => {
 /**
  * Fetches a single media item by its ID.
  */
+
+app.get('/media-items/all', requireAuth, async (req, res) => {
+  try {
+    // Цей запит ідентичний тому, що був у Library.jsx
+    const { data, error } = await supabase
+      .from('media_items')
+      .select(
+        `*, user_profiles:user_profiles(first_name, last_name, email)`
+      )
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    res.status(200).json(data || []);
+  } catch (error) {
+    console.error('Error fetching all media items:', error);
+    res.status(500).json({
+      error: 'Failed to fetch media items.',
+      details: error.message,
+    });
+  }
+});
 
 app.post('/media-items', requireAuth, async (req, res) => {
   const records = req.body;

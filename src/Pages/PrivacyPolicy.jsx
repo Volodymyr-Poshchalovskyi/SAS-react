@@ -122,7 +122,7 @@ const policyData = [
   {
     type: 'address', // * Custom type for address block
     content: [
-      'Sinners and Saints, LLC<br />7080 Hollywood Boulevard, 7th Floor<br />Los Angeles, California 90028',
+      'Sinners and Saints, LLC 7080 Hollywood Boulevard, 7th Floor Los Angeles, California 90028',
     ],
   },
   // Section 12

@@ -1,6 +1,6 @@
 // src/AdminComponents/Layout/AdminLayout.jsx
 // ! React & Router
-import React, { useState, createContext, useContext } from 'react';
+import React, { useState, createContext, useContext, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation, NavLink } from 'react-router-dom';
 
 // ! Icons (lucide-react)
@@ -147,9 +147,36 @@ const GlobalUploadStatus = () => {
 function AdminLayout() {
   // ! Hooks
   const navigate = useNavigate();
+  
   const location = useLocation();
-  const { user, signOut } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
+  useEffect(() => {
+    // Поки AuthContext перевіряє сесію, нічого не робимо
+    if (loading) {
+      return;
+    }
+    // Якщо перевірка завершилась, АЛЕ користувача немає
+    if (!user) {
+      console.warn('AdminLayout: Користувач не автентифікований. Перенаправлення...');
+      navigate('/'); // Або '/login'
+    }
+  }, [user, loading, navigate]);
+
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-950">
+        <Loader2 className="animate-spin h-10 w-10 text-white" />
+      </div>
+    );
+  }
+  
+  // Якщо !loading і !user, ефект вище вже спрацював, 
+  // але ми можемо повернути null, щоб уникнути рендеру дочірніх компонентів
+  if (!user) {
+    return null; 
+  }
 
   // ! Handlers
   const triggerRefresh = () => setRefreshKey((prevKey) => prevKey + 1);

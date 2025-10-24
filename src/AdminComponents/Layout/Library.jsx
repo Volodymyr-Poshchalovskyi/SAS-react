@@ -2,9 +2,8 @@
 // ! React & Core Hooks
 import React, { useState, useEffect, useRef, useMemo, useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-
+import { supabase } from '../../lib/supabaseClient';
 // ! Third-party Libraries
-import { createClient } from '@supabase/supabase-js';
 
 // ! Lucide Icons
 import {
@@ -37,10 +36,7 @@ import { InlineHlsPlayer } from './CreateReel';
 // ========================================================================== //
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'YOUR_SUPABASE_URL';
-const SUPABASE_ANON_KEY =
-  import.meta.env.VITE_SUPABASE_ANON_KEY || 'YOUR_SUPABASE_ANON_KEY';
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
 
 // ========================================================================== //
@@ -973,96 +969,109 @@ const Library = () => {
   // ! Effect: Main Data Fetch
   // * Fetches all media items, signed URLs, and checks for processing videos
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      setError(null);
-      setShowProcessingWarning(false); // * Reset warning on each fetch
+    console.log(
+      `Library.jsx: useEffect запускається. Session:`,
+      JSON.parse(JSON.stringify(session)) // Глибоке копіювання для логування
+    );
+   const fetchData = async () => {
+    setLoading(true);
+    setError(null);
+    setShowProcessingWarning(false);
 
-      const token = session?.access_token; // Отримуємо токен
-      if (!token) {
-        setError('User not authenticated.');
-        setLoading(false);
-        return;
+    try {
+      // ▼▼▼ ПОЧАТОК ВИПРАВЛЕННЯ ▼▼▼
+
+      // 1. Перевіряємо і юзера, і токен з контексту
+      if (!user || !session?.access_token) {
+        throw new Error('User not authenticated or session token is missing.');
       }
-      const headers = { Authorization: `Bearer ${token}` }; // Створюємо заголовок
+      setCurrentUserId(user.id);
+      
+      // 2. Беремо токен ПРЯМО З КОНТЕКСТУ (useAuth)
+     const token = session.access_token;
+        const headers = {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        };
 
-      try {
-        // * Get current user (using token)
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser(token);
-        if (userError || !user) throw userError || new Error('User not found.');
-        setCurrentUserId(user.id);
+        // ▼▼▼ ПОЧАТОК ВИПРАВЛЕННЯ ▼▼▼
+        
+        // 1. ЗАМІНЮЄМО ПРЯМИЙ ЗАПИТ до Supabase...
+        // const { data: fetchedItems, error: itemsError } = await supabase
+        //   .from('media_items')
+        //   .select(
+        //     `*, user_profiles:user_profiles(first_name, last_name, email)`
+        //   )
+        //   .order('created_at', { ascending: false });
+        // if (itemsError) throw itemsError;
 
-        // * Fetch all media items (using Supabase client - already uses service key)
-        const { data, error: itemsError } = await supabase
-          .from('media_items')
-          .select(
-            `*, user_profiles:user_profiles(first_name, last_name, email)`
-          )
-          .order('created_at', { ascending: false });
-        if (itemsError) throw itemsError;
-
-        const fetchedItems = data || [];
-        setItems(fetchedItems);
-
-        // * Get signed URLs for all previews (using custom backend)
-        if (fetchedItems.length > 0) {
-          const gcsPaths = fetchedItems
-            .map((item) => item.preview_gcs_path)
-            .filter(Boolean);
-
-          if (gcsPaths.length > 0) {
-            const response = await fetch(`${API_BASE_URL}/generate-read-urls`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                ...headers, // Додаємо заголовок авторизації
-              },
-              body: JSON.stringify({ gcsPaths }),
-            });
-            if (!response.ok) {
-              const errorData = await response.json().catch(() => ({}));
-              throw new Error(
-                errorData.error || 'Failed to fetch signed URLs for previews'
-              );
-            }
-            const signedUrlsMap = await response.json();
-            setPreviewUrls(signedUrlsMap); // * Store the path-to-URL map
-          }
-        }
-
-        // * Check for recently uploaded videos that might still be processing
-        const fourMinutesAgo = new Date(Date.now() - 4 * 60 * 1000);
-        const recentVideos = fetchedItems.filter((item) => {
-          const createdAt = new Date(item.created_at);
-          const isVideo = !!item.video_gcs_path;
-          const isRecent = createdAt > fourMinutesAgo;
-          return isVideo && isRecent;
+        // ...НА ЗАПИТ ДО НАШОГО БЕКЕНДУ (який є надійним)
+        const itemsResponse = await fetch(`${API_BASE_URL}/media-items/all`, { 
+          headers: headers 
         });
-
-        // * If any recent videos are found, show the warning banner
-        if (recentVideos.length > 0) {
-          setShowProcessingWarning(true);
+        
+        if (!itemsResponse.ok) {
+          const errorData = await itemsResponse.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Failed to fetch media items from backend');
         }
+        
+        const fetchedItems = await itemsResponse.json();
+        setItems(fetchedItems || []);
 
-        // * Load user's pinned items from localStorage
-        const storedPinsRaw = localStorage.getItem('userPinnedItems');
-        if (storedPinsRaw) {
-          const allUsersPins = JSON.parse(storedPinsRaw);
-          const userPins = allUsersPins[user.id] || [];
-          setPinnedItemIds(new Set(userPins));
+      // 5. Отримуємо підписані URL (вже з готовим токеном)
+      if (fetchedItems && fetchedItems.length > 0) {
+        const gcsPaths = fetchedItems
+          .map((item) => item.preview_gcs_path)
+          .filter(Boolean);
+
+        if (gcsPaths.length > 0) {
+          const response = await fetch(`${API_BASE_URL}/generate-read-urls`, {
+            method: 'POST',
+            headers: headers, // <--- Використовуємо токен тут
+            body: JSON.stringify({ gcsPaths }),
+          });
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(
+              errorData.error || 'Failed to fetch signed URLs for previews'
+            );
+          }
+          const signedUrlsMap = await response.json();
+          setPreviewUrls(signedUrlsMap);
         }
-      } catch (e) {
-        setError(e.message);
-        setItems([]);
-      } finally {
-        setLoading(false);
       }
-    };
+
+      // ... (решта вашої логіки: recentVideos, localStorage) ...
+      // Цей код для localStorage також тепер безпечний, бо user 100% існує
+      const storedPinsRaw = localStorage.getItem('userPinnedItems');
+      if (storedPinsRaw) {
+        const allUsersPins = JSON.parse(storedPinsRaw);
+        const userPins = allUsersPins[user.id] || [];
+        setPinnedItemIds(new Set(userPins));
+      }
+      
+      // ▲▲▲ КІНЕЦЬ ВИПРАВЛЕННЯ ▲▲▲
+
+    } catch (e) {
+      console.error('Помилка під час fetchData в Library.jsx:', e.message); // Додайте лог помилки
+      setError(e.message);
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Додаємо захист, як у FeatureManagement:
+  // Викликаємо fetchData, ТІЛЬКИ якщо і сесія, і юзер реально існують.
+  if (session && user) {
     fetchData();
-  }, [refreshKey, session]); // Додаємо session у залежності
+  } else {
+    // Якщо чогось немає, просто чекаємо наступного ре-рендера
+    console.warn('Library.jsx: Чекаємо на сесію та юзера...');
+    setLoading(false); // Можна вимкнути лоадер, якщо даних для запиту немає
+  }
+  
+}, [refreshKey, session, user]);// Додаємо session у залежності
 
   // ! Effect: Sync Pinned Items to LocalStorage
   useEffect(() => {

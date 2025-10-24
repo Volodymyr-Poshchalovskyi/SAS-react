@@ -1,7 +1,13 @@
 // src/AdminComponents/Layout/MetaDataManagement.jsx
 
 // ! React & Core Hooks
-import React, { useState, useMemo, useEffect, useContext } from 'react';
+import React, {
+  useState,
+  useMemo,
+  useEffect,
+  useContext,
+  useCallback,
+} from 'react';
 
 // ! Lucide Icons
 import {
@@ -14,12 +20,10 @@ import {
   Loader2,
 } from 'lucide-react';
 
-// ! Local Imports (Supabase & Context)
-import { supabase } from '../../lib/supabaseClient';
-import { DataRefreshContext } from './AdminLayout'; // * Context for triggering manual data refresh
+// ! Local Imports (Context & Auth)
+// import { supabase } from '../../lib/supabaseClient'; // ВИДАЛЕНО: Прямий імпорт Supabase
+import { DataRefreshContext } from './AdminLayout';
 import { useAuth } from '../../hooks/useAuth';
-// NOTE: No need to import useAuth here unless specifically needed for user ID/role checks
-// The Supabase client handles authentication automatically based on the logged-in user state from AuthContext.
 
 // ========================================================================== //
 // ! HELPER COMPONENT: Highlight
@@ -30,26 +34,53 @@ import { useAuth } from '../../hooks/useAuth';
  * A component to highlight search terms within a string of text.
  */
 const Highlight = ({ text, highlight }) => {
-  if (!highlight?.trim()) return <span>{text}</span>;
-  const regex = new RegExp(`(${highlight})`, 'gi');
-  const parts = String(text).split(regex);
-  return (
-    <span>
-      {parts.map((part, i) =>
-        part.toLowerCase() === highlight.toLowerCase() ? (
-          <mark
-            key={i}
-            className="bg-yellow-200 dark:bg-yellow-600/40 text-black dark:text-white rounded px-0.5"
-          >
-            {part}
-          </mark>
-        ) : (
-          part
-        )
-      )}
-    </span>
-  );
+  if (!highlight?.trim() || !text) return <span>{text}</span>;
+  const escapedHighlight = highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  try {
+    const regex = new RegExp(`(${escapedHighlight})`, 'gi');
+    const parts = String(text).split(regex);
+    return (
+      <span>
+        {parts.map((part, i) =>
+          part && part.toLowerCase() === highlight.toLowerCase() ? (
+            <mark
+              key={i}
+              className="bg-yellow-200 dark:bg-yellow-600/40 text-black dark:text-white rounded px-0.5"
+            >
+              {part}
+            </mark>
+          ) : (
+            part
+          )
+        )}
+      </span>
+    );
+  } catch (e) {
+    console.error('Highlight regex error:', e);
+    return <span>{text}</span>;
+  }
 };
+
+// ========================================================================== //
+// ! HELPER COMPONENT: SkeletonCard
+// ========================================================================== //
+
+/**
+ * ? SkeletonCard
+ * A placeholder card shown while data is loading.
+ */
+const SkeletonCard = () => (
+  <div className="bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl p-4 min-h-[300px] animate-pulse">
+    <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-1/3 mb-4"></div>
+    <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded w-full mb-4"></div>
+    <div className="space-y-2 p-2">
+      <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded"></div>
+      <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded"></div>
+      <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded"></div>
+    </div>
+  </div>
+);
+
 
 // ========================================================================== //
 // ! HELPER COMPONENT: DataTable
@@ -60,7 +91,7 @@ const Highlight = ({ text, highlight }) => {
  * A reusable card component that displays a searchable, paginated list of items
  * with add, edit, and delete functionality. Used for Content Types, Categories, Crafts.
  */
-const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
+const DataTable = ({ title, data, onAdd, onEdit, onDelete, isLoading }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [visibleCount, setVisibleCount] = useState(10); // * "Show More" pagination state
 
@@ -95,7 +126,8 @@ const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
         </h2>
         <button
           onClick={onAdd}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 rounded-md hover:bg-slate-700 dark:hover:bg-slate-300 transition-colors w-full sm:w-auto justify-center"
+          disabled={isLoading}
+          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 rounded-md hover:bg-slate-700 dark:hover:bg-slate-300 transition-colors w-full sm:w-auto justify-center disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Plus className="w-4 h-4" />
           Add New
@@ -111,14 +143,17 @@ const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
             placeholder={`Search in ${title}...`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent pl-9 pr-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500"
+            disabled={isLoading}
+            className="flex h-10 w-full rounded-md border border-slate-300 bg-transparent pl-9 pr-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500 disabled:opacity-50"
           />
         </div>
       </div>
 
       {/* Item List */}
       <div className="p-2 overflow-y-auto flex-1">
-        {dataToDisplay.length > 0 ? (
+        {isLoading ? (
+          <SkeletonCard />
+        ) : dataToDisplay.length > 0 ? (
           <ul className="divide-y divide-slate-100 dark:divide-slate-800">
             {dataToDisplay.map((item) => (
               <li
@@ -155,7 +190,7 @@ const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
       </div>
 
       {/* Show More Button */}
-      {filteredData.length > visibleCount && (
+      {!isLoading && filteredData.length > visibleCount && (
         <div className="p-4 border-t border-slate-200 dark:border-slate-800 mt-auto">
           <button
             onClick={handleShowMore}
@@ -169,25 +204,6 @@ const DataTable = ({ title, data, onAdd, onEdit, onDelete }) => {
   );
 };
 
-// ========================================================================== //
-// ! HELPER COMPONENT: SkeletonCard
-// ========================================================================== //
-
-/**
- * ? SkeletonCard
- * A placeholder card shown while data is loading.
- */
-const SkeletonCard = () => (
-  <div className="bg-white dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl p-4 min-h-[300px] animate-pulse">
-    <div className="h-6 bg-slate-200 dark:bg-slate-700 rounded w-1/3 mb-4"></div>
-    <div className="h-10 bg-slate-200 dark:bg-slate-700 rounded w-full mb-4"></div>
-    <div className="space-y-2 p-2">
-      <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded"></div>
-      <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded"></div>
-      <div className="h-8 bg-slate-200 dark:bg-slate-700 rounded"></div>
-    </div>
-  </div>
-);
 
 // ========================================================================== //
 // ! MAIN COMPONENT: MetaDataManagement
@@ -211,254 +227,275 @@ const MetaDataManagement = () => {
   const [newItemName, setNewItemName] = useState(''); // Input value for Add/Edit modal
   const [modalError, setModalError] = useState(''); // Error message for modals
 
-  // ! Context
+  // ! Context & Auth
   const { refreshKey } = useContext(DataRefreshContext); // * Used to trigger re-fetch on manual refresh
   const { session } = useAuth();
+  const API_BASE_URL = import.meta.env.VITE_API_URL; // Отримання базового URL
 
   // * A map to easily access state setters and table names
-  const dataMap = {
-    'Content Types': {
-      data: contentTypes,
-      setData: setContentTypes,
-      tableName: 'content_types',
-    },
-    Categories: {
-      data: categories,
-      setData: setCategories,
-      tableName: 'categories',
-    },
-    Crafts: { data: crafts, setData: setCrafts, tableName: 'crafts' },
-  };
+  const dataMap = useMemo(
+    () => ({
+      'Content Types': {
+        data: contentTypes,
+        setData: setContentTypes,
+        // Використовуємо routeBase, як визначено в backend/server.js
+        routeBase: 'content-types', 
+      },
+      Categories: {
+        data: categories,
+        setData: setCategories,
+        routeBase: 'categories',
+      },
+      Crafts: { 
+        data: crafts, 
+        setData: setCrafts, 
+        routeBase: 'crafts' 
+      },
+    }),
+    [contentTypes, categories, crafts]
+  ); 
 
-  // ! Effect: Data Fetching
-  // * Fetches all metadata types on initial mount and on manual refresh (via refreshKey)
-
+  // ! Effect: Data Fetching (ОНОВЛЕНО: використовує бек-енд)
   useEffect(() => {
     const fetchAllData = async () => {
-      // * Чекаємо на сесію, перш ніж робити запит
-      if (!session) {
-        setLoading(false); // Якщо сесії немає, не завантажуємо
+      // Перевіряємо сесію ПЕРЕД запитом
+      if (!session?.access_token) { 
+        console.warn('MetaDataManagement: No session token, skipping data fetch.');
+        setLoading(false);
+        setContentTypes([]); setCategories([]); setCrafts([]);
+        setModalError("Please log in to view this page.");
         return;
       }
+      const token = session.access_token;
+      const headers = { Authorization: `Bearer ${token}` };
 
-      setLoading(true); // Сесія є, починаємо завантаження
+      setLoading(true);
+      setModalError(''); // Скидаємо помилку сторінки
+
+      const routeBases = ['content-types', 'categories', 'crafts'];
+      const setters = [setContentTypes, setCategories, setCrafts];
+
       try {
-        // --- ОСЬ ЦЕЙ КОД БУЛО ВТРАЧЕНО ---
-        const [typesRes, categoriesRes, craftsRes] = await Promise.all([
-          supabase
-            .from('content_types')
-            .select('*')
-            .order('created_at', { ascending: false }),
-          supabase
-            .from('categories')
-            .select('*')
-            .order('created_at', { ascending: false }),
-          supabase
-            .from('crafts')
-            .select('*')
-            .order('created_at', { ascending: false }),
-        ]);
+        // Використовуємо Promise.allSettled для надійності
+        const results = await Promise.allSettled(
+          routeBases.map(route => fetch(`${API_BASE_URL}/${route}`, { headers }))
+        );
 
-        // * Обробка помилок для кожного запиту
-        if (typesRes.error) throw typesRes.error;
-        if (categoriesRes.error) throw categoriesRes.error;
-        if (craftsRes.error) throw craftsRes.error;
+        let fetchErrorOccurred = false;
+        
+        for (let i = 0; i < results.length; i++) {
+            const result = results[i];
+            const route = routeBases[i];
+            const setter = setters[i];
 
-        // * Оновлення стану даними
-        setContentTypes(typesRes.data);
-        setCategories(categoriesRes.data);
-        setCrafts(craftsRes.data);
-        // --- КІНЕЦЬ ВТРАЧЕНОГО КОДУ ---
+            if (result.status === 'fulfilled') {
+                const response = result.value;
+                if (!response.ok) {
+                    console.error(`Failed to fetch ${route}: ${response.status}`);
+                    fetchErrorOccurred = true;
+                } else {
+                    const data = await response.json();
+                    setter(data || []);
+                }
+            } else {
+                 console.error(`Request rejected for ${route}:`, result.reason);
+                 fetchErrorOccurred = true;
+                 setter([]); 
+            }
+        }
+
+        if (fetchErrorOccurred) {
+            setModalError('Failed to load some metadata. Please try refreshing.');
+        }
+
       } catch (error) {
-        console.error('Error fetching metadata:', error);
-       
+        console.error('Critical error fetching metadata via backend:', error);
+        setModalError(`Critical error: ${error.message}`);
+        setContentTypes([]); setCategories([]); setCrafts([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchAllData();
-  }, [refreshKey, session]); // * Залежність від refreshKey та session// * Dependency on refreshKey triggers re-fetch
+  }, [refreshKey, session, API_BASE_URL]);
 
   // ! Modal Handlers
-  /**
-   * Opens the Add/Edit modal.
-   * @param {string} table - The name of the table ('Content Types', 'Categories', 'Crafts').
-   * @param {string} mode - 'add' or 'edit'.
-   * @param {object|null} item - The item to edit (null if adding).
-   */
-  const openEditModal = (table, mode, item = null) => {
+  const openEditModal = useCallback((table, mode, item = null) => {
     setCurrentTable(table);
     setModalMode(mode);
-    setModalError(''); // Clear previous errors
+    setModalError('');
     if (mode === 'edit' && item) {
       setCurrentItem(item);
-      setNewItemName(item.name); // * Pre-fill input with current name
+      setNewItemName(item.name);
     } else {
       setCurrentItem(null);
-      setNewItemName(''); // * Clear input for adding
+      setNewItemName('');
     }
     setIsEditModalOpen(true);
-  };
+  }, []);
 
-  /**
-   * Closes the Add/Edit modal and resets related state.
-   */
-  const closeEditModal = () => {
+  const closeEditModal = useCallback(() => {
     setIsEditModalOpen(false);
-    // * Reset state after a short delay to allow modal fade-out
     setTimeout(() => {
       setCurrentTable(null);
       setCurrentItem(null);
       setNewItemName('');
       setModalError('');
-    }, 300); // * Adjust delay as needed
-  };
+      setIsSubmitting(false); 
+    }, 300);
+  }, []);
 
-  /**
-   * Opens the Delete confirmation modal.
-   * @param {string} table - The name of the table.
-   * @param {object} item - The item to be deleted.
-   */
-  const openDeleteModal = (table, item) => {
+  const openDeleteModal = useCallback((table, item) => {
     setCurrentTable(table);
     setCurrentItem(item);
-    setModalError(''); // Clear previous errors
+    setModalError('');
     setIsDeleteModalOpen(true);
-  };
+  }, []);
 
-  /**
-   * Closes the Delete confirmation modal.
-   */
-  const closeDeleteModal = () => {
+  const closeDeleteModal = useCallback(() => {
     setIsDeleteModalOpen(false);
-    // * Reset state after a short delay
     setTimeout(() => {
       setCurrentTable(null);
       setCurrentItem(null);
       setModalError('');
+      setIsSubmitting(false); 
     }, 300);
-  };
+  }, []);
 
-  // ! API Handlers
-  /**
-   * Handles saving a new or edited item via Supabase.
-   */
+  // ! API Handlers (ОНОВЛЕНО: використовує бек-енд)
   const handleSave = async () => {
     if (!newItemName.trim() || !currentTable) return;
 
-    // *** ЗМІНА: Отримуємо 'data' і перейменовуємо на 'currentData' ***
-    const { data: currentData, setData, tableName } = dataMap[currentTable];
+    const tableConfig = dataMap[currentTable];
+    if (!tableConfig) {
+        setModalError("Invalid table configuration.");
+        return;
+    }
+    
+    const { data: currentData, setData, routeBase } = tableConfig;
     const trimmedName = newItemName.trim();
 
     setIsSubmitting(true);
-    setModalError(''); // Clear previous error
+    setModalError('');
+
+    const token = session?.access_token;
+    if (!token) {
+        setModalError("Authentication error. Please log in again.");
+        setIsSubmitting(false);
+        return;
+    }
+    const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+
 
     try {
-      // NOTE: Supabase client automatically includes the user's token if logged in.
-      // Ensure RLS policies are set up in Supabase to allow authenticated users
-      // to insert/update these tables.
+      // 1. Клієнтська перевірка на дублікат
+      const existingItem = currentData.find(
+        (item) =>
+          item.name.toLowerCase() === trimmedName.toLowerCase() &&
+          (!currentItem || item.id !== currentItem.id)
+      );
+      if (existingItem) {
+        throw new Error(`An item named "${trimmedName}" already exists.`);
+      }
+
+      // 2. Виконання запиту через бек-енд
+      let url = '';
+      let method = '';
+      let payload = { name: trimmedName };
+
       if (modalMode === 'add') {
-        // * --- START: DUPLICATE CHECK (ADD) ---
-        // *** ЗМІНА: Перевіряємо, чи існує елемент з такою ж назвою (без урахування регістру) ***
-        const existingItem = currentData.find(
-          (item) => item.name.toLowerCase() === trimmedName.toLowerCase()
-        );
-        if (existingItem) {
-          setModalError(`An item named "${trimmedName}" already exists.`);
-          setIsSubmitting(false);
-          return; // Зупиняємо виконання
-        }
-        // * --- END: DUPLICATE CHECK ---
-
-        // * --- ADD LOGIC ---
-        const { data, error } = await supabase
-          .from(tableName)
-          .insert({ name: trimmedName }) // *** ЗМІНА: Використовуємо trimmedName ***
-          .select() // * Return the newly created record
-          .single(); // * Expecting a single record back
-        if (error) throw error;
-        setData((prevData) => [data, ...prevData]); // * Add new item to the beginning of the list
+          method = 'POST';
+          url = `${API_BASE_URL}/${routeBase}`;
       } else if (modalMode === 'edit' && currentItem) {
-        // * --- START: DUPLICATE CHECK (EDIT) ---
-        // *** ЗМІНА: Перевіряємо, чи існує ІНШИЙ елемент з такою ж назвою ***
-        const existingItem = currentData.find(
-          (item) =>
-            item.name.toLowerCase() === trimmedName.toLowerCase() &&
-            item.id !== currentItem.id // <-- Важливо: виключаємо поточний елемент
-        );
-        if (existingItem) {
-          setModalError(`Another item named "${trimmedName}" already exists.`);
-          setIsSubmitting(false);
-          return; // Зупиняємо виконання
-        }
-        // * --- END: DUPLICATE CHECK ---
-
-        // * --- EDIT LOGIC ---
-        const { data, error } = await supabase
-          .from(tableName)
-          .update({ name: trimmedName }) // *** ЗМІНА: Використовуємо trimmedName ***
-          .eq('id', currentItem.id)
-          .select()
-          .single();
-        if (error) throw error;
-        // * Update the item in the local state array
-        setData((prevData) =>
-          prevData.map((item) => (item.id === currentItem.id ? data : item))
-        );
-      }
-      closeEditModal(); // * Close modal on success
-    } catch (error) {
-      console.error('Error saving item:', error);
-      // *** ЗМІНА: Обробка помилки унікальності з бази даних ***
-      if (error.code === '23505') {
-        // 23505 - код помилки унікальності Postgres
-        setModalError(
-          `An item named "${trimmedName}" already exists (database error).`
-        );
+          method = 'PUT';
+          url = `${API_BASE_URL}/${routeBase}/${currentItem.id}`;
       } else {
-        setModalError(`Error: ${error.message}`); // Set error message for the modal
+           throw new Error("Invalid operation state.");
       }
+
+      const response = await fetch(url, { method, headers, body: JSON.stringify(payload) });
+
+      if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: `Request failed with status ${response.status}` }));
+          // Бекенд повертає 409 при дублікаті
+          if (response.status === 409) {
+               throw new Error(errorData.error || `Item named "${trimmedName}" already exists.`);
+          }
+          throw new Error(errorData.error || `Failed to ${modalMode === 'add' ? 'add' : 'update'} item.`);
+      }
+
+      const resultData = await response.json();
+
+      // 3. Оновлення локального стану
+      if (modalMode === 'add') {
+        setData((prevData) => [resultData, ...prevData]);
+      } else {
+        setData((prevData) =>
+          prevData.map((item) => (item.id === currentItem.id ? resultData : item))
+        );
+      }
+      closeEditModal();
+      
+    } catch (error) {
+      console.error('Error saving item via backend:', error);
+      setModalError(`${error.message}`);
     } finally {
-      setIsSubmitting(false); // Reset submitting state
+      setIsSubmitting(false);
     }
   };
 
-  /**
-   * Handles confirming the deletion of an item via Supabase.
-   */
   const handleDeleteConfirm = async () => {
     if (!currentItem || !currentTable) return;
-    const { setData, tableName } = dataMap[currentTable];
+
+    const tableConfig = dataMap[currentTable];
+    if (!tableConfig) {
+        setModalError("Invalid table configuration for delete.");
+        return;
+    }
+    const { setData, routeBase } = tableConfig;
+
+    const token = session?.access_token;
+    if (!token) {
+        setModalError("Authentication error. Please log in again.");
+        setIsSubmitting(false);
+        return;
+    }
 
     setIsSubmitting(true);
-    setModalError(''); // Clear previous error
+    setModalError('');
+    const url = `${API_BASE_URL}/${routeBase}/${currentItem.id}`;
 
     try {
-      // NOTE: Supabase client automatically includes the user's token if logged in.
-      // Ensure RLS policies are set up in Supabase to allow authenticated users
-      // to delete from these tables.
-      const { error } = await supabase
-        .from(tableName)
-        .delete()
-        .eq('id', currentItem.id); // * Delete based on the item's ID
-      if (error) throw error;
-      // * Remove the item from the local state array
+      // 1. Виконання запиту через бек-енд
+      const response = await fetch(url, {
+            method: 'DELETE',
+            headers: { Authorization: `Bearer ${token}` }
+        });
+
+      // Бекенд повертає 200/204 при успіху
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: `Request failed with status ${response.status}` }));
+        throw new Error(errorData.error || 'Failed to delete item.');
+      }
+      
+      // 2. Оновлення локального стану
       setData((prevData) =>
         prevData.filter((item) => item.id !== currentItem.id)
       );
-      closeDeleteModal(); // * Close modal on success
+      closeDeleteModal();
+      
     } catch (error) {
-      console.error('Error deleting item:', error);
-      setModalError(`Error: ${error.message}`); // Set error message for the modal
+      console.error('Error deleting item via backend:', error);
+      setModalError(`Error: ${error.message}`);
     } finally {
-      setIsSubmitting(false); // Reset submitting state
+      setIsSubmitting(false);
     }
   };
 
   // ! Styles
   const inputClasses =
-    'flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500';
+    'flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:text-slate-50 dark:focus-visible:ring-slate-500 disabled:opacity-50';
 
   // ! Render
   return (
@@ -470,39 +507,44 @@ const MetaDataManagement = () => {
         Manage content types, categories, and crafts for reels. (Admin only)
       </p>
 
-      {loading ? (
-        // * --- Loading State ---
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <SkeletonCard />
-          <SkeletonCard />
-          <SkeletonCard />
-        </div>
-      ) : (
-        // * --- Loaded State ---
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:items-start">
-          <DataTable
-            title="Content Types"
-            data={contentTypes}
-            onAdd={() => openEditModal('Content Types', 'add')}
-            onEdit={(item) => openEditModal('Content Types', 'edit', item)}
-            onDelete={(item) => openDeleteModal('Content Types', item)}
-          />
-          <DataTable
-            title="Categories"
-            data={categories}
-            onAdd={() => openEditModal('Categories', 'add')}
-            onEdit={(item) => openEditModal('Categories', 'edit', item)}
-            onDelete={(item) => openDeleteModal('Categories', item)}
-          />
-          <DataTable
-            title="Crafts"
-            data={crafts}
-            onAdd={() => openEditModal('Crafts', 'add')}
-            onEdit={(item) => openEditModal('Crafts', 'edit', item)}
-            onDelete={(item) => openDeleteModal('Crafts', item)}
-          />
+      {/* --- Error Message Display --- */}
+      {modalError && !loading && !isEditModalOpen && !isDeleteModalOpen && (
+        <div
+          className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6"
+          role="alert"
+        >
+          <strong className="font-bold">Error: </strong>
+          <span className="block sm:inline">{modalError}</span>
         </div>
       )}
+
+      {/* --- Data Tables --- */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 lg:items-start">
+        <DataTable
+          title="Content Types"
+          data={contentTypes}
+          isLoading={loading}
+          onAdd={() => openEditModal('Content Types', 'add')}
+          onEdit={(item) => openEditModal('Content Types', 'edit', item)}
+          onDelete={(item) => openDeleteModal('Content Types', item)}
+        />
+        <DataTable
+          title="Categories"
+          data={categories}
+          isLoading={loading}
+          onAdd={() => openEditModal('Categories', 'add')}
+          onEdit={(item) => openEditModal('Categories', 'edit', item)}
+          onDelete={(item) => openDeleteModal('Categories', item)}
+        />
+        <DataTable
+          title="Crafts"
+          data={crafts}
+          isLoading={loading}
+          onAdd={() => openEditModal('Crafts', 'add')}
+          onEdit={(item) => openEditModal('Crafts', 'edit', item)}
+          onDelete={(item) => openDeleteModal('Crafts', item)}
+        />
+      </div>
 
       {/* --- Add/Edit Modal --- */}
       {isEditModalOpen && (
@@ -548,6 +590,7 @@ const MetaDataManagement = () => {
                   className={inputClasses}
                   autoFocus // * Focus input on open
                   disabled={isSubmitting} // Disable input while submitting
+                  required
                 />
                 {modalError && (
                   <p className="text-sm text-red-500 mt-2">{modalError}</p>
@@ -557,6 +600,7 @@ const MetaDataManagement = () => {
               {/* Modal Footer */}
               <div className="mt-6 flex justify-end gap-3">
                 <button
+                  type="button"
                   onClick={closeEditModal}
                   disabled={isSubmitting} // Disable cancel while submitting
                   className="px-4 py-2 text-sm font-semibold rounded-md border border-slate-300 dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50"
@@ -564,9 +608,10 @@ const MetaDataManagement = () => {
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={handleSave}
                   disabled={isSubmitting || !newItemName.trim()} // Disable save if submitting or name is empty
-                  className="px-4 py-2 text-sm font-semibold rounded-md bg-slate-900 text-white dark:bg-slate-200 dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-300 disabled:opacity-50 flex items-center gap-2"
+                  className="px-4 py-2 text-sm font-semibold rounded-md bg-slate-900 text-white dark:bg-slate-200 dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-300 disabled:opacity-50 flex items-center justify-center min-w-[80px]"
                 >
                   {isSubmitting ? (
                     <Loader2 className="animate-spin" size={16} />
@@ -632,7 +677,7 @@ const MetaDataManagement = () => {
                 <button
                   onClick={handleDeleteConfirm}
                   disabled={isSubmitting} // Disable delete while submitting
-                  className="px-4 py-2 text-sm font-semibold rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
+                  className="px-4 py-2 text-sm font-semibold rounded-md bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 flex items-center justify-center min-w-[90px]"
                 >
                   {isSubmitting ? (
                     <Loader2 className="animate-spin" size={16} />
