@@ -308,15 +308,23 @@ const AuthProvider = ({ children }) => {
    */
   const signOut = useCallback(async () => {
     clearError();
+    
+    // Очищаємо стан негайно, щоб компонент AdminLayout відразу відреагував.
+    // Навіть якщо signOut() дасть помилку, ми робимо вигляд, що вийшли.
+    // (Це запобігає зависанню в AdminLayout)
+    setUser(null);
+    setSession(null);
+
     const { error: signOutError } = await supabase.auth.signOut();
+    
     if (signOutError) {
+      // Якщо вихід з Supabase дав помилку, встановлюємо її, але стан залишаємо очищеним
+      // (інакше користувач не зможе нічого зробити)
       setError(signOutError.message);
       console.error('Sign out error:', signOutError);
-      // * State update (setUser, setSession) is handled by onAuthStateChange
+      throw signOutError; // Прокидаємо помилку, щоб AdminLayout міг її спіймати
     }
-    // * Explicitly clear state just in case listener fails (optional redundancy)
-    // setUser(null);
-    // setSession(null);
+    
   }, [clearError]);
 
   /**

@@ -1,6 +1,6 @@
 // src/AdminComponents/Layout/AdminLayout.jsx
 // ! React & Router
-import React, { useState, createContext, useContext, useEffect } from 'react';
+import React, { useState, createContext, useContext, useEffect, useCallback } from 'react'; // <-- ДОДАНО useCallback
 import { Outlet, useNavigate, useLocation, NavLink } from 'react-router-dom';
 
 // ! Icons (lucide-react)
@@ -29,9 +29,7 @@ import { UploadProvider, useUpload } from '../../context/UploadContext';
 export const DataRefreshContext = createContext(null);
 
 /**
- * ? GlobalUploadStatus
- * A global component that displays the status of file uploads.
- * It floats in the corner and gets its state directly from the UploadContext.
+ * ? GlobalUploadStatus (без змін)
  */
 const GlobalUploadStatus = () => {
   const { uploadStatus, cancelUpload } = useUpload();
@@ -139,10 +137,7 @@ const GlobalUploadStatus = () => {
 
 /**
  * ? AdminLayout
- * The main layout shell for all authenticated admin and user panel pages.
- * It provides the sidebar, main content area (`<Outlet />`),
- * and wraps the entire application in the `UploadProvider`
- * and `DataRefreshContext.Provider`.
+ * ...
  */
 function AdminLayout() {
   // ! Hooks
@@ -151,19 +146,20 @@ function AdminLayout() {
   const location = useLocation();
   const { user, loading, signOut } = useAuth();
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // * Effect: Перевірка автентифікації та перенаправлення
   useEffect(() => {
-    // Поки AuthContext перевіряє сесію, нічого не робимо
     if (loading) {
       return;
     }
-    // Якщо перевірка завершилась, АЛЕ користувача немає
     if (!user) {
       console.warn('AdminLayout: Користувач не автентифікований. Перенаправлення...');
-      navigate('/'); // Або '/login'
+      navigate('/', { replace: true }); // Використовуємо replace, щоб історія була чистою
     }
   }, [user, loading, navigate]);
 
 
+  // * Loading State
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-950">
@@ -172,23 +168,29 @@ function AdminLayout() {
     );
   }
   
-  // Якщо !loading і !user, ефект вище вже спрацював, 
-  // але ми можемо повернути null, щоб уникнути рендеру дочірніх компонентів
+  // * Block Render if not authenticated (after loading)
   if (!user) {
     return null; 
   }
 
   // ! Handlers
-  const triggerRefresh = () => setRefreshKey((prevKey) => prevKey + 1);
+  
+  // * 1. Робимо triggerRefresh стабільною
+  const triggerRefresh = useCallback(() => setRefreshKey((prevKey) => prevKey + 1), []);
 
-  const handleLogout = async () => {
+  // * 2. Робимо handleLogout стабільною
+  const handleLogout = useCallback(async () => {
+    console.log('Attempting logout...');
     try {
       await signOut();
-      navigate('/');
+      navigate('/login', { replace: true }); // Перенаправляємо на /login або /
     } catch (error) {
       console.error('Error logging out:', error);
+      // Навіть якщо signOut дає помилку (наприклад, мережа), перенаправляємо, щоб очистити інтерфейс.
+      navigate('/login', { replace: true });
     }
-  };
+  }, [signOut, navigate]);
+
 
   // ! Dynamic Configuration
   // * Check if we are in the admin panel or user panel
@@ -261,6 +263,7 @@ function AdminLayout() {
           <div className="flex-1 p-4 overflow-y-auto">
             <nav className="flex flex-col space-y-1">
               <button
+                // Викликає стабільну функцію
                 onClick={triggerRefresh}
                 className={refreshButtonClasses}
                 title="Refresh page data"
@@ -318,6 +321,7 @@ function AdminLayout() {
           {/* --- Logout Button --- */}
           <div className="p-4 border-t border-slate-200 dark:border-slate-800">
             <button
+              // Викликає стабільну функцію
               onClick={handleLogout}
               className="w-full flex items-center justify-center px-4 py-2 rounded-md text-sm font-semibold transition-colors
                        bg-slate-900 text-slate-50 hover:bg-slate-900/90
