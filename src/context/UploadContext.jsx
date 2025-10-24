@@ -370,11 +370,23 @@ export const UploadProvider = ({ children }) => {
           message: 'Saving metadata...',
           currentFileName: '',
         }));
-        const { error: insertError } = await supabase
-          .from('media_items')
-          .insert(allUploadedRecords);
-        if (insertError)
-          throw new Error(`Database insert error: ${insertError.message}`);
+        const response = await fetch(`${API_BASE_URL}/media-items`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`, // * Передаємо токен для requireAuth
+          },
+          body: JSON.stringify(allUploadedRecords), // * Відправляємо всі зібрані дані
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(
+            errData.details ||
+              errData.error ||
+              `Failed to save metadata (status ${response.status}).`
+          );
+        }
 
         setUploadStatus((prev) => ({
           ...prev,

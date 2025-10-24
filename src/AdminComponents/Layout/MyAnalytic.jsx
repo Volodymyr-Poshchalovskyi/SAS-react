@@ -1155,7 +1155,7 @@ const MyAnalytics = () => {
         {/* --- Analytics Table --- */}
         <div className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
-<table className="w-full table-fixed text-sm">              {/* Table Header */}
+<table className="w-full table-fixed text-sm">              
               <thead className="text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900">
                 <tr className="border-b border-slate-200 dark:border-slate-800">
                   <th className="p-4 w-12 text-left">

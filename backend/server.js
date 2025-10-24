@@ -981,6 +981,39 @@ app.get('/reels/public/:short_link', async (req, res) => {
 /**
  * Fetches a single media item by its ID.
  */
+
+app.post('/media-items', requireAuth, async (req, res) => {
+  const records = req.body;
+  const user_id = req.user.id; // Отримуємо ID користувача з middleware
+
+  if (!records || !Array.isArray(records) || records.length === 0) {
+    return res.status(400).json({ error: 'An array of media item records is required.' });
+  }
+
+  // * Переконуємось, що user_id встановлено з токена, а не з клієнта
+  const recordsToInsert = records.map(record => ({
+    ...record,
+    user_id: user_id 
+  }));
+
+  try {
+    const { data, error } = await supabase
+      .from('media_items')
+      .insert(recordsToInsert)
+      .select(); // .select() поверне вставлені дані
+
+    if (error) {
+      console.error('Supabase insert error on backend:', error);
+      throw error;
+    }
+
+    res.status(201).json(data); // Успіх
+  } catch (error) {
+    console.error('Error creating media items:', error);
+    res.status(500).json({ error: 'Failed to save media items.', details: error.message });
+  }
+});
+
 app.get('/media-items/:id', requireAuth, async (req, res) => {
   const { id } = req.params;
   try {

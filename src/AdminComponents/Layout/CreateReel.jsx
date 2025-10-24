@@ -1018,7 +1018,7 @@ const CreateReel = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isEditMode = !!itemId;
-  const { session, user } = useAuth(); // Отримуємо сесію та користувача
+  const { session, user, loading: authLoading } = useAuth(); // Отримуємо сесію та користувача
   // ! State
   const createNewReelState = () => ({
     id: Date.now() + Math.random(), // * Unique client-side ID
@@ -1101,51 +1101,70 @@ const CreateReel = () => {
 
   // * Effect: Fetch all dropdown options on mount
   useEffect(() => {
-    const fetchOptions = async () => {
-      setIsLoadingOptions(true);
-      try {
-        // * Fetch all in parallel
-        const [
-          artistsRes,
-          clientsRes,
-          celebritiesRes,
-          contentTypesRes,
-          categoriesRes,
-          craftsRes,
-        ] = await Promise.all([
-          supabase.from('artists').select('id, name'),
-          supabase.from('clients').select('id, name'),
-          supabase.from('celebrities').select('id, name'),
-          supabase.from('content_types').select('id, name'),
-          supabase.from('categories').select('id, name'),
-          supabase.from('crafts').select('id, name'),
-        ]);
-        if (artistsRes.error) throw artistsRes.error;
-        setArtists(artistsRes.data);
-        setClients(clientsRes.data);
-        setCelebrities(celebritiesRes.data);
-        setContentTypes(contentTypesRes.data);
-        setCategories(categoriesRes.data);
-        setCrafts(craftsRes.data);
-      } catch (error) {
-        console.error('Failed to fetch options from database:', error);
-      } finally {
-        setIsLoadingOptions(false);
-      }
-    };
-    fetchOptions();
-  }, [itemId, isEditMode, navigate, session, user]);
+  // * Не запускати, якщо автентифікація ще завантажується
+  if (authLoading) {
+    return;
+  }
 
-  // * Effect: Fetch item data if in Edit Mode
+  // * Якщо auth готовий, але сесії нема, просто зупиняємо завантаження
+  if (!session) {
+    setIsLoadingOptions(false);
+    return;
+  }
+
+  // * Якщо ми тут, значить authLoading = false і session існує
+  const fetchOptions = async () => {
+    setIsLoadingOptions(true);
+    try {
+      const [
+        artistsRes,
+        clientsRes,
+        celebritiesRes,
+        contentTypesRes,
+        categoriesRes,
+        craftsRes,
+      ] = await Promise.all([
+        supabase.from('artists').select('id, name'),
+        supabase.from('clients').select('id, name'),
+        supabase.from('celebrities').select('id, name'),
+        supabase.from('content_types').select('id, name'),
+        supabase.from('categories').select('id, name'),
+        supabase.from('crafts').select('id, name'),
+      ]);
+
+      // * Важливо: перевіряйте помилки індивідуально
+      if (artistsRes.error) throw artistsRes.error;
+      setArtists(artistsRes.data);
+      setClients(clientsRes.data);
+      setCelebrities(celebritiesRes.data);
+      setContentTypes(contentTypesRes.data);
+      setCategories(categoriesRes.data);
+      setCrafts(craftsRes.data);
+    } catch (error) {
+      console.error('Failed to fetch options from database:', error.message);
+      // * Показуємо помилку користувачу, якщо запит не вдався через RLS
+      showToast(`Failed to load options: ${error.message}`, 'error');
+    } finally {
+      setIsLoadingOptions(false);
+    }
+  };
+
+  fetchOptions();
+}, [authLoading, session]);
+
+ // * Effect: Fetch item data if in Edit Mode (when auth is ready)
   useEffect(() => {
-    if (isEditMode) {
+    // * Запускати, тільки якщо:
+    // * 1. Це режим редагування
+    // * 2. Автентифікація НЕ завантажується
+    if (isEditMode && !authLoading) {
       const fetchItemData = async () => {
+        // * Встановлюємо завантаження тут, оскільки fetchOptions
+        // * більше не керує цим у режимі редагування
         setIsLoadingOptions(true);
-
         const token = session?.access_token;
-        // ▼▼▼ ДОДАЙТЕ ЦЕЙ РЯДОК ▼▼▼
+
         if (!token || !user) {
-          // Перевіряємо і токен, і користувача
           setIsLoadingOptions(false);
           showToast('Authentication error. Please log in again.');
           return;
@@ -1236,12 +1255,14 @@ const CreateReel = () => {
           showToast(`Error: ${error.message}`);
           setTimeout(() => navigate('/adminpanel/library'), 3000);
         } finally {
+          // * Це тепер головна точка виходу
+          // * для стану завантаження в режимі редагування
           setIsLoadingOptions(false);
         }
       };
       fetchItemData();
     }
-  }, [itemId, isEditMode, navigate, session]); // Додаємо session як залежність
+  }, [isEditMode, authLoading, session, user, itemId, navigate]); // Додаємо session як залежність
 
   // ! Handlers
 
