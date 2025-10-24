@@ -1010,6 +1010,7 @@ const ReelPartialForm = ({ reel, onUpdate, onFilesSelected, isEditMode }) => {
 // ========================================================================== //
 // ! SECTION 3: CREATE REEL (MAIN COMPONENT)
 // ========================================================================== //
+const MAX_UPLOAD_LIMIT = 100;
 
 const CreateReel = () => {
   // ! Hooks
@@ -1350,6 +1351,16 @@ const CreateReel = () => {
 
     // * Update the state
     setReels((prev) => {
+      const currentReelCount = prev.length;
+      const additionalReelCount = newReels.length;
+      const newTotalReelCount = currentReelCount + additionalReelCount;
+      if (newTotalReelCount > MAX_UPLOAD_LIMIT) {
+        showToast(
+          `Неможливо додати ${additionalReelCount} файлів. Загальна кількість файлів у пакеті не може перевищувати ${MAX_UPLOAD_LIMIT}. Ви вже маєте ${currentReelCount}.`,
+          'error'
+        );
+        return prev; // Повернути стан без змін
+      }
       const updatedExistingReels = prev.map((reel) => {
         if (reel.id === reelId) {
           const fileNameWithoutExt =
@@ -1438,6 +1449,13 @@ const CreateReel = () => {
         const reelsToUpload = reels.filter((r) => r.selectedFile);
         if (reelsToUpload.length === 0) {
           showToast('Please add at least one file to upload.');
+          return;
+        }
+        if (reelsToUpload.length > MAX_UPLOAD_LIMIT) {
+          showToast(
+            `Imposible to upload ${reelsToUpload.length} files. Max limit – ${MAX_UPLOAD_LIMIT} per time.`,
+            'error'
+          );
           return;
         }
 

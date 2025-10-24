@@ -8,10 +8,13 @@ import React, {
   useRef,
   useCallback,
   useMemo,
-} from 'react'; // <-- Import useMemo here
+} from 'react';
 
 // ! Library Imports
 import { supabase } from '../lib/supabaseClient'; // * Supabase client instance
+
+// ! Local Imports (Added)
+import { useAuth } from '../hooks/useAuth'; // * Hook to get auth session
 
 // ========================================================================== //
 // ! CONTEXT CREATION & HOOK
@@ -42,18 +45,21 @@ const API_BASE_URL = import.meta.env.VITE_API_URL; // * Backend URL for signed U
 /**
  * ? uploadFileToGCS Helper Function
  * Handles the process of uploading a single file to Google Cloud Storage.
- * 1. Cleans the filename.
- * 2. Fetches a signed upload URL from the backend API.
- * 3. Uses XMLHttpRequest (XHR) to perform the upload, allowing progress tracking and cancellation.
- * 4. Tracks the active XHR request using the provided ref map.
  *
  * @param {File} file - The file object to upload.
  * @param {string} role - The role of the file ('main' or 'preview'), used by backend for destination.
  * @param {function} onProgress - Callback function to report upload progress (0-100).
- * @param {React.MutableRefObject<Map<string, XMLHttpRequest>>} activeXHRsRef - Ref pointing to a Map storing active XHR requests (key: gcsPath, value: XHR object).
+ * @param {React.MutableRefObject<Map<string, XMLHttpRequest>>} activeXHRsRef - Ref pointing to a Map storing active XHR requests.
+ * @param {string} token - The JWT auth token. (Added)
  * @returns {Promise<string>} A promise resolving with the GCS path upon successful upload.
  */
-const uploadFileToGCS = async (file, role, onProgress, activeXHRsRef) => {
+const uploadFileToGCS = async (
+  file,
+  role,
+  onProgress,
+  activeXHRsRef,
+  token // <-- 1. Приймаємо токен
+) => {
   if (!file) return null; // * Exit if no file provided
 
   // * Sanitize filename to prevent issues with GCS paths/URLs
@@ -65,7 +71,10 @@ const uploadFileToGCS = async (file, role, onProgress, activeXHRsRef) => {
   // * 1. Get Signed URL from our backend
   const response = await fetch(`${API_BASE_URL}/generate-upload-url`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`, // <-- 2. Додаємо токен в заголовок
+    },
     body: JSON.stringify({
       fileName: cleanFileName,
       fileType: file.type,
@@ -75,7 +84,9 @@ const uploadFileToGCS = async (file, role, onProgress, activeXHRsRef) => {
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({})); // * Try to parse error details
     throw new Error(
-      `Failed to get signed URL: ${errorData.details || errorData.error || response.statusText}`
+      `Failed to get signed URL: ${
+        errorData.details || errorData.error || response.statusText
+      }`
     );
   }
   const { signedUrl, gcsPath } = await response.json();
@@ -146,34 +157,31 @@ const uploadFileToGCS = async (file, role, onProgress, activeXHRsRef) => {
 
 export const UploadProvider = ({ children }) => {
   // ! State
-  // * Main state object holding all info about the current upload process
   const [uploadStatus, setUploadStatus] = useState({
-    isActive: false, // * Is an upload/update currently in progress? (Controls modal visibility)
-    message: '', // * User-facing status message (e.g., "Uploading file 1 of 3")
-    error: null, // * Stores any error message that occurred
-    isSuccess: false, // * Flag indicating successful completion of the entire process
-    totalFiles: 0, // * Total number of files in the current batch
-    completedFiles: 0, // * Number of files successfully uploaded so far
-    currentFileName: '', // * Name of the file currently being processed/uploaded
-    currentFileProgress: 0, // * Progress (0-100) of the current file upload
+    isActive: false,
+    message: '',
+    error: null,
+    isSuccess: false,
+    totalFiles: 0,
+    completedFiles: 0,
+    currentFileName: '',
+    currentFileProgress: 0,
   });
 
   // ! Refs
-  // * Stores active XHR requests (Map<gcsPath, XMLHttpRequest>) for cancellation
   const activeXHRs = useRef(new Map());
-  // * Flag to signal cancellation request across async operations
   const isCanceled = useRef(false);
+
+  // ! Auth Hook (Added)
+  const { session } = useAuth(); // <-- 3. Отримуємо сесію тут
 
   // ! Helper Functions
   /**
    * ? Resets the upload status after a delay.
-   * Typically called after success or error to allow the user to see the final status message.
    */
   const resetStatus = useCallback(() => {
-    // * Delay allows the modal to show final status before disappearing
     setTimeout(() => {
       setUploadStatus({
-        // * Reset to initial state
         isActive: false,
         message: '',
         error: null,
@@ -183,27 +191,23 @@ export const UploadProvider = ({ children }) => {
         currentFileName: '',
         currentFileProgress: 0,
       });
-      // * Clear refs just in case, although they should be cleared by the upload/cancel functions
       activeXHRs.current.clear();
       isCanceled.current = false;
     }, 5000); // * 5-second delay
-  }, []); // * No dependencies, safe to useCallback
+  }, []);
 
   /**
    * ? Cancels all ongoing file uploads.
-   * Sets a cancellation flag, aborts active XHR requests, updates the status message.
    */
   const cancelUpload = useCallback(() => {
     console.log('Canceling upload...');
-    isCanceled.current = true; // * Signal ongoing/pending operations to stop
-    activeXHRs.current.set('__CANCELED__', true); // * Special flag for pending uploadFileToGCS calls
+    isCanceled.current = true;
+    activeXHRs.current.set('__CANCELED__', true);
 
-    // * Iterate through the map of active XHRs and abort each one
     activeXHRs.current.forEach((xhr, path) => {
       if (path !== '__CANCELED__') {
-        // * Skip the special flag entry
         try {
-          xhr.abort(); // * Abort the XHR request
+          xhr.abort();
           console.log(`Aborted upload for: ${path}`);
         } catch (e) {
           console.warn(`Could not abort XHR for ${path}:`, e);
@@ -211,44 +215,44 @@ export const UploadProvider = ({ children }) => {
       }
     });
 
-    // * Clear the tracking map immediately after aborting
     activeXHRs.current.clear();
 
-    // * Update the UI status to reflect cancellation
     setUploadStatus((prev) => ({
       ...prev,
-      isActive: true, // * Keep modal temporarily active to show the cancellation message
+      isActive: true,
       message: 'Upload Canceled',
-      error: 'Upload was canceled by the user.', // * Set specific error message
+      error: 'Upload was canceled by the user.',
       isSuccess: false,
-      currentFileProgress: 0, // * Reset progress
-      // * Keep totalFiles and completedFiles as they were for context? Or reset? Resetting seems clearer.
-      // totalFiles: 0,
-      // completedFiles: 0,
+      currentFileProgress: 0,
       currentFileName: '',
     }));
 
-    resetStatus(); // * Schedule the status reset to hide the modal after delay
-  }, [resetStatus]); // * Dependency on resetStatus
+    resetStatus();
+  }, [resetStatus]);
 
   // ! Main Upload/Update Functions exposed by the context
   /**
    * ? Starts the upload process for creating new media items.
-   * Loops through provided 'reels', uploads content and previews, then saves metadata.
-   * Handles progress updates and cancellation checks.
-   *
-   * @param {Array<object>} reelsToUpload - Array of objects representing items to upload. Each object should have `selectedFile`, `customPreviewFile` (optional), `title`.
-   * @param {object} commonFormData - Object containing metadata common to all uploaded items (artist, client, dates, etc.).
    */
   const startUpload = useCallback(
     async (reelsToUpload, commonFormData) => {
+      const MAX_UPLOAD_LIMIT = 100;
       if (!reelsToUpload || reelsToUpload.length === 0) return;
+      if (reelsToUpload.length > MAX_UPLOAD_LIMIT) {
+        throw new Error(
+          `Uploading limit exceeded. Can be uploaded ${MAX_UPLOAD_LIMIT} files per time.`
+        );
+      }
 
-      // * Reset cancellation flags and tracking map
+      // <-- 4. Отримуємо токен із сесії
+      const token = session?.access_token;
+      if (!token) {
+        throw new Error('User not authenticated. Please log in again.');
+      }
+
       isCanceled.current = false;
       activeXHRs.current.clear();
 
-      // * Set initial loading status
       setUploadStatus({
         isActive: true,
         message: 'Preparing upload...',
@@ -261,20 +265,16 @@ export const UploadProvider = ({ children }) => {
       });
 
       try {
-        // * Ensure user is authenticated
         const {
           data: { user },
-        } = await supabase.auth.getUser();
+        } = await supabase.auth.getUser(token); // <-- Передаємо токен
         if (!user) throw new Error('User not found. Please log in.');
 
-        const allUploadedRecords = []; // * Array to store metadata for batch insert
+        const allUploadedRecords = [];
 
-        // * Process each reel item sequentially
         for (const [index, reel] of reelsToUpload.entries()) {
-          // * --- Cancellation Check ---
           if (isCanceled.current) throw new Error('Upload canceled by user.');
 
-          // * Update status for the current file
           setUploadStatus((prev) => ({
             ...prev,
             message: `Processing file ${index + 1} of ${prev.totalFiles}...`,
@@ -283,11 +283,12 @@ export const UploadProvider = ({ children }) => {
             currentFileProgress: 0,
           }));
 
-          // * Progress callback for the main content file upload
           const onMainProgress = (p) =>
             setUploadStatus((prev) => ({
               ...prev,
-              message: `Uploading content (${index + 1}/${reelsToUpload.length})...`,
+              message: `Uploading content (${index + 1}/${
+                reelsToUpload.length
+              })...`,
               currentFileProgress: p,
             }));
 
@@ -296,22 +297,18 @@ export const UploadProvider = ({ children }) => {
             reel.selectedFile,
             'main',
             onMainProgress,
-            activeXHRs
+            activeXHRs,
+            token // <-- 5. Передаємо токен
           );
           if (!content_gcs_path)
             throw new Error(`Failed to upload main content for ${reel.title}.`);
 
-          // * Determine or upload preview file
           let preview_gcs_path = null;
           const isVideoFile = reel.selectedFile.type.startsWith('video/');
 
-          // * --- Cancellation Check ---
           if (isCanceled.current) throw new Error('Upload canceled by user.');
 
           if (isVideoFile) {
-            // * For videos, backend generates preview later based on content path
-            // * We construct the *expected* preview path here for the DB record
-            // ! This assumes a consistent naming convention in the backend/cloud function
             const fileName =
               content_gcs_path
                 .split('/')
@@ -319,31 +316,29 @@ export const UploadProvider = ({ children }) => {
                 ?.split('.')
                 .slice(0, -1)
                 .join('.') || content_gcs_path.split('/').pop();
-            preview_gcs_path = `back-end/previews/${fileName}.jpg`; // * Store expected path
-            // ? Alternatively, leave preview_gcs_path null and let backend fill it? Depends on workflow.
+            preview_gcs_path = `back-end/previews/${fileName}.jpg`;
           } else {
-            // * For images, use custom preview if provided, else use the main file itself
             const previewFile = reel.customPreviewFile || reel.selectedFile;
             if (previewFile) {
               setUploadStatus((prev) => ({
                 ...prev,
-                message: `Uploading preview (${index + 1}/${reelsToUpload.length})...`,
+                message: `Uploading preview (${index + 1}/${
+                  reelsToUpload.length
+                })...`,
               }));
-              // * Upload the preview file (no progress update needed for small previews?)
               preview_gcs_path = await uploadFileToGCS(
                 previewFile,
                 'preview',
                 () => {},
-                activeXHRs
+                activeXHRs,
+                token // <-- 5. Передаємо токен
               );
             }
           }
 
-          // * Add metadata for this item to the batch array
           allUploadedRecords.push({
             user_id: user.id,
-            title: reel.title || reel.selectedFile?.name || 'Untitled', // * Use filename as fallback title
-            // * Join array fields into comma-separated strings for DB
+            title: reel.title || reel.selectedFile?.name || 'Untitled',
             artists: commonFormData.artist?.join(', ') || '',
             client: commonFormData.client?.join(', ') || '',
             categories: commonFormData.categories?.join(', ') || '',
@@ -352,7 +347,7 @@ export const UploadProvider = ({ children }) => {
                 ? new Date().toISOString()
                 : commonFormData.publicationDate?.toISOString() ||
                   new Date().toISOString(),
-            video_gcs_path: content_gcs_path, // * Always store the main content path here
+            video_gcs_path: content_gcs_path,
             preview_gcs_path: preview_gcs_path,
             description: commonFormData.description || '',
             featured_celebrity:
@@ -360,21 +355,16 @@ export const UploadProvider = ({ children }) => {
             content_type: commonFormData.contentType || '',
             craft: commonFormData.craft || '',
             allow_download: commonFormData.allowDownload || false,
-            // * Store original file type if needed
-            // file_type: reel.selectedFile.type,
           });
 
-          // * Update completed file count
           setUploadStatus((prev) => ({
             ...prev,
             completedFiles: prev.completedFiles + 1,
           }));
         } // End of loop
 
-        // * --- Cancellation Check ---
         if (isCanceled.current) throw new Error('Upload canceled by user.');
 
-        // * --- Save Metadata to Database ---
         setUploadStatus((prev) => ({
           ...prev,
           message: 'Saving metadata...',
@@ -386,7 +376,6 @@ export const UploadProvider = ({ children }) => {
         if (insertError)
           throw new Error(`Database insert error: ${insertError.message}`);
 
-        // * --- Final Success State ---
         setUploadStatus((prev) => ({
           ...prev,
           message: 'All media uploaded successfully!',
@@ -394,7 +383,6 @@ export const UploadProvider = ({ children }) => {
         }));
       } catch (err) {
         console.error('An error occurred during upload:', err);
-        // * Only show error in UI if it wasn't a user cancellation
         if (!isCanceled.current) {
           setUploadStatus((prev) => ({
             ...prev,
@@ -403,36 +391,39 @@ export const UploadProvider = ({ children }) => {
             isSuccess: false,
           }));
         } else {
-          // * If canceled, the cancelUpload function already set the status
           console.log('Upload process terminated due to cancellation.');
         }
       } finally {
-        // * Always clear tracking refs and schedule modal reset
         activeXHRs.current.clear();
-        isCanceled.current = false; // Reset cancellation flag for future uploads
+        isCanceled.current = false;
         resetStatus();
       }
     },
-    [resetStatus]
-  ); // * Dependency on resetStatus
+    [resetStatus, session] // <-- 6. Додаємо session в залежності
+  );
 
   /**
    * ? Starts the update process for an existing media item.
-   * Uploads new content/preview files if provided, then calls the backend PUT endpoint
-   * to update metadata and handle old file deletion.
-   * Handles progress updates and cancellation checks.
-   *
-   * @param {string|number} itemId - The ID of the media item to update.
-   * @param {object} reelToUpdate - Object representing the item with potential new `selectedFile` or `customPreviewFile`. Should also include `original_video_path` and `original_preview_path`.
-   * @param {object} commonFormData - Object containing updated metadata.
    */
   const startUpdate = useCallback(
     async (itemId, reelToUpdate, commonFormData) => {
-      // * Reset cancellation state
       isCanceled.current = false;
       activeXHRs.current.clear();
 
-      // * Set initial update status
+      // <-- 7. Отримуємо токен із сесії
+      const token = session?.access_token;
+      if (!token) {
+        setUploadStatus((prev) => ({
+          ...prev,
+          isActive: true,
+          message: 'Update Failed!',
+          error: 'User not authenticated. Please log in again.',
+          isSuccess: false,
+        }));
+        resetStatus();
+        return;
+      }
+
       setUploadStatus({
         isActive: true,
         message: 'Preparing update...',
@@ -445,19 +436,16 @@ export const UploadProvider = ({ children }) => {
       });
 
       try {
-        // * Determine original paths
         let videoPath = reelToUpdate.original_video_path;
         let previewPath = reelToUpdate.original_preview_path;
 
-        // * Check if new files were provided
         const hasNewContent = reelToUpdate.selectedFile instanceof File;
         const hasNewPreview = reelToUpdate.customPreviewFile instanceof File;
-        const totalSteps = (hasNewContent ? 1 : 0) + (hasNewPreview ? 1 : 0); // * Max 2 upload steps
+        const totalSteps = (hasNewContent ? 1 : 0) + (hasNewPreview ? 1 : 0);
         let completedSteps = 0;
 
-        // * Progress callbacks - adjust progress based on whether one or two files are uploading
         const onMainProgress = (p) => {
-          const progressContribution = totalSteps > 1 ? p / 2 : p; // * 50% if preview also uploading, else 100%
+          const progressContribution = totalSteps > 1 ? p / 2 : p;
           setUploadStatus((prev) => ({
             ...prev,
             message: 'Uploading new content...',
@@ -465,8 +453,8 @@ export const UploadProvider = ({ children }) => {
           }));
         };
         const onPreviewProgress = (p) => {
-          const baseProgress = hasNewContent ? 50 : 0; // * Start from 50% if content was uploaded
-          const progressContribution = totalSteps > 1 ? p / 2 : p; // * 50% if content also uploaded, else 100%
+          const baseProgress = hasNewContent ? 50 : 0;
+          const progressContribution = totalSteps > 1 ? p / 2 : p;
           setUploadStatus((prev) => ({
             ...prev,
             message: 'Uploading new preview...',
@@ -474,19 +462,16 @@ export const UploadProvider = ({ children }) => {
           }));
         };
 
-        // * --- Cancellation Check & Upload New Content ---
         if (isCanceled.current) throw new Error('Update canceled by user.');
         if (hasNewContent) {
           videoPath = await uploadFileToGCS(
             reelToUpdate.selectedFile,
             'main',
             onMainProgress,
-            activeXHRs
+            activeXHRs,
+            token // <-- 8. Передаємо токен
           );
           completedSteps++;
-          // * If new content is a video, the backend will handle preview generation,
-          // * so we should nullify the preview path unless a *new* custom preview is also provided.
-          // * The backend PUT endpoint needs logic to delete the old preview if videoPath changes and previewPath becomes null.
           if (
             reelToUpdate.selectedFile.type.startsWith('video/') &&
             !hasNewPreview
@@ -495,27 +480,25 @@ export const UploadProvider = ({ children }) => {
           }
         }
 
-        // * --- Cancellation Check & Upload New Preview ---
         if (isCanceled.current) throw new Error('Update canceled by user.');
         if (hasNewPreview) {
           previewPath = await uploadFileToGCS(
             reelToUpdate.customPreviewFile,
             'preview',
             onPreviewProgress,
-            activeXHRs
+            activeXHRs,
+            token // <-- 8. Передаємо токен
           );
           completedSteps++;
         }
 
-        // * --- Cancellation Check & Update Metadata ---
         if (isCanceled.current) throw new Error('Update canceled by user.');
         setUploadStatus((prev) => ({
           ...prev,
           message: 'Updating metadata...',
           currentFileProgress: 100,
-        })); // * Show 100% before API call
+        }));
 
-        // * Prepare the payload for the backend PUT request
         const recordToUpdate = {
           title: reelToUpdate.title,
           artists: commonFormData.artist?.join(', ') || '',
@@ -526,8 +509,8 @@ export const UploadProvider = ({ children }) => {
               ? new Date().toISOString()
               : commonFormData.publicationDate?.toISOString() ||
                 new Date().toISOString(),
-          video_gcs_path: videoPath, // * Send the potentially new video path
-          preview_gcs_path: previewPath, // * Send the potentially new or nulled preview path
+          video_gcs_path: videoPath,
+          preview_gcs_path: previewPath,
           description: commonFormData.description || '',
           featured_celebrity:
             commonFormData.featuredCelebrity?.join(', ') || '',
@@ -536,10 +519,12 @@ export const UploadProvider = ({ children }) => {
           allow_download: commonFormData.allowDownload || false,
         };
 
-        // * Call the backend PUT endpoint (which handles updating DB and deleting old GCS files)
         const response = await fetch(`${API_BASE_URL}/media-items/${itemId}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`, // <-- 9. Додаємо токен до PUT запиту
+          },
           body: JSON.stringify(recordToUpdate),
         });
 
@@ -552,16 +537,14 @@ export const UploadProvider = ({ children }) => {
           );
         }
 
-        // * --- Final Success State ---
         setUploadStatus((prev) => ({
           ...prev,
           message: 'Changes saved successfully!',
           isSuccess: true,
-          completedFiles: 1, // * Mark the single update operation as complete
+          completedFiles: 1,
         }));
       } catch (err) {
         console.error('An error occurred during update:', err);
-        // * Only show error in UI if it wasn't a user cancellation
         if (!isCanceled.current) {
           setUploadStatus((prev) => ({
             ...prev,
@@ -573,24 +556,21 @@ export const UploadProvider = ({ children }) => {
           console.log('Update process terminated due to cancellation.');
         }
       } finally {
-        // * Always clear tracking refs and schedule modal reset
         activeXHRs.current.clear();
         isCanceled.current = false;
         resetStatus();
       }
     },
-    [resetStatus]
-  ); // * Dependency on resetStatus
+    [resetStatus, session] // <-- 10. Додаємо session в залежності
+  );
 
   // ! Context Value
-  // * Memoize value to prevent unnecessary re-renders of consumers if state objects don't change identity
   const value = useMemo(
     () => ({
-      // <-- This is line 483
       uploadStatus,
       startUpload,
       startUpdate,
-      cancelUpload, // * Expose the cancel function
+      cancelUpload,
     }),
     [uploadStatus, startUpload, startUpdate, cancelUpload]
   );
