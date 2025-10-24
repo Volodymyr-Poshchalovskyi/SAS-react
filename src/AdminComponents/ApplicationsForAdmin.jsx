@@ -330,12 +330,15 @@ const ApplicationsForAdmin = () => {
 
   // ! Context & Hooks
   const { refreshKey } = useContext(DataRefreshContext); // * For manual refresh trigger
-  // * Auth hook for API calls (getApplications and updateApplicationStatus already handle auth implicitly via Supabase client)
-  const { getApplications, updateApplicationStatus } = useAuth();
+  const { getApplications, updateApplicationStatus, session } = useAuth();
 
   // ! Data Fetching
   // * useCallback ensures fetchApplications is stable unless getApplications changes
   const fetchApplications = useCallback(async () => {
+    if (!session) {
+        setLoading(false);
+        return; // Не завантажувати, якщо немає сесії
+    }
     try {
       setError('');
       setLoading(true);
@@ -354,7 +357,7 @@ const ApplicationsForAdmin = () => {
     } finally {
       setLoading(false);
     }
-  }, [getApplications]); // * Dependency on the function from useAuth
+  }, [getApplications, session]); // * Dependency on the function from useAuth
 
   // * useEffect fetches data on mount and when refreshKey changes
   useEffect(() => {

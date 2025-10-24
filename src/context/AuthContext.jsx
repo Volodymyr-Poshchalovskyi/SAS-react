@@ -335,7 +335,7 @@ const AuthProvider = ({ children }) => {
       throw fetchError;
     }
     return data || []; // * Return empty array if data is null
-  }, [clearError]);
+  }, [clearError, supabase]);
 
   /**
    * ? Updates the status of an application.
@@ -489,7 +489,7 @@ const AuthProvider = ({ children }) => {
       throw fetchError;
     }
     return data || [];
-  }, [clearError]);
+  }, [clearError, supabase]);
 
   /**
    * ? Updates a user's status (active/deactivated) via an edge function.
@@ -535,7 +535,7 @@ const AuthProvider = ({ children }) => {
   }), [
       session, user, loading, error, clearError, signInWithGoogle, signInWithPassword,
       signOut, submitApplication, invitationToken, completeRegistration, getApplications,
-      updateApplicationStatus, getUsers, updateUserStatus, resetPassword
+      updateApplicationStatus, getUsers, updateUserStatus, resetPassword, supabase
   ]);
 
   // * Render the provider, passing the value. Only render children when initial loading is done.

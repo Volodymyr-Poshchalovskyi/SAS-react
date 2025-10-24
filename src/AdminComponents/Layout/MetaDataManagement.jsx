@@ -17,6 +17,7 @@ import {
 // ! Local Imports (Supabase & Context)
 import { supabase } from '../../lib/supabaseClient';
 import { DataRefreshContext } from './AdminLayout'; // * Context for triggering manual data refresh
+import { useAuth } from '../../hooks/useAuth';
 // NOTE: No need to import useAuth here unless specifically needed for user ID/role checks
 // The Supabase client handles authentication automatically based on the logged-in user state from AuthContext.
 
@@ -212,6 +213,7 @@ const MetaDataManagement = () => {
 
   // ! Context
   const { refreshKey } = useContext(DataRefreshContext); // * Used to trigger re-fetch on manual refresh
+  const { session } = useAuth();
 
   // * A map to easily access state setters and table names
   const dataMap = {
@@ -230,14 +232,18 @@ const MetaDataManagement = () => {
 
   // ! Effect: Data Fetching
   // * Fetches all metadata types on initial mount and on manual refresh (via refreshKey)
+
   useEffect(() => {
     const fetchAllData = async () => {
-      setLoading(true);
+      // * Чекаємо на сесію, перш ніж робити запит
+      if (!session) {
+        setLoading(false); // Якщо сесії немає, не завантажуємо
+        return;
+      }
+
+      setLoading(true); // Сесія є, починаємо завантаження
       try {
-        // * Fetch all data types in parallel
-        // NOTE: Supabase client automatically includes the user's token if logged in.
-        // Ensure Row Level Security (RLS) policies are set up in Supabase
-        // to allow authenticated users to read these tables.
+        // --- ОСЬ ЦЕЙ КОД БУЛО ВТРАЧЕНО ---
         const [typesRes, categoriesRes, craftsRes] = await Promise.all([
           supabase
             .from('content_types')
@@ -253,26 +259,26 @@ const MetaDataManagement = () => {
             .order('created_at', { ascending: false }),
         ]);
 
-        // * Error handling for each request
+        // * Обробка помилок для кожного запиту
         if (typesRes.error) throw typesRes.error;
         if (categoriesRes.error) throw categoriesRes.error;
         if (craftsRes.error) throw craftsRes.error;
 
-        // * Update state with fetched data
+        // * Оновлення стану даними
         setContentTypes(typesRes.data);
         setCategories(categoriesRes.data);
         setCrafts(craftsRes.data);
+        // --- КІНЕЦЬ ВТРАЧЕНОГО КОДУ ---
       } catch (error) {
         console.error('Error fetching metadata:', error);
-        // * TODO: Add user-facing error message (e.g., using a toast library)
-        alert(`Error fetching data: ${error.message}`);
+       
       } finally {
         setLoading(false);
       }
     };
 
     fetchAllData();
-  }, [refreshKey]); // * Dependency on refreshKey triggers re-fetch
+  }, [refreshKey, session]); // * Залежність від refreshKey та session// * Dependency on refreshKey triggers re-fetch
 
   // ! Modal Handlers
   /**

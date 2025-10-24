@@ -326,11 +326,15 @@ const UserManagement = () => {
   // ! Context & Hooks
   const { refreshKey } = useContext(DataRefreshContext); // * Manual refresh trigger
   // * Auth hook for API calls (getUsers and updateUserStatus already handle auth implicitly via Supabase client / Edge Function context)
-  const { getUsers, updateUserStatus } = useAuth();
+  const { getUsers, updateUserStatus, session } = useAuth();
 
   // ! Data Fetching
   // * Stable fetch function using useCallback
   const fetchUsers = useCallback(async () => {
+    if (!session) {
+        setLoading(false);
+        return; // Не завантажувати, якщо немає сесії
+    }
     try {
       setError('');
       setLoading(true);
@@ -351,7 +355,7 @@ const UserManagement = () => {
     } finally {
       setLoading(false);
     }
-  }, [getUsers]); // * Dependency: the API function itself
+  }, [getUsers, session]); // * Dependency: the API function itself
 
   // * useEffect runs fetchUsers on mount and when refreshKey changes
   useEffect(() => {

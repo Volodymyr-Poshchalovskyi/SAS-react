@@ -25,7 +25,8 @@ import {
 // ! Local Imports (Supabase & Context)
 import { supabase } from '../../lib/supabaseClient';
 import { DataRefreshContext } from './AdminLayout';
-import { useAuth } from '../../hooks/useAuth'; // Import useAuth hook
+import { useAuth } from '../../hooks/useAuth';
+// Import useAuth hook
 
 // ========================================================================== //
 // ! HELPER COMPONENT: Highlight
@@ -203,7 +204,7 @@ const ManagementPage = () => {
   // ! Refs & Context
   const fileInputRef = useRef(null);
   const { refreshKey } = useContext(DataRefreshContext); // * Get refresh trigger
-const { session, user } = useAuth(); // Отримуємо сесію та користувача
+const { session, user } = useAuth();
   const API_BASE_URL = import.meta.env.VITE_API_URL;
 
   // * A map to easily access state and table info by name
@@ -232,6 +233,10 @@ const { session, user } = useAuth(); // Отримуємо сесію та ко�
   // * Fetches data on initial mount AND when 'refreshKey' changes
   useEffect(() => {
     const fetchAllData = async () => {
+      if (!session) { 
+        setLoading(false);
+        return; 
+      }
       console.log('Fetching management data...');
       setLoading(true);
       try {
@@ -264,7 +269,7 @@ const { session, user } = useAuth(); // Отримуємо сесію та ко�
       }
     };
     fetchAllData();
-  }, [refreshKey]); // * Dependency on refreshKey
+  }, [refreshKey, session]); // * Dependency on refreshKey
 
   // ! Effect: Photo Preview
   // * Creates a blob URL for a selected photo file and cleans it up
