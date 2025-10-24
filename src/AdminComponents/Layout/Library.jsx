@@ -339,7 +339,7 @@ const ReelCreatorSidebar = ({
   reelTitle,
   setReelTitle,
   editingReel,
-  onUpdateSuccess
+  onUpdateSuccess,
 }) => {
   // ! State
   const [isDraggingOver, setIsDraggingOver] = useState(false);
@@ -459,11 +459,12 @@ const ReelCreatorSidebar = ({
     setModalState({ isOpen: true, status });
 
     const token = session?.access_token; // Отримуємо токен
-    if (!token || !user) { // Перевірка токена і користувача
-    console.error('No auth token or user for fetching existing reels');
-    setIsLoadingReels(false);
-    return;
-  }
+    if (!token || !user) {
+      // Перевірка токена і користувача
+      console.error('No auth token or user for fetching existing reels');
+      setIsLoadingReels(false);
+      return;
+    }
 
     try {
       if (isEditing) {
@@ -966,8 +967,8 @@ const Library = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { refreshKey } = useContext(DataRefreshContext); // * For manual refresh
-const { session, user } = useAuth(); // Отримуємо сесію та користувача  const 
- const itemsPerPage = 10;
+  const { session, user } = useAuth(); // Отримуємо сесію та користувача  const
+  const itemsPerPage = 10;
 
   // ! Effect: Main Data Fetch
   // * Fetches all media items, signed URLs, and checks for processing videos
@@ -998,7 +999,7 @@ const { session, user } = useAuth(); // Отримуємо сесію та ко�
         const { data, error: itemsError } = await supabase
           .from('media_items')
           .select(
-            `*, user_profiles:public_user_profiles(first_name, last_name)`
+            `*, user_profiles:user_profiles(first_name, last_name, email)`
           )
           .order('created_at', { ascending: false });
         if (itemsError) throw itemsError;
@@ -1524,11 +1525,16 @@ const { session, user } = useAuth(); // Отримуємо сесію та ко�
                 <tbody className="text-slate-800 dark:text-slate-200 text-xs">
                   {currentItems.map((item, index) => {
                     const isPinned = pinnedItemIds.has(item.id);
+
+                    // Оновлена логіка для addedBy
                     const addedBy = item.user_profiles
                       ? `${item.user_profiles.first_name || ''} ${
                           item.user_profiles.last_name || ''
-                        }`.trim()
-                      : 'System';
+                        }`.trim() || // 1. Спробувати повне ім'я
+                        item.user_profiles.email || // 2. Якщо імені немає, взяти email
+                        'System' // 3. Якщо немає і email, показати "System"
+                      : 'System'; // 4. Якщо об'єкт user_profiles взагалі відсутній
+
                     const isLastItemOnPage = index === currentItems.length - 1;
                     return (
                       <tr

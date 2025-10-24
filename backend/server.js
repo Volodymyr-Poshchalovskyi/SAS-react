@@ -196,7 +196,7 @@ app.post('/generate-upload-url', requireAuth, async (req, res) => {
  * Generates v4 signed URLs for reading multiple files from GCS.
  * * Accepts an array of GCS paths and returns a map of { path: url }.
  */
-  app.post('/generate-read-urls', async (req, res) =>{
+app.post('/generate-read-urls', async (req, res) => {
   try {
     const { gcsPaths } = req.body;
     if (!gcsPaths || !Array.isArray(gcsPaths) || gcsPaths.length === 0)
@@ -664,7 +664,7 @@ app.get('/reels', requireAuth, async (req, res) => {
     // * Step 1: Fetch all primary reel data
     const { data: reels, error: reelsError } = await supabase
       .from('reels')
-      .select('*, user_profiles(first_name, last_name)')
+      .select('*, user_profiles(first_name, last_name, email)')
       .order('created_at', { ascending: false });
     if (reelsError) throw reelsError;
 
@@ -1278,11 +1278,9 @@ app.get('/feature-pdf-password/current', requireAuth, async (req, res) => {
 app.post('/feature-pdf-password', requireAuth, async (req, res) => {
   const { value } = req.body;
   if (!value || typeof value !== 'string' || value.trim() === '') {
-    return res
-      .status(400)
-      .json({
-        error: 'Password value is required and must be a non-empty string.',
-      });
+    return res.status(400).json({
+      error: 'Password value is required and must be a non-empty string.',
+    });
   }
 
   try {
@@ -1292,12 +1290,10 @@ app.post('/feature-pdf-password', requireAuth, async (req, res) => {
       .select()
       .single();
     if (error) throw error;
-    res
-      .status(201)
-      .json({
-        message: 'Password updated successfully.',
-        newValue: data.value,
-      });
+    res.status(201).json({
+      message: 'Password updated successfully.',
+      newValue: data.value,
+    });
   } catch (error) {
     console.error('Error setting new PDF password:', error);
     res
@@ -1373,7 +1369,8 @@ app.get('/feature-pdf-password/version', async (req, res) => {
 /**
  * Gets the *current* (most recent) PDF file record.
  */
-app.get('/feature-pdf/current', async (req, res) => {  try {
+app.get('/feature-pdf/current', async (req, res) => {
+  try {
     const { data, error } = await supabase
       .from('feature_pdf_file')
       .select('*')
@@ -1387,12 +1384,10 @@ app.get('/feature-pdf/current', async (req, res) => {  try {
     res.status(200).json(data);
   } catch (error) {
     console.error('Error fetching current PDF file:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to fetch PDF file info.',
-        details: error.message,
-      });
+    res.status(500).json({
+      error: 'Failed to fetch PDF file info.',
+      details: error.message,
+    });
   }
 });
 

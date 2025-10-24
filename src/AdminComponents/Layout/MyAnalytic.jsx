@@ -872,9 +872,15 @@ const MyAnalytics = () => {
         // * Special handling for 'created_by' (uses nested profile data)
         if (sortConfig.key === 'created_by') {
           aValue =
-            `${a.user_profiles?.first_name || ''} ${a.user_profiles?.last_name || ''}`.trim();
+            (a.user_profiles
+              ? `${a.user_profiles.first_name || ''} ${a.user_profiles.last_name || ''}`.trim() ||
+                a.user_profiles.email
+              : '') || 'N/A';
           bValue =
-            `${b.user_profiles?.first_name || ''} ${b.user_profiles?.last_name || ''}`.trim();
+            (b.user_profiles
+              ? `${b.user_profiles.first_name || ''} ${b.user_profiles.last_name || ''}`.trim() ||
+                b.user_profiles.email
+              : '') || 'N/A';
         }
         // * Sort strings locale-sensitively, numbers numerically
         if (typeof aValue === 'string' && typeof bValue === 'string')
@@ -897,10 +903,11 @@ const MyAnalytics = () => {
     const term = searchTerm.toLowerCase();
     return sortedData.filter((item) => {
       // * Check relevant fields for search term match
-      const createdByName =
-        `${item.user_profiles?.first_name || ''} ${item.user_profiles?.last_name || ''}`
-          .trim()
-          .toLowerCase();
+      const createdByName = (
+        `${item.user_profiles?.first_name || ''} ${item.user_profiles?.last_name || ''}`.trim() ||
+        item.user_profiles?.email ||
+        ''
+      ).toLowerCase();
       const createdAtDateTime = item.created_at
         ? new Date(item.created_at).toLocaleString('uk-UA', {
             // * Locale specific date format
@@ -1148,8 +1155,7 @@ const MyAnalytics = () => {
         {/* --- Analytics Table --- */}
         <div className="border border-slate-200 dark:border-slate-800 shadow-sm rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              {/* Table Header */}
+<table className="w-full table-fixed text-sm">              {/* Table Header */}
               <thead className="text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-900">
                 <tr className="border-b border-slate-200 dark:border-slate-800">
                   <th className="p-4 w-12 text-left">
@@ -1231,7 +1237,9 @@ const MyAnalytics = () => {
                   const isPinned = pinnedReelIds.has(reel.id);
                   const completionRate = Math.round(reel.completion_rate || 0);
                   const createdBy = reel.user_profiles
-                    ? `${reel.user_profiles.first_name || ''} ${reel.user_profiles.last_name || ''}`.trim()
+                    ? `${reel.user_profiles.first_name || ''} ${reel.user_profiles.last_name || ''}`.trim() ||
+                      reel.user_profiles.email ||
+                      'N/A'
                     : 'N/A';
                   const createdAtDateTime = reel.created_at
                     ? new Date(reel.created_at).toLocaleString('uk-UA', {
@@ -1330,9 +1338,9 @@ const MyAnalytics = () => {
                           </span>
                         </div>
                       </td>
-                      {/* Created By */}
-                      <td className="p-4 text-left">
-                        <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
+                     {/* Created By */}
+                      <td className="p-4 text-left truncate">
+                        <div className="flex items-center gap-2 truncate text-slate-600 dark:text-slate-400">
                           <User className="h-4 w-4" />
                           <span>
                             <Highlight
