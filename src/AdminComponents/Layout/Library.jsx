@@ -339,8 +339,7 @@ const ReelCreatorSidebar = ({
   reelTitle,
   setReelTitle,
   editingReel,
-  onUpdateSuccess,
-  session, // Додаємо session як проп
+  onUpdateSuccess
 }) => {
   // ! State
   const [isDraggingOver, setIsDraggingOver] = useState(false);
@@ -356,6 +355,7 @@ const ReelCreatorSidebar = ({
   const isEditing = !!editingReel;
   const draggedItemIndex = useRef(null);
   const draggedOverItemIndex = useRef(null);
+  const { session, user } = useAuth();
 
   // ! Effect: Fetch Existing Reels
   // * Fetches reels only when the 'existing' tab is clicked and data isn't already loaded
@@ -387,7 +387,7 @@ const ReelCreatorSidebar = ({
       }
     };
     fetchExistingReels();
-  }, [activeTab, existingReels.length, session]); // Додаємо session у залежності
+  }, [activeTab, existingReels.length, session, user]); // Додаємо session у залежності
 
   // ! Handlers: Drag-and-Drop (Container)
   // * These handle dragging items from the main library *into* the sidebar
@@ -459,15 +459,11 @@ const ReelCreatorSidebar = ({
     setModalState({ isOpen: true, status });
 
     const token = session?.access_token; // Отримуємо токен
-    if (!token) {
-      setModalState({
-        isOpen: true,
-        status: 'error',
-        title: 'Authentication Error',
-        message: 'Please log in again to perform this action.',
-      });
-      return;
-    }
+    if (!token || !user) { // Перевірка токена і користувача
+    console.error('No auth token or user for fetching existing reels');
+    setIsLoadingReels(false);
+    return;
+  }
 
     try {
       if (isEditing) {
@@ -970,8 +966,8 @@ const Library = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { refreshKey } = useContext(DataRefreshContext); // * For manual refresh
-  const { session } = useAuth(); // Отримуємо сесію
-  const itemsPerPage = 10;
+const { session, user } = useAuth(); // Отримуємо сесію та користувача  const 
+ const itemsPerPage = 10;
 
   // ! Effect: Main Data Fetch
   // * Fetches all media items, signed URLs, and checks for processing videos
@@ -1687,7 +1683,6 @@ const Library = () => {
           setReelTitle={setReelTitle}
           editingReel={editingReel}
           onUpdateSuccess={handleUpdateSuccess}
-          session={session} // Передаємо сесію в сайдбар
         />
       </div>
     </>

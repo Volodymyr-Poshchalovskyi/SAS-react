@@ -1018,8 +1018,7 @@ const CreateReel = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isEditMode = !!itemId;
-  const { session } = useAuth(); // Отримуємо сесію
-
+  const { session, user } = useAuth(); // Отримуємо сесію та користувача
   // ! State
   const createNewReelState = () => ({
     id: Date.now() + Math.random(), // * Unique client-side ID
@@ -1135,7 +1134,7 @@ const CreateReel = () => {
       }
     };
     fetchOptions();
-  }, []);
+  }, [itemId, isEditMode, navigate, session, user]);
 
   // * Effect: Fetch item data if in Edit Mode
   useEffect(() => {
@@ -1144,18 +1143,22 @@ const CreateReel = () => {
         setIsLoadingOptions(true);
 
         const token = session?.access_token;
-        if (!token) {
+        // ▼▼▼ ДОДАЙТЕ ЦЕЙ РЯДОК ▼▼▼
+        if (!token || !user) {
+          // Перевіряємо і токен, і користувача
           setIsLoadingOptions(false);
           showToast('Authentication error. Please log in again.');
-          // Redirect to login or show appropriate message
           return;
         }
 
         try {
           // * Step 1: Fetch the media item's metadata
-          const response = await fetch(`${API_BASE_URL}/media-items/${itemId}`, {
-            headers: { Authorization: `Bearer ${token}` }, // Додаємо токен
-          });
+          const response = await fetch(
+            `${API_BASE_URL}/media-items/${itemId}`,
+            {
+              headers: { Authorization: `Bearer ${token}` }, // Додаємо токен
+            }
+          );
           if (!response.ok) throw new Error('Failed to fetch media item data.');
           const item = await response.json();
 

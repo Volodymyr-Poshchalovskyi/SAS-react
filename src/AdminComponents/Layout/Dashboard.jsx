@@ -120,8 +120,7 @@ const Dashboard = () => {
   // ! Context
   // * Get the manual refresh trigger from the parent layout
   const { refreshKey } = useContext(DataRefreshContext);
-  const { session } = useAuth(); // Отримуємо сесію
-
+const { session, user } = useAuth(); // Отримуємо сесію та користувача
   /**
    * Navigates to the main analytics page and passes state to open
    * the modal for the specific reel.
@@ -142,11 +141,11 @@ const Dashboard = () => {
       if (!dateRange.from || !dateRange.to) return;
 
       const token = session?.access_token;
-      if (!token) {
-        setFetchError('Authentication token not found. Please log in again.');
-        setIsLoading(false);
-        return;
-      }
+      if (!token || !user) { // Перевірка токена і користувача
+    setFetchError('Authentication token not found. Please log in again.');
+    setIsLoading(false);
+    return;
+  }
 
       const headers = { Authorization: `Bearer ${token}` };
 
@@ -266,7 +265,7 @@ const Dashboard = () => {
     };
     fetchDashboardData();
     // * Dependency array includes dateRange, refreshKey and session
-  }, [dateRange, refreshKey, session]);
+  }, [dateRange, refreshKey, session], user);
 
   // ! Render
   return (

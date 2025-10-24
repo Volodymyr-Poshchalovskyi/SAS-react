@@ -265,7 +265,7 @@ function FeatureManagement() {
   // ! Refs & Context
   const fileInputRef = useRef(null); // Ref for hidden file input
   const { refreshKey } = useContext(DataRefreshContext); // For triggering manual refresh
-  const { session } = useAuth(); // Get session from context
+const { session, user } = useAuth(); // Отримуємо сесію та користувача
 
   // ! Effect: Initial Data Fetch
   // * Fetches current PDF, password, and history on mount and manual refresh
@@ -278,13 +278,13 @@ function FeatureManagement() {
       setHistoryError(null);
 
       const token = session?.access_token; // Get token from session
-      if (!token) {
-        setHistoryError("Authentication required to load data.");
-        setIsPdfLoading(false);
-        setIsPasswordLoading(false);
-        setIsHistoryLoading(false);
-        return;
-      }
+     if (!token || !user) { // Перевірка токена та користувача
+    setHistoryError("Authentication required to load data.");
+    setIsPdfLoading(false);
+    setIsPasswordLoading(false);
+    setIsHistoryLoading(false);
+    return;
+  }
       const headers = { Authorization: `Bearer ${token}` }; // Create auth headers
 
       try {
@@ -331,7 +331,7 @@ function FeatureManagement() {
         setIsPasswordLoading(false);
         setIsHistoryLoading(false);
     }
-  }, [refreshKey, session]); // * Re-run effect when refreshKey or session changes
+  }, [refreshKey, session, user]); // * Re-run effect when refreshKey or session changes
 
   // ! PDF Handlers
   /**

@@ -203,7 +203,7 @@ const ManagementPage = () => {
   // ! Refs & Context
   const fileInputRef = useRef(null);
   const { refreshKey } = useContext(DataRefreshContext); // * Get refresh trigger
-  const { session } = useAuth(); // Get session from context
+const { session, user } = useAuth(); // Отримуємо сесію та користувача
   const API_BASE_URL = import.meta.env.VITE_API_URL;
 
   // * A map to easily access state and table info by name
@@ -308,10 +308,10 @@ const ManagementPage = () => {
       setFormData({ name: item.name, description: item.description || '' });
       // * If item has a photo, fetch a signed URL to display it
       if (item.photo_gcs_path) {
-          if (!token) {
-              console.error("Cannot fetch photo preview: User not authenticated.");
-              setPhotoPreview(null); // Or show a placeholder/error
-          } else {
+         if (!token || !user) { // Перевірка токена та користувача
+    console.error("Cannot fetch photo preview: User not authenticated.");
+    setPhotoPreview(null);
+  } else {
               try {
                   const response = await fetch(`${API_BASE_URL}/generate-read-urls`, {
                       method: 'POST',
