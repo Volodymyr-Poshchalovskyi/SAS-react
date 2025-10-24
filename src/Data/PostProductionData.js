@@ -7,7 +7,11 @@ export const postProductionData = [
     slug: 'eyemix',
     photoSrc:
       'front-end/artists/post production/1-Eyemix_Logo_Animated_Gif-2.gif',
-    bio: "Supernova is a dynamic director/photographer duo made up of Matias G. Petric and Ignacio Ricci-two storytellers whose creative vision has been shaped by their deep roots in the fashion world. With a wealth of experience in photography and digital content, they credit the fashion industry for allowing them to explore and develop their distinctive style, which they describe as 'bold, honest, and surreal.' Their work stands out with a poetic, radical, and striking identity, exuding an undeniable coolness. Navigating effortlessly between sport, fashion, and lifestyle, they push the boundaries of conventional image-making, creating visceral and iconoclastic visual worlds. At the core of their work is a genuine connection to youth and street cultures, driving innovation, creativity, and social change. Through their lens, they transform the ordinary into something extraordinary, challenging their audience to step beyond the mundane and aspire to more. Their impressive portfolio includes collaborations with global brands like Converse, Levis, Nike, Adidas, and Sloggi, among others. For brands seeking to tap into a subcultural edge, Supernova's visionary approach is one to watch.",
+    bio: `EYEMIX is a visual production duo specializing in cinematic storytelling that fuses motion, design, and emotion into a single frame. Their work blurs the boundaries between film, photography, and art direction — transforming brand narratives into powerful, sensory-driven experiences.
+With a background in fashion, music, and commercial direction, EYEMIX approaches each project as a study in rhythm and atmosphere. Their style is defined by striking composition, minimalism in form, and depth in feeling — creating work that feels both elevated and human.
+From high-concept beauty campaigns to emotionally charged branded films, Eyemix balances creative experimentation with precision craft. Their vision is rooted in collaboration, always pushing visual boundaries while keeping story and authenticity at the center.
+Based between Los Angeles and Europe, Eyemix continues to redefine what modern visual storytelling can be — timeless, bold, and distinctly their own.
+`,
     photoBg: 'black',
     videos: [
       {
@@ -46,7 +50,10 @@ export const postProductionData = [
     name: 'Johannes Vorillon',
     slug: 'johannes-vorillon',
     photoSrc: 'front-end/artists/post production/Johannes Vorillon.png',
-    bio: 'Christopher Sims cut his teeth in the frenetic OC/LA skate and hardcore scene, where he wrote and directed a semi-autobiographical, no-budget feature before hitting the road with punk bands—shooting raw concert footage that he’d later shape into high-energy music docs and videos. That DIY spirit infused his transition into professional work, giving his visuals an edge and authenticity that quickly caught on.   Over the years, Sims has directed music videos for everyone from Usher, Ludacris and David Guetta to Avril Lavigne, Stone Temple Pilots, Keane and Ne-Yo, plus breakout artists like A Great Big World (feat. Christina Aguilera), Cassie and Noah Cyrus. Those clips have logged billions of views online. Early collaborations with legendary fashion duo Mert & Marcus sharpened his eye for style—and today you see that influence in commercials for Pepsi (VMAs), Miller’s live-concert Reload, HyperIce’s Launch (set to The Misfits) and Beats’ incendiary “Destroy Bad Sound” spot starring Serena Williams. Following creative stints at DNA (now Hound Content/Anonymous Content) and RSA Films, Sims now thrives as an independent commercial director and Senior Director of Content at HyperIce. His client list—Apple, Nike, Gucci, Citi, Deutsch, JWT, BBDO, VaynerMedia and Sea Shepherd—reflects a versatile career built on netic storytelling, fashion flair and unrelenting energy.',
+    bio: `Johannes Vorillon is a French director and photographer whose work captures the poetry within the everyday — blending realism with refinement and emotion with precision. His imagery is grounded in human connection, natural light, and the quiet rhythm of storytelling, creating visuals that feel both cinematic and deeply personal.
+With roots in Paris and a creative eye shaped by travel, Johannes moves fluidly between still and motion work — directing commercial campaigns, branded films, and editorial projects that bridge fashion, lifestyle, and narrative. His work is defined by clarity of vision and restraint in style: clean framing, immersive tone, and an intuitive sense of atmosphere.
+Johannes believes that authenticity is a form of elegance. Whether shooting an intimate portrait or a global campaign, he seeks to distill truth through light, movement, and mood. His direction invites the viewer to pause, observe, and feel — a visual language where simplicity reveals depth.
+`,
     videos: [
       {
         client: 'CHANEL',
@@ -77,7 +84,11 @@ export const postProductionData = [
     name: 'Jeremy Gross',
     slug: 'jeremy-gross',
     photoSrc: 'front-end/artists/post production/Jeremy Gross.png',
-    bio: 'Antony Hoffman is a Wild Gift–represented, award-winning director and director of photography whose work spans epic, large-scale productions and lean, “run-and-gun” shoots with intimate crews. Beginning his career documenting anti-apartheid uprisings for the AP and BBC in his native Cape Town, he carries the journalist’s curiosity into every commercial set—asking deep, strategic questions of agencies and brands to unearth the one coherent idea that gives a spot its narrative pulse. His storytelling has brought humanity and emotional truth to campaigns for Vodafone, Lamborghini, Audi, adidas, Peroni and the Budweiser “Clydesdales” Super Bowl spot now in MoMA’s permanent collection.Hoffman believes that true quality transcends budget or scale: some of his most celebrated work has been created with minimal resources, small crews and a relentless focus on craft. Whether pioneering multi-camera solutions on the fly to turn last-minute challenges into cinematic triumphs, or mentoring emerging filmmakers on set, he approaches every project with resilience, imagination and the conviction that “quality is quality,” no matter the format.',
+    bio: `Jeremy Gross is a Los Angeles–based director and photographer whose work lives at the intersection of storytelling, style, and emotion. With a background in visual design and a sharp instinct for human moments, Jeremy crafts imagery that feels immersive and cinematic — defined by precise framing, rich atmosphere, and a deep sense of character.
+His work spans commercial, fashion, and lifestyle genres, balancing bold composition with subtle emotional undertones. Whether shooting on location or in a controlled studio environment, Jeremy’s approach remains the same: create worlds that feel authentic, elevated, and alive.
+Known for his collaborative spirit and visual versatility, Jeremy brings a designer’s discipline and a filmmaker’s curiosity to every project. He believes that beauty lies in the balance — between light and shadow, stillness and movement, simplicity and impact.
+Through both motion and stills, Jeremy Gross continues to build a body of work that is striking, human, and unmistakably his own.
+`,
     videos: [
       {
         client: 'AI SHOWREEL',
@@ -94,7 +105,11 @@ export const postProductionData = [
     name: 'Alex Rodriguez',
     slug: 'alex-rodriguez',
     photoSrc: 'front-end/artists/post production/Alex Rodríguez.png',
-    bio: 'Mattia Benetti is an Italian director and photographer known for his refined visual aesthetic and storytelling that blends fashion, design, and emotion. With a background in architecture and visual arts, his work is characterized by clean composition, bold concepts, and an elevated sense of style. Based in Milan and working internationally, Benetti creates visually striking campaigns that bridge the worlds of luxury, beauty, and culture.  **SOME OF HIS CLIENTS ARE: **Versace, Moncler, Valentino, Prada, Gucci, L’Oréal, Sephora, KIKO Milano, Dolce & Gabbana Beauty, Vogue Italia, L’Officiel, Schön! Magazine, Elle.Mattia Benetti brings a unique sensibility to each project, crafting iconic images and films that resonate with elegance and intention.',
+    bio: `Alex Rodriguez is a film editor known for his instinctive sense of rhythm and emotion — shaping stories that move with both precision and feeling. With a background in narrative and commercial filmmaking, Alex has built a reputation for crafting edits that seamlessly blend visual energy with emotional depth.
+His work spans high-end advertising, branded content, music videos, and long-form storytelling. Whether working on fast-paced fashion campaigns or intimate character pieces, Alex’s editorial approach is driven by intuition — knowing when to cut, when to hold, and when silence says the most.
+Collaborative and detail-oriented, he thrives in the balance between structure and spontaneity. Each project is treated as a living, breathing piece of storytelling — where pacing, sound, and image converge to create impact.
+Based in Los Angeles, Alex Rodriguez continues to refine the art of editing as storytelling — crafting visuals that resonate, connect, and endure.
+`,
     videos: [
       {
         client: 'EXTRACTION',
@@ -154,7 +169,11 @@ export const postProductionData = [
     name: 'Jared Kaplan',
     slug: 'jared-kaplan',
     photoSrc: 'front-end/artists/post production/Jared Kaplan.png',
-    bio: 'Jessy Terrero is a Dominican-American filmmaker and non-writing executive producer who first gained recognition for his work in the music video industry, creating iconic videos for artists such as Jennifer Lopez, 50 Cent, Enrique Iglesias, Daddy Yankee, Maluma, and Bad Bunny, amassing over 21 billion views collectively. Terrero, who is considered one of the most influential music video directors in urban culture, transitioned into film and TV with his first move being the cult classic SOUL PLANE, a film that marked the debut of comedian Kevin Hart and Sofia Vergara. His long-standing relationship with 50 Cent led him to direct a series of features in which the rap icon starred, including FREELANCERS with Robert De Niro and Forrest Whitaker; and GUN with Val Kilmer. Wanting to honor his heritage, Terrero started to focus his directing and producing efforts in the Latinx market, bringing with him the experience garnered in his previous projects. He created and directed the Netflix Original NICKY JAM: EL GANADOR. The success of the show led him to a blind deal with YouTube Originals, where he developed BRAVAS, an all-female cast series set in Puerto Rico. Under his production company, Cinema Giants, Jessy continues to develop stories for the international market as well as partnering with domestic buyers such as Showtime or Apple, where he currently has series in development and is attached to direct.',
+    bio: `Jared Kaplan is a Los Angeles–based editor whose work bridges rhythm, narrative, and emotion. With a background in both film and advertising, Jared approaches each project as a storyteller first — shaping visuals that move seamlessly between energy and intimacy.
+His editorial style is defined by instinctive pacing and emotional clarity, balancing precision with spontaneity. Whether cutting a fast-paced commercial, a stylized fashion film, or a cinematic brand piece, Jared’s edits maintain a strong narrative pulse and visual cohesion.
+Collaborative and detail-driven, Jared works closely with directors and creatives to find the heartbeat of every story. His ability to translate vision into flow — through timing, texture, and tone — has made him a trusted partner for global brands and filmmakers alike.
+Rooted in storytelling yet constantly evolving with new forms and formats, Jared Kaplan continues to shape work that feels sharp, human, and distinctly modern.
+`,
     videos: [
       {
         client: 'EPL',

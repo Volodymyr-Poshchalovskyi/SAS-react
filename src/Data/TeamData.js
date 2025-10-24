@@ -5,7 +5,7 @@ import heatherPhoto from '../assets/Photos/front-end_08-about_01-New Team Photos
 import tommyPhoto from '../assets/Photos/front-end_08-about_01-New Team Photos_Tommy.png';
 import candicePhoto from '../assets/Photos/front-end_08-about_01-New Team Photos_Candice.png';
 import rostPhoto from '../assets/Photos/front-end_08-about_01-New Team Photos_Rost.png';
-import dalePhoto from '../assets/Photos/front-end_08-about_01-New Team Photos_Dale.png';
+import dalePhoto from '../assets/Photos/photo_2025-10-24_19-44-56.jpg';
 
 export const teamData = [
   {

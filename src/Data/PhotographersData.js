@@ -187,11 +187,27 @@ Agius’s work is held in prominent collections, and his exhibitions have spanne
     category: 'Celebrity, Portraiture',
     coverImage: `${CDN_BASE_URL}/front-end/02-Photographers/03-Bud%20Force/00-MainCavenders1-119.jpg`,
     profilePhotoSrc: 'front-end/artists/photographers/2-Bud Force.png',
-    bio: 'Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.',
+    bio: `Based near Austin, Texas, Bud Force is an award-winning director, cinematographer, and photographer whose work bridges documentary realism and cinematic brand storytelling. Raised in part amid the Sierra Nevada Mountains and later on a small ranch in rural Texas, his formative years cultivated a lifelong affinity for ranching, the outdoors, and the cowboy way of life.
+With a B.A. in Journalism from Texas A&M University and experience on a federal search-and-rescue team, Bud pivoted into freelance photography and filmmaking, specializing in outdoor adventure, agriculture, and travel-driven assignments.
+He is the co-director and cinematographer of the feature documentary Cowboys: A Documentary Portrait, a multi-state exploration of working cowboys and ranch culture across the American West.
+Today, Bud blends his documentary roots with high-end commercial and branded content: on-location, gear-lite, authenticity-first productions that stay rooted in terrain-driven storytelling and visual poise. He lives with his family in the Texas Hill Country and remains available for photography and motion assignments that demand authenticity, open landscapes, and real-life texture.
+`,
     section1_title: PLACEHOLDER_SECTION1_TITLE,
-    section1_text: PLACEHOLDER_SECTION1_TEXT,
-    section2_title: PLACEHOLDER_SECTION2_TITLE,
-    section2_text: PLACEHOLDER_SECTION2_TEXT,
+    section1_text: `Bud Force is a Texas-based filmmaker, cinematographer, and photographer — originally from Texas, he spent formative years in the Sierra Nevada Mountains.
+He co-directed and served as cinematographer (DP) on the feature documentary Cowboys: A Documentary Portrait(2019), which explores working cowboys across the American West.
+His specialty lies in agriculture, outdoor lifestyle, and travel assignments.
+He founded and partnered in production companies Ultralite Films and 1922 Films.
+He holds a B.A. in Journalism from Texas A&M University and previously served with a federal search and rescue task force before transitioning to filmmaking.
+His work blends documentary authenticity with cinematic commercial sensibility — combining lean, location-driven production with emotional storytelling.
+He lives in the Texas Hill Country with his wife and daughter, maintaining close ties to ranch and agricultural culture.
+`,
+    
+    section2_text: `His background in true-lifestyle, rugged outdoor / agricultural storytelling aligns with creative directors/brands that want authenticity, depth, and cinematic story.
+His cross-discipline strength (still photography + motion) makes him a versatile asset for your roster.
+The doc-feature story (Cowboys) demonstrates long-form storytelling credibility and also brand film chops.
+He brings both creative authenticity (real-world cowboy culture, remote terrain) and commercial acumen (brand campaigns, travel assignments) — which is a strong dual offering for SAS and your clients.
+On your site, you could position him as “Outdoor / Adventure / Lifestyle & Brand Cinematographer + Photographer” which may fill a distinct niche for your talent roster.
+`,
     // Collage: use numbered images (01..09)
     collagePhotos: [
       `${CDN_BASE_URL}/front-end/02-Photographers/03-Bud%20Force/01-6666%20Steak%20Wagon%20BW%20RFW-003.jpg`,
@@ -309,11 +325,18 @@ Agius’s work is held in prominent collections, and his exhibitions have spanne
     category: 'Editorial, Youth Campaigns',
     coverImage: `${CDN_BASE_URL}/front-end/02-Photographers/05-Janette%20Beckman/04-Janette%20Beckman/00-HERO-IMAGE-Screenshot%202024-10-01%20at%204.27.55%20PM.png`,
     profilePhotoSrc: 'front-end/artists/photographers/4-Janette+Beckman.png',
-    bio: 'Is a Dominican-American director, producer, and founder of the production company Cinema Giants...',
-    section1_title: PLACEHOLDER_SECTION1_TITLE,
-    section1_text: PLACEHOLDER_SECTION1_TEXT,
-    section2_title: PLACEHOLDER_SECTION2_TITLE,
-    section2_text: PLACEHOLDER_SECTION2_TEXT,
+    bio: `Janette Beckman is a documentary photographer based in New York whose work captures the energy and authenticity of sub-cultures on both sides of the Atlantic. Her journey began in London where she immersed herself in the punk and post-punk scenes, shooting for leading music publications and capturing youth culture at its rebellious peak. After relocating to New York in the early 1980s, she directed her lens toward the nascent hip-hop movement—photographing the artists, streets and attitudes that would shape the genre.
+Over a career spanning decades, Janette’s images have entered the permanent collections of major cultural institutions, and her practice continues to evolve, intersecting music, fashion, street style and documentary portraiture. Whether working on a magazine assignment, a gallery show or a brand campaign, she approaches each shoot with a grounded eye, authenticity-first mindset and respect for the culture she is documenting.
+`,
+    
+    section1_text: `Janette Beckman is a British-born documentary photographer who now works out of New York.
+She launched her career in the late 1970s and early 1980s in London, documenting the punk scene for magazines such as The Face and Melody Maker.
+In 1983 she moved to New York City and turned her lens to the emerging hip-hop culture, photographing key figures in the early rap scene.
+`,
+   
+    section2_text: `Her work is held in the permanent collections of major institutions including the Smithsonian National Museum of African American History and Culture, the Museum of the City of New York, and the National Portrait Gallery in London.
+Beckman continues to bridge sub-culture, music, fashion, and documentary portraiture — working on editorial, fine-art, and brand campaigns while staying rooted in street culture.
+`,
     collagePhotos: [
       `${CDN_BASE_URL}/front-end/02-Photographers/05-Janette%20Beckman/04-Janette%20Beckman/1-Big-Daddy-Kane-1831x1900.jpg`,
       `${CDN_BASE_URL}/front-end/02-Photographers/05-Janette%20Beckman/04-Janette%20Beckman/2-CHAKA-web-2252x1900.jpg`,
@@ -355,11 +378,18 @@ Agius’s work is held in prominent collections, and his exhibitions have spanne
     category: 'Editorial, Youth Campaigns',
     coverImage: `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/00-MainImage.png`,
     profilePhotoSrc: 'front-end/artists/photographers/5-Vivienne and Tamas.png',
-    bio: 'Is a Dominican-American director, producer, and founder of the production company Cinema Giants...',
-    section1_title: PLACEHOLDER_SECTION1_TITLE,
-    section1_text: PLACEHOLDER_SECTION1_TEXT,
-    section2_title: PLACEHOLDER_SECTION2_TITLE,
-    section2_text: PLACEHOLDER_SECTION2_TEXT,
+    bio: `Vivienne & Tamás form a Paris-based creative tandem whose work elevates luxury fashion, beauty and jewellery storytelling into cinematic visual experiences. Vivienne, originally from Budapest and trained in photography, and Tamás, her long-term creative and directorial partner, joined forces in 2017 to craft campaign films, editorials and brand work for some of the world’s most iconic luxury houses.
+From high-end still photography to motion storytelling for global brands, their dual practice blurs the line between photographer and filmmaker: refined technique meets bold visual vocabulary, defined by strong composition, inventive lighting and lush textures. Whether directing a beauty commercial, creating a jewellery campaign or producing a fashion film, Vivienne & Tamás bring consistent creative rigour, innovation and style.
+Based in Europe with a global shooting footprint, they anchor their work in luxury production values yet remain rooted in concept-forward aesthetics and visual authenticity. Vivienne & Tamás are available for photography and motion assignments that demand refined high-luxury aesthetic, cinematic storytelling and conceptual visual execution.
+`,
+    section1_text: `Vivienne & Tamás are a photographer-and-director duo based in Paris (and working across Europe) specializing in beauty, luxury accessories and fashion imagery.
+Their creative approach is rooted in experimentation and visual surprise — blending classic photography aesthetics with contemporary, cinematic-style visuals.
+Vivienne trained at MOME University of Art and Design (Budapest) and launched into fashion photography circa 2010; by 2017 the duo had formally united their talents to produce fashion films and high-end campaigns
+`,
+
+    section2_text: `Their client work spans top-tier luxury and beauty brands (including jewellery, fashion and beauty-cosmetic sectors) and they seamlessly toggle between still photography, motion/film direction and art-direction for campaigns.
+Their work is characterised by a polished, cinematic aesthetic while maintaining creative distinctiveness and conceptual depth — offering refined visuals with strong narrative or experimental texture.
+`,
     // Collage: use images numbered 01..09
     collagePhotos: [
       `${CDN_BASE_URL}/front-end/02-Photographers/06-Vivienne%20%26%20Tamas/01-7-6556Vivien02%2Bcopy.jpg`,
