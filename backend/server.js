@@ -63,6 +63,7 @@ const allowedOrigins = [
   'http://192.168.1.110:5173',
   'http://192.168.1.112:5173',
   'https://sas-frontend-zhgs.onrender.com',
+  "https://sinnersandsaints.la"
 ];
 
 const corsOptions = {
