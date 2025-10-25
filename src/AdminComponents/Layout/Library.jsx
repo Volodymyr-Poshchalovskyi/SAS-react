@@ -966,112 +966,75 @@ const Library = () => {
   const { session, user } = useAuth(); // Отримуємо сесію та користувача  const
   const itemsPerPage = 10;
 
-  // ! Effect: Main Data Fetch
-  // * Fetches all media items, signed URLs, and checks for processing videos
+  // ! Effect: Main Data Fetch (MODIFIED)
+  // * Fetches ONLY media items on load. URLs are fetched in a separate effect.
   useEffect(() => {
     console.log(
       `Library.jsx: useEffect запускається. Session:`,
       JSON.parse(JSON.stringify(session)) // Глибоке копіювання для логування
     );
-   const fetchData = async () => {
-    setLoading(true);
-    setError(null);
-    setShowProcessingWarning(false);
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      setShowProcessingWarning(false);
 
-    try {
-      // ▼▼▼ ПОЧАТОК ВИПРАВЛЕННЯ ▼▼▼
+      try {
+        if (!user || !session?.access_token) {
+          throw new Error('User not authenticated or session token is missing.');
+        }
+        setCurrentUserId(user.id);
 
-      // 1. Перевіряємо і юзера, і токен з контексту
-      if (!user || !session?.access_token) {
-        throw new Error('User not authenticated or session token is missing.');
-      }
-      setCurrentUserId(user.id);
-      
-      // 2. Беремо токен ПРЯМО З КОНТЕКСТУ (useAuth)
-     const token = session.access_token;
+        const token = session.access_token;
         const headers = {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         };
 
-        // ▼▼▼ ПОЧАТОК ВИПРАВЛЕННЯ ▼▼▼
-        
-        // 1. ЗАМІНЮЄМО ПРЯМИЙ ЗАПИТ до Supabase...
-        // const { data: fetchedItems, error: itemsError } = await supabase
-        //   .from('media_items')
-        //   .select(
-        //     `*, user_profiles:user_profiles(first_name, last_name, email)`
-        //   )
-        //   .order('created_at', { ascending: false });
-        // if (itemsError) throw itemsError;
-
-        // ...НА ЗАПИТ ДО НАШОГО БЕКЕНДУ (який є надійним)
-        const itemsResponse = await fetch(`${API_BASE_URL}/media-items/all`, { 
-          headers: headers 
+        // 1. Отримуємо ТІЛЬКИ дані про медіафайли (це швидко)
+        const itemsResponse = await fetch(`${API_BASE_URL}/media-items/all`, {
+          headers: headers,
         });
-        
+
         if (!itemsResponse.ok) {
           const errorData = await itemsResponse.json().catch(() => ({}));
-          throw new Error(errorData.error || 'Failed to fetch media items from backend');
+          throw new Error(
+            errorData.error || 'Failed to fetch media items from backend'
+          );
         }
-        
+
         const fetchedItems = await itemsResponse.json();
         setItems(fetchedItems || []);
 
-      // 5. Отримуємо підписані URL (вже з готовим токеном)
-      if (fetchedItems && fetchedItems.length > 0) {
-        const gcsPaths = fetchedItems
-          .map((item) => item.preview_gcs_path)
-          .filter(Boolean);
+        // 2. ! ВИДАЛЕНО ЗАПИТ ДО /generate-read-urls !
+        // Ми більше не завантажуємо ВСІ URL-адреси одразу.
 
-        if (gcsPaths.length > 0) {
-          const response = await fetch(`${API_BASE_URL}/generate-read-urls`, {
-            method: 'POST',
-            headers: headers, // <--- Використовуємо токен тут
-            body: JSON.stringify({ gcsPaths }),
-          });
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(
-              errorData.error || 'Failed to fetch signed URLs for previews'
-            );
-          }
-          const signedUrlsMap = await response.json();
-          setPreviewUrls(signedUrlsMap);
+        // 3. Логіка для "пінів" залишається
+        const storedPinsRaw = localStorage.getItem('userPinnedItems');
+        if (storedPinsRaw) {
+          const allUsersPins = JSON.parse(storedPinsRaw);
+          const userPins = allUsersPins[user.id] || [];
+          setPinnedItemIds(new Set(userPins));
         }
-      }
 
-      // ... (решта вашої логіки: recentVideos, localStorage) ...
-      // Цей код для localStorage також тепер безпечний, бо user 100% існує
-      const storedPinsRaw = localStorage.getItem('userPinnedItems');
-      if (storedPinsRaw) {
-        const allUsersPins = JSON.parse(storedPinsRaw);
-        const userPins = allUsersPins[user.id] || [];
-        setPinnedItemIds(new Set(userPins));
+      } catch (e) {
+        console.error('Помилка під час fetchData в Library.jsx:', e.message);
+        setError(e.message);
+        setItems([]);
+      } finally {
+        setLoading(false); // <--- Це спрацює набагато швидше
       }
-      
-      // ▲▲▲ КІНЕЦЬ ВИПРАВЛЕННЯ ▲▲▲
+    };
 
-    } catch (e) {
-      console.error('Помилка під час fetchData в Library.jsx:', e.message); // Додайте лог помилки
-      setError(e.message);
-      setItems([]);
-    } finally {
+    if (session && user) {
+      fetchData();
+    } else {
+      console.warn('Library.jsx: Чекаємо на сесію та юзера...');
       setLoading(false);
     }
-  };
+    
+  }, [refreshKey, session, user]); // Залежності ті самі
 
-  // Додаємо захист, як у FeatureManagement:
-  // Викликаємо fetchData, ТІЛЬКИ якщо і сесія, і юзер реально існують.
-  if (session && user) {
-    fetchData();
-  } else {
-    // Якщо чогось немає, просто чекаємо наступного ре-рендера
-    console.warn('Library.jsx: Чекаємо на сесію та юзера...');
-    setLoading(false); // Можна вимкнути лоадер, якщо даних для запиту немає
-  }
-  
-}, [refreshKey, session, user]);// Додаємо session у залежності
+// <--- Залежності
 
   // ! Effect: Sync Pinned Items to LocalStorage
   useEffect(() => {
@@ -1179,6 +1142,62 @@ const Library = () => {
     const start = (currentPage - 1) * itemsPerPage;
     return filteredItems.slice(start, start + itemsPerPage);
   }, [filteredItems, currentPage]);
+    // ! Effect: Fetch Preview URLs for VISIBLE items (NEW)
+  // * This runs after the page loads and whenever the current page changes.
+  useEffect(() => {
+    const fetchUrlsForCurrentPage = async () => {
+      // Переконуємось, що є токен і є елементи для завантаження
+      if (!session?.access_token || currentItems.length === 0) {
+        return;
+      }
+
+      // 1. Знаходимо шляхи (gcs_path), для яких у нас ще немає URL-адрес
+      const pathsToFetch = currentItems
+        .map(item => item.preview_gcs_path) // Беремо шляхи з поточних елементів
+        .filter(Boolean) // Видаляємо null/undefined
+        .filter(path => !previewUrls[path]); // <--- ВАЖЛИВО: Завантажуємо, тільки якщо URL ще не в стані
+
+      // Якщо для всіх елементів на сторінці вже є URL, нічого не робимо
+      if (pathsToFetch.length === 0) {
+        return;
+      }
+
+      try {
+        const token = session.access_token;
+        const headers = {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        };
+
+        // 2. Робимо запит ТІЛЬКИ для відсутніх URL-адрес (наприклад, для 10)
+        const response = await fetch(`${API_BASE_URL}/generate-read-urls`, {
+          method: 'POST',
+          headers: headers,
+          body: JSON.stringify({ gcsPaths: pathsToFetch }),
+        });
+
+        if (!response.ok) {
+           const errorData = await response.json().catch(() => ({}));
+           throw new Error(errorData.error || 'Failed to fetch signed URLs for page');
+        }
+        
+        const signedUrlsMap = await response.json();
+
+        // 3. Додаємо нові URL-адреси до нашого стану, не перезаписуючи старі
+        setPreviewUrls(prevUrls => ({
+          ...prevUrls,
+          ...signedUrlsMap
+        }));
+
+      } catch (e) {
+        console.error("Failed to fetch page-specific preview URLs:", e.message);
+        // Не встановлюємо тут глобальну помилку, сторінка вже завантажена
+      }
+    };
+
+    fetchUrlsForCurrentPage();
+    
+  }, [currentItems, session, previewUrls]); 
 
   // * Memoized text for the "Pin" button
   const pinActionText = useMemo(() => {
@@ -1591,17 +1610,29 @@ const Library = () => {
                         <td className="p-4 align-top">
                           <div className="flex items-start gap-4">
                             <div className="w-16 h-10 bg-slate-200 dark:bg-slate-800 rounded-md flex items-center justify-center shrink-0">
-                              {item.preview_gcs_path ? (
+                              {/* === ОНОВЛЕНА ЛОГІКА === */}
+                              
+                              {/* Якщо шлях є, але URL ще не завантажено, показуємо спіннер */}
+                              {item.preview_gcs_path && !previewUrls[item.preview_gcs_path] && (
+                                  <Loader2 className="w-4 h-4 text-slate-400 animate-spin" />
+                              )}
+
+                              {/* Якщо URL вже завантажено, показуємо зображення */}
+                              {item.preview_gcs_path && previewUrls[item.preview_gcs_path] && (
                                 <img
-                                  src={previewUrls[item.preview_gcs_path]} // * Use signed URL
+                                  src={previewUrls[item.preview_gcs_path]}
                                   alt="preview"
                                   className="w-full h-full object-cover rounded-md"
                                 />
-                              ) : (
+                              )}
+                              
+                              {/* Якщо шляху взагалі немає, показуємо іконку */}
+                              {!item.preview_gcs_path && (
                                 <div className="w-full h-full flex items-center justify-center bg-slate-100 dark:bg-slate-800">
                                   <ImageIcon className="w-5 h-5 text-slate-400" />
                                 </div>
                               )}
+                              {/* === КІНЕЦЬ ОНОВЛЕНОЇ ЛОГІКИ === */}
                             </div>
                             <div className="min-w-0">
                               <div className="text-blue-600 dark:text-blue-400 text-[10px] font-medium uppercase">
