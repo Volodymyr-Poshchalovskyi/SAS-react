@@ -105,8 +105,8 @@ export default function ProjectPage() {
       // * Feature projects might have a different structure or fixed related projects/description
       return {
         ...featureProject,
-        videoSrc: featureProject.previewVideo?.src, // * Use previewVideo source if available
-        preview_src: featureProject.previewVideo?.preview_src,
+        videoSrc: featureProject.src, // 💡 ЗМІНА: Використовуємо featureProject.src
+    preview_src: featureProject.preview_src,
         relatedProjects: [], // * Feature page currently shows no related projects
         type: 'feature',
         // * Hardcoded description specific to the feature project 'Ride'

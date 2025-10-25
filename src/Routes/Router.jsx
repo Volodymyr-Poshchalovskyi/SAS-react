@@ -7,6 +7,7 @@ import { Routes, Route } from 'react-router-dom';
 // ! Layout Components
 import Layout from '../Components/Layout/Layout.jsx'; // * Main public site layout
 import AdminLayout from '../AdminComponents/Layout/AdminLayout.jsx'; // * Layout for admin/user panels
+import NotFound from '../Pages/NotFound.jsx'; // * 404 Not Found Page
 
 // ! Public Page Components
 import Main from '../Pages/Main.jsx';
@@ -96,7 +97,9 @@ export default function AppRouter() {
         <Route
           path="/post-production/:directorSlug"
           element={<DirectorPage />}
+          
         />
+        <Route path="*" element={<NotFound />} />
 
         {/* Table Top Studio */}
         <Route path="/table-top-studio" element={<TableTopStudio />} />
@@ -132,6 +135,7 @@ export default function AppRouter() {
             <Route path="/adminpanel" element={<AdminPanel />}>
               {/* // * Shared routes (same components as user panel but under /adminpanel) */}
               <Route index element={<Dashboard />} />
+              <Route path="*" element={<NotFound />} />
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="upload-media" element={<CreateReel />} />
               <Route path="upload-media/:itemId" element={<CreateReel />} />
@@ -154,7 +158,7 @@ export default function AppRouter() {
       </Route>{' '}
       {/* End ProtectedRoute */}
       {/* // ! SECTION: Catch-all Route (Optional: 404 Page) */}
-      {/* <Route path="*" element={<NotFoundPage />} /> */}
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
