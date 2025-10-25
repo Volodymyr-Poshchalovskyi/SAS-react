@@ -1,0 +1,11 @@
+# Увімкнути механізм перезапису URL
+RewriteEngine On
+
+# Умова 1: Запит НЕ є фізичним файлом
+RewriteCond %{REQUEST_FILENAME} !-f
+
+# Умова 2: Запит НЕ є фізичною директорією
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Правило: Перенаправити всі інші запити на index.html
+RewriteRule ^ /index.html [L]

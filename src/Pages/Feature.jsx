@@ -23,6 +23,8 @@ import { featureProjectData } from '../Data/FeatureProjectData';
 pdfjs.GlobalWorkerOptions.workerSrc = workerSrc;
 
 const CDN_BASE_URL = 'https://storage.googleapis.com/new-sas-media-storage';
+// !!! ВИКОРИСТОВУЄМО КОНСТАНТУ ЗМЕННОЇ СЕРЕДОВИЩА !!!
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 // Анімації
 const nameAnimation = {
@@ -99,7 +101,12 @@ const PasswordPrompt = ({
 );
 
 // Компонент оверлею
-const VideoTitleOverlay = ({ title, client, projectSlug, isPreloaderActive }) => {
+const VideoTitleOverlay = ({
+  title,
+  client,
+  projectSlug,
+  isPreloaderActive,
+}) => {
   return (
     <div className="absolute inset-0 z-10 flex items-end justify-center text-center p-8 pb-24 text-white pointer-events-none">
       <motion.div
@@ -170,7 +177,7 @@ export default function Feature() {
       }
       try {
         const response = await fetch(
-          'http://localhost:3001/feature-pdf-password/version'
+          `${API_BASE_URL}/feature-pdf-password/version` // <--- ВИКОРИСТАННЯ API_BASE_URL
         );
         const serverData = await response.json();
         if (response.ok && serverData.version === authData.version) {
@@ -196,15 +203,17 @@ export default function Feature() {
       setPdfError(null);
       try {
         const metaResponse = await fetch(
-          'http://localhost:3001/feature-pdf/current'
+          `${API_BASE_URL}/feature-pdf/current` // <--- ВИКОРИСТАННЯ API_BASE_URL
         );
         if (!metaResponse.ok) throw new Error('Could not get PDF information.');
         const pdfData = await metaResponse.json();
         if (!pdfData || !pdfData.gcs_path)
           throw new Error('No feature document has been uploaded yet.');
         setPdfFile(pdfData);
+
+        // Отримання підписаної URL
         const urlResponse = await fetch(
-          'http://localhost:3001/generate-read-urls',
+          `${API_BASE_URL}/generate-read-urls`, // <--- ВИКОРИСТАННЯ API_BASE_URL
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -214,6 +223,7 @@ export default function Feature() {
         if (!urlResponse.ok) throw new Error('Could not get a secure URL.');
         const urlsMap = await urlResponse.json();
         const signedUrl = urlsMap[pdfData.gcs_path];
+
         if (!signedUrl)
           throw new Error('Failed to retrieve a valid document URL.');
         setPdfUrl(signedUrl);
@@ -227,10 +237,11 @@ export default function Feature() {
     fetchLatestPdf();
   }, [isAuthenticated]);
 
-  // 3. Відправка статистики
+  // 3. Відправка статистики (navigator.sendBeacon)
   useEffect(() => {
     const handleBeforeUnload = () => {
-      if (sessionStatsKey && numPages) {
+      if (sessionStatsKey && numPages && pdfFile) {
+        // Додано перевірку pdfFile
         const statsRaw = sessionStorage.getItem(sessionStatsKey);
         if (statsRaw) {
           const stats = JSON.parse(statsRaw);
@@ -239,7 +250,8 @@ export default function Feature() {
             pdf_file_id: pdfFile.id,
             completion_percentage: percentage,
           };
-          const logUrl = 'http://localhost:3001/feature-pdf/log-view';
+          const logUrl = `${API_BASE_URL}/feature-pdf/log-view`; // <--- ВИКОРИСТАННЯ API_BASE_URL
+          // navigator.sendBeacon працює поза основним потоком і не вимагає заголовків
           navigator.sendBeacon(logUrl, JSON.stringify(payload));
           sessionStorage.removeItem(sessionStatsKey);
         }
@@ -305,7 +317,7 @@ export default function Feature() {
     setAuthError('');
     try {
       const response = await fetch(
-        'http://localhost:3001/feature-pdf-password/verify',
+        `${API_BASE_URL}/feature-pdf-password/verify`, // <--- ВИКОРИСТАННЯ API_BASE_URL
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -340,7 +352,11 @@ export default function Feature() {
     const elem = pdfContainerRef.current;
     if (!elem) return;
     if (!document.fullscreenElement)
-      elem.requestFullscreen().catch((err) => alert(`Error: ${err.message}`));
+      elem
+        .requestFullscreen()
+        .catch((err) =>
+          console.error(`Error entering fullscreen: ${err.message}`)
+        );
     else document.exitFullscreen();
   }, []);
   useEffect(() => {
@@ -402,7 +418,7 @@ export default function Feature() {
       container.removeEventListener('touchend', handleTouchEnd);
     };
   }, [paginate, isAuthenticated]);
-  
+
   // Ефект для скролу вгору
   useLayoutEffect(() => {
     if (!isPreloaderActive) {
@@ -421,7 +437,7 @@ export default function Feature() {
     window.addEventListener('resize', updateWidth);
     return () => window.removeEventListener('resize', updateWidth);
   }, [isFullscreen, isAuthenticated]);
-  
+
   // Ефект для overflow та scroll-snap
   useEffect(() => {
     document.body.style.overflow = isPreloaderActive ? 'hidden' : '';
@@ -434,12 +450,10 @@ export default function Feature() {
   }, [isPreloaderActive]);
 
   // --- Рендеринг ---
-  
-  // ▼▼▼ ЗМІНА: Текст для банера тепер статичний ▼▼▼
+
   const bannerTitle = 'From Script to Screen.';
   const bannerDescription =
     'Our feature film division specializes in packaging commercially viable projects with top-tier talent, financing strategies, and distribution plans. Whether building a festival hit or a streamer-ready series, we develop narratives with lasting impact.';
-  // ▲▲▲ КІНЕЦЬ ЗМІНИ ▲▲▲
 
   const PaginationControls = ({ className = '' }) => (
     <div className={`flex items-center justify-center gap-4 ${className}`}>
@@ -463,6 +477,7 @@ export default function Feature() {
       </button>{' '}
     </div>
   );
+
   const renderPdfContent = () => (
     <>
       {' '}
@@ -584,7 +599,7 @@ export default function Feature() {
           }
           shouldPlay={!isPreloaderActive}
           isMuted={true}
-          isLooped={true} 
+          isLooped={true}
           startTime={featureProjectData.startTime}
         />
         {/* Оверлей на відео бере дані з featureProjectData */}
@@ -599,7 +614,7 @@ export default function Feature() {
       </div>
       {/* --- СЕКЦІЯ 2: PDF КОНТЕНТ --- */}
       <div className="relative w-full min-h-screen snap-start bg-gray-100">
-        <div className="w-full min-h-screen flex flex-col items-center justify-center pt-[140px] px-4 pb-12">
+        <div className="w-full min-h-screen flex flex-col items-center justify-center pt-[10px] px-4 pb-12">
           {' '}
           <motion.div
             className="w-full max-w-4xl"
